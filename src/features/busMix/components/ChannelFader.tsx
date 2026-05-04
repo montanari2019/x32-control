@@ -1,0 +1,127 @@
+import Slider from '@react-native-community/slider';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { colors } from '@shared/theme/colors';
+import { levelToDb } from '@shared/utils/levelToDb';
+import { Channel } from '../types/Channel';
+
+type ChannelFaderProps = {
+  channel: Channel;
+  onLevelChange: (level: number) => void;
+  onToggleOn: () => void;
+};
+
+const formatDb = (level: number): string => {
+  const db = levelToDb(level);
+  return Number.isFinite(db) ? `${db.toFixed(1)} dB` : '-∞ dB';
+};
+
+export const ChannelFader = ({
+  channel,
+  onLevelChange,
+  onToggleOn,
+}: ChannelFaderProps): JSX.Element => (
+  <View style={styles.card}>
+    <View style={styles.channelInfo}>
+      <View
+        style={[
+          styles.colorStrip,
+          { backgroundColor: channel.color ?? colors.neutralFader },
+        ]}
+      />
+      <View style={styles.textBlock}>
+        <Text style={styles.label}>{channel.label}</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {channel.name}
+        </Text>
+      </View>
+    </View>
+
+    <View style={styles.faderBlock}>
+      <Slider
+        minimumValue={0}
+        maximumValue={1}
+        step={0.001}
+        value={channel.level}
+        onValueChange={onLevelChange}
+        minimumTrackTintColor={channel.color ?? colors.neutralFader}
+        maximumTrackTintColor={colors.track}
+        thumbTintColor={channel.color ?? colors.neutralFader}
+      />
+      <Text style={styles.value}>
+        {Math.round(channel.level * 100)}% · {formatDb(channel.level)}
+      </Text>
+    </View>
+
+    <Pressable
+      accessibilityRole="switch"
+      accessibilityState={{ checked: channel.on }}
+      onPress={onToggleOn}
+      style={[styles.onButton, channel.on ? styles.onActive : styles.onMuted]}
+    >
+      <Text style={styles.onText}>{channel.on ? 'ON' : 'MUTE'}</Text>
+    </Pressable>
+  </View>
+);
+
+const styles = StyleSheet.create({
+  card: {
+    backgroundColor: colors.surface,
+    borderColor: colors.border,
+    borderRadius: 8,
+    borderWidth: 1,
+    gap: 12,
+    padding: 14,
+  },
+  channelInfo: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: 12,
+  },
+  colorStrip: {
+    borderRadius: 3,
+    height: 42,
+    width: 6,
+  },
+  faderBlock: {
+    gap: 4,
+  },
+  label: {
+    color: colors.textMuted,
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  name: {
+    color: colors.text,
+    fontSize: 16,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  onActive: {
+    backgroundColor: colors.success,
+  },
+  onButton: {
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    borderRadius: 8,
+    minWidth: 74,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+  },
+  onMuted: {
+    backgroundColor: colors.danger,
+  },
+  onText: {
+    color: colors.background,
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  textBlock: {
+    flex: 1,
+  },
+  value: {
+    color: colors.textMuted,
+    fontSize: 12,
+    textAlign: 'right',
+  },
+});
