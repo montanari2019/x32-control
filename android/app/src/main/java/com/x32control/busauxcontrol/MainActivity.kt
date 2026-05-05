@@ -1,4 +1,4 @@
-package com.x32nativeshell
+package com.x32control.busauxcontrol
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate
