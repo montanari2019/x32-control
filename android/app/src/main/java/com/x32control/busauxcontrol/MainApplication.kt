@@ -1,4 +1,4 @@
-package com.x32nativeshell
+package com.x32control.busauxcontrol
 
 import android.app.Application
 import com.facebook.react.PackageList

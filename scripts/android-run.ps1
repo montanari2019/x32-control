@@ -21,7 +21,7 @@ if (Test-Path -LiteralPath $tempRoot) {
 
 New-Item -ItemType Directory -Path $projectCacheDir -Force | Out-Null
 
-$env:GRADLE_OPTS = "-Dorg.gradle.projectcachedir=$projectCacheDir -Dorg.gradle.daemon=false"
+$gradleExtraParams = "--no-daemon --project-cache-dir `"$projectCacheDir`""
 
 try {
     & (Join-Path $androidDir "gradlew.bat") --stop | Out-Null
@@ -31,7 +31,7 @@ try {
 
 Push-Location $projectRoot
 try {
-    & npx react-native run-android
+    & npx react-native run-android --appId com.x32control.busauxcontrol --extra-params $gradleExtraParams
     if ($LASTEXITCODE -ne 0) {
         exit $LASTEXITCODE
     }

@@ -5,6 +5,7 @@
   "scripts": {
     "android": "powershell -ExecutionPolicy Bypass -File scripts/android-run.ps1",
     "android:clean": "powershell -ExecutionPolicy Bypass -File scripts/android-reset-gradle-cache.ps1",
+    "icons": "node scripts/generate-icons.js",
     "ios": "react-native run-ios",
     "start": "react-native start",
     "test": "jest",
@@ -21,6 +22,7 @@
     "react-native-gesture-handler": "2.21.2",
     "react-native-safe-area-context": "^4.10.8",
     "react-native-screens": "^3.34.0",
+    "react-native-svg": "15.8.0",
     "react-native-udp": "^4.1.7"
   },
   "devDependencies": {
@@ -40,6 +42,7 @@
     "jest": "^29.7.0",
     "prettier": "^2.8.8",
     "react-test-renderer": "18.2.0",
+    "sharp": "^0.34.5",
     "ts-jest": "^29.2.4",
     "typescript": "^5.5.4"
   },
