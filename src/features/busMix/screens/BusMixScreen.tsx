@@ -17,7 +17,7 @@ import { Channel } from '../types/Channel';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
 
-export const BusMixScreen = ({ route, navigation }: Props): JSX.Element => {
+export const BusMixScreen = ({ route, navigation }: Props): Element => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
   const {
     channels,
@@ -82,7 +82,7 @@ export const BusMixScreen = ({ route, navigation }: Props): JSX.Element => {
     });
   };
 
-  const renderChannel = ({ item }: { item: Channel }): JSX.Element => (
+  const renderChannel = ({ item }: { item: Channel }): Element => (
     <ChannelStrip
       channel={item}
       registerMeterListener={registerMeterListener}
