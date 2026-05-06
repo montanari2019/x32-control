@@ -1,8 +1,4 @@
-export type ConsoleStatus =
-  | 'connected'
-  | 'disconnected'
-  | 'searching'
-  | 'error';
+export type ConsoleStatus = 'connected' | 'disconnected' | 'searching' | 'error';
 
 export type ConsoleDevice = {
   id: string;

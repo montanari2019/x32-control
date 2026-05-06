@@ -1,11 +1,5 @@
 import React from 'react';
-import {
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-  Text,
-  ViewStyle,
-} from 'react-native';
+import { ActivityIndicator, Pressable, StyleSheet, Text, ViewStyle } from 'react-native';
 import { colors } from '@shared/theme/colors';
 
 type ButtonProps = {
@@ -38,7 +32,9 @@ export const Button = ({
     ]}
   >
     {loading ? (
-      <ActivityIndicator color={colors.background} />
+      <ActivityIndicator
+        color={variant === 'secondary' ? colors.text.primary : colors.text.inverse}
+      />
     ) : (
       <Text style={styles.text}>{title}</Text>
     )}
@@ -54,7 +50,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 18,
   },
   danger: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.status.danger,
   },
   disabled: {
     opacity: 0.55,
@@ -63,15 +59,15 @@ const styles = StyleSheet.create({
     opacity: 0.82,
   },
   primary: {
-    backgroundColor: colors.primary,
+    backgroundColor: colors.accent.primary,
   },
   secondary: {
-    backgroundColor: colors.surfaceAlt,
-    borderColor: colors.border,
+    backgroundColor: colors.background.secondary,
+    borderColor: colors.border.primary,
     borderWidth: 1,
   },
   text: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '700',
   },

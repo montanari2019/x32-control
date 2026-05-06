@@ -14,8 +14,7 @@ import { ConsoleDevice } from '../types/ConsoleDevice';
 type Props = NativeStackScreenProps<RootStackParamList, 'ConsoleDiscovery'>;
 
 export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
-  const { devices, error, isSearching, scan, validateManualIp } =
-    useConsoleDiscovery();
+  const { devices, error, isSearching, scan, validateManualIp } = useConsoleDiscovery();
   const [manualIp, setManualIp] = useState('');
 
   const openConsole = (device: ConsoleDevice): void => {
@@ -41,11 +40,7 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
         </Text>
       </View>
 
-      <Button
-        title="Buscar mesas na rede"
-        onPress={scan}
-        loading={isSearching}
-      />
+      <Button title="Buscar mesas na rede" onPress={scan} loading={isSearching} />
 
       <View style={styles.manual}>
         <Text style={styles.sectionTitle}>Conexao manual</Text>
@@ -56,7 +51,7 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
             keyboardType="numbers-and-punctuation"
             onChangeText={setManualIp}
             placeholder="192.168.1.100"
-            placeholderTextColor={colors.textMuted}
+            placeholderTextColor={colors.text.secondary}
             style={styles.input}
             value={manualIp}
           />
@@ -69,16 +64,8 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
         </View>
       </View>
 
-      {isSearching ? (
-        <LoadingState label="Procurando consoles via /info..." />
-      ) : null}
-      {error ? (
-        <ErrorState
-          message={error}
-          actionLabel="Tentar novamente"
-          onAction={scan}
-        />
-      ) : null}
+      {isSearching ? <LoadingState label="Procurando consoles via /info..." /> : null}
+      {error ? <ErrorState message={error} actionLabel="Tentar novamente" onAction={scan} /> : null}
 
       <View style={styles.list}>
         {devices.map((device) => (
@@ -95,11 +82,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   input: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surface.elevated,
+    borderColor: colors.border.primary,
     borderRadius: 8,
     borderWidth: 1,
-    color: colors.text,
+    color: colors.text.primary,
     flex: 1,
     fontSize: 16,
     minHeight: 48,
@@ -121,17 +108,17 @@ const styles = StyleSheet.create({
     minWidth: 72,
   },
   sectionTitle: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 15,
     fontWeight: '800',
   },
   subtitle: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 15,
     lineHeight: 21,
   },
   title: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 30,
     fontWeight: '900',
   },

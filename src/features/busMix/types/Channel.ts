@@ -3,7 +3,9 @@ export type Channel = {
   number: number;
   label: string;
   name: string;
-  color?: string;
+  color?: number | string;
   level: number;
+  signalLevel: number;
+  pan: number;
   on: boolean;
 };

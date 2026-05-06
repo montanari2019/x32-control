@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
 import { debounce } from '@shared/utils/debounce';
+import { percentToX32Pan, x32PanToPercent } from '@shared/x32/pan';
 import { BusMixService } from '../services/BusMixService';
 import { Channel } from '../types/Channel';
 
@@ -10,15 +11,15 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string>();
+  const [hasPendingChanges, setHasPendingChanges] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
 
   const debouncedSend = useMemo(
     () =>
       debounce((channel: number, level: number) => {
-        service
-          .setBusSendLevel(channel, busNumber, level)
-          .catch((sendError) => {
-            setError(getErrorMessage(sendError));
-          });
+        service.setChannelFader(channel, busNumber, level).catch((sendError) => {
+          setError(getErrorMessage(sendError));
+        });
       }, 80),
     [busNumber, service],
   );
@@ -48,19 +49,17 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
   useEffect(() => {
     const unsubscribers = channels.map((channel) =>
-      service.onLevel(busNumber, channel.number, (returnedLevel) => {
+      service.onLevel(channel.number, busNumber, (returnedLevel) => {
         setChannels((current) =>
           current.map((item) =>
-            item.number === channel.number
-              ? { ...item, level: returnedLevel }
-              : item,
+            item.number === channel.number ? { ...item, level: returnedLevel } : item,
           ),
         );
       }),
     );
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [busNumber, channels, service]);
+  }, [channels, service]);
 
   const setLevel = (channelNumber: number, level: number): void => {
     setChannels((current) =>
@@ -68,6 +67,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
         channel.number === channelNumber ? { ...channel, level } : channel,
       ),
     );
+    setHasPendingChanges(true);
     debouncedSend(channelNumber, level);
   };
 
@@ -79,30 +79,59 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
     const nextOn = !channel.on;
     setChannels((current) =>
-      current.map((item) =>
-        item.number === channelNumber ? { ...item, on: nextOn } : item,
-      ),
+      current.map((item) => (item.number === channelNumber ? { ...item, on: nextOn } : item)),
     );
+    setHasPendingChanges(true);
 
     try {
-      await service.setBusSendOn(channelNumber, busNumber, nextOn);
+      await service.setChannelOn(channelNumber, busNumber, nextOn);
     } catch (toggleError) {
       setChannels((current) =>
-        current.map((item) =>
-          item.number === channelNumber ? { ...item, on: channel.on } : item,
-        ),
+        current.map((item) => (item.number === channelNumber ? { ...item, on: channel.on } : item)),
       );
       setError(getErrorMessage(toggleError));
     }
   };
+
+  const setPan = (channelNumber: number, pan: number): void => {
+    const nextPan = percentToX32Pan(pan);
+    setChannels((current) =>
+      current.map((channel) =>
+        channel.number === channelNumber ? { ...channel, pan: nextPan } : channel,
+      ),
+    );
+    setHasPendingChanges(true);
+    service.setChannelPan(channelNumber, busNumber, nextPan).catch((sendError) => {
+      setError(getErrorMessage(sendError));
+    });
+  };
+
+  const save = useCallback(async (): Promise<void> => {
+    if (!hasPendingChanges || isSaving) {
+      return;
+    }
+
+    setIsSaving(true);
+    try {
+      await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
+      setHasPendingChanges(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }, [hasPendingChanges, isSaving]);
 
   return {
     channels,
     error,
     isLoading,
     isRefreshing,
+    hasPendingChanges,
+    isSaving,
     refresh: () => load(true),
     setLevel,
     toggleOn,
+    setPan,
+    getPanPercent: (value: number) => x32PanToPercent(value),
+    save,
   };
 };

@@ -7,11 +7,7 @@ import { X32Protocol } from '@shared/osc/X32Protocol';
 import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
 import { UdpTransport } from './UdpTransport';
 
-const parseInfo = (
-  ip: string,
-  port: number,
-  response: OscMessage,
-): ConsoleDevice => {
+const parseInfo = (ip: string, port: number, response: OscMessage): ConsoleDevice => {
   const values = response.args.map(String);
   const model = values.find((value) => /X32|M32/i.test(value)) ?? 'X32/M32';
   const name = values[1] && values[1].trim().length > 0 ? values[1] : model;
@@ -30,8 +26,7 @@ const parseInfo = (
 export class NetworkScanner {
   constructor(
     private readonly clientFactory: () => OscClient = () => new OscClient(),
-    private readonly transportFactory: () => UdpTransport = () =>
-      new UdpTransport(),
+    private readonly transportFactory: () => UdpTransport = () => new UdpTransport(),
   ) {}
 
   async scanForConsoles(): Promise<ConsoleDevice[]> {
@@ -73,27 +68,15 @@ export class NetworkScanner {
 
     try {
       await client.connect(ip, X32Protocol.defaultPort);
-      const info = await client.request<OscMessage>(
-        X32Protocol.getInfoPath(),
-        [],
-        timeoutMs,
-      );
-      await client.request<OscMessage>(
-        X32Protocol.getStatusPath(),
-        [],
-        timeoutMs,
-      );
+      const info = await client.request<OscMessage>(X32Protocol.getInfoPath(), [], timeoutMs);
+      await client.request<OscMessage>(X32Protocol.getStatusPath(), [], timeoutMs);
       return parseInfo(ip, X32Protocol.defaultPort, info);
     } catch (error) {
       if (error instanceof AppError) {
         throw error;
       }
 
-      throw new AppError(
-        'CONSOLE_NOT_FOUND',
-        'Mesa não encontrada neste IP.',
-        error,
-      );
+      throw new AppError('CONSOLE_NOT_FOUND', 'Mesa não encontrada neste IP.', error);
     } finally {
       client.disconnect();
     }
