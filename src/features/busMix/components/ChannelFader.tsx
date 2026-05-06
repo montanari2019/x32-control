@@ -3,6 +3,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { levelToDb } from '@shared/utils/levelToDb';
+import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { Channel } from '../types/Channel';
 
 type ChannelFaderProps = {
@@ -13,53 +14,58 @@ type ChannelFaderProps = {
 
 const formatDb = (level: number): string => {
   const db = levelToDb(level);
-  return Number.isFinite(db) ? `${db.toFixed(1)} dB` : '-∞ dB';
+  return Number.isFinite(db) ? `${db.toFixed(1)} dB` : '-inf dB';
 };
 
 export const ChannelFader = ({
   channel,
   onLevelChange,
   onToggleOn,
-}: ChannelFaderProps): JSX.Element => (
-  <View style={styles.card}>
-    <View style={styles.channelInfo}>
-      <View
-        style={[styles.colorStrip, { backgroundColor: channel.color ?? colors.mixer.neutralFader }]}
-      />
-      <View style={styles.textBlock}>
-        <Text style={styles.label}>{channel.label}</Text>
-        <Text style={styles.name} numberOfLines={1}>
-          {channel.name}
+}: ChannelFaderProps): JSX.Element => {
+  const accentColor =
+    channel.color == null
+      ? colors.mixer.neutralFader
+      : mapX32ColorToUiColor(channel.color).backgroundColor;
+
+  return (
+    <View style={styles.card}>
+      <View style={styles.channelInfo}>
+        <View style={[styles.colorStrip, { backgroundColor: accentColor }]} />
+        <View style={styles.textBlock}>
+          <Text style={styles.label}>{channel.label}</Text>
+          <Text style={styles.name} numberOfLines={1}>
+            {channel.name}
+          </Text>
+        </View>
+      </View>
+
+      <View style={styles.faderBlock}>
+        <Slider
+          minimumValue={0}
+          maximumValue={1}
+          step={0.001}
+          value={channel.level}
+          onValueChange={onLevelChange}
+          minimumTrackTintColor={accentColor}
+          maximumTrackTintColor={colors.mixer.track}
+          thumbTintColor={accentColor}
+        />
+        <Text style={styles.value}>
+          {Math.round(channel.level * 100)}% · {formatDb(channel.level)}
         </Text>
       </View>
-    </View>
 
-    <View style={styles.faderBlock}>
-      <Slider
-        minimumValue={0}
-        maximumValue={1}
-        step={0.001}
-        value={channel.level}
-        onValueChange={onLevelChange}
-        minimumTrackTintColor={channel.color ?? colors.mixer.neutralFader}
-        maximumTrackTintColor={colors.mixer.track}
-        thumbTintColor={channel.color ?? colors.mixer.neutralFader}
-      />
-      <Text style={styles.value}>
-        {Math.round(channel.level * 100)}% · {formatDb(channel.level)}
-      </Text>
+      <Pressable
+        accessibilityRole="switch"
+        accessibilityState={{ checked: channel.on }}
+        onPress={onToggleOn}
+        style={[styles.onButton, channel.on ? styles.onActive : styles.onMuted]}
+      >
+        <Text style={styles.onText}>{channel.on ? 'ON' : 'MUTE'}</Text>
+      </Pressable>
     </View>
-
-    <Pressable
-      accessibilityRole="switch"
-      accessibilityState={{ checked: channel.on }}
-      onPress={onToggleOn}
-      style={[styles.onButton, channel.on ? styles.onActive : styles.onMuted]}
-    >
-      <Text style={styles.onText}>{channel.on ? 'ON' : 'MUTE'}</Text>
-    </Pressable>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   card: {

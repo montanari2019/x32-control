@@ -14,24 +14,25 @@ Aplicativo mobile em React Native com TypeScript para controlar envios BUS/AUX d
 ## Instalação
 
 ```sh
-npm install
-npm run typecheck
-npm test
+yarn install
+yarn lint
+yarn tsc
+yarn test
 ```
 
 Android:
 
 ```sh
-npm run android
+yarn start
+yarn android
 ```
 
 iOS:
 
 ```sh
-cd ios
-pod install
-cd ..
-npm run ios
+yarn pod
+yarn start
+yarn ios
 ```
 
 ## Permissões de rede
