@@ -1,12 +1,13 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { Alert, Platform, StyleSheet, Text, TextInput, ToastAndroid, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { Button } from '@shared/components/Button';
-import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
+import { radius } from '@shared/theme/radius';
+import { spacing } from '@shared/theme/spacing';
 import { ConsoleCard } from '../components/ConsoleCard';
 import { useConsoleDiscovery } from '../hooks/useConsoleDiscovery';
 import { ConsoleDevice } from '../types/ConsoleDevice';
@@ -16,6 +17,19 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConsoleDiscovery'>;
 export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
   const { devices, error, isSearching, scan, validateManualIp } = useConsoleDiscovery();
   const [manualIp, setManualIp] = useState('');
+
+  useEffect(() => {
+    if (!error) {
+      return;
+    }
+
+    if (Platform.OS === 'android') {
+      ToastAndroid.show(error, ToastAndroid.LONG);
+      return;
+    }
+
+    Alert.alert('Nao foi possivel localizar o console', error);
+  }, [error]);
 
   const openConsole = (device: ConsoleDevice): void => {
     navigation.navigate('BusSelection', {
@@ -32,18 +46,32 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
   };
 
   return (
-    <Screen scroll>
-      <View style={styles.hero}>
-        <Text style={styles.title}>Controle BUS/AUX</Text>
-        <Text style={styles.subtitle}>
-          Conecte o celular na mesma rede Ethernet/Wi-Fi da X32/M32.
-        </Text>
+    <Screen scroll style={styles.screen}>
+      <View style={styles.heroCard}>
+        <View style={styles.heroBadge}>
+          <Text style={styles.heroBadgeText}>Descoberta de console</Text>
+        </View>
+
+        <View style={styles.hero}>
+          <Text style={styles.title}>Controle BUS/AUX</Text>
+          <Text style={styles.subtitle}>
+            Conecte o celular na mesma rede Ethernet ou Wi-Fi da X32/M32 para localizar a mesa e
+            entrar no monitor correto.
+          </Text>
+        </View>
+
+        <Button title="Buscar mesas na rede" onPress={scan} loading={isSearching} />
       </View>
 
-      <Button title="Buscar mesas na rede" onPress={scan} loading={isSearching} />
+      <View style={styles.manualCard}>
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionEyebrow}>Acesso direto</Text>
+          <Text style={styles.sectionTitle}>Conexao manual</Text>
+          <Text style={styles.sectionDescription}>
+            Se a busca automatica nao encontrar a mesa, informe o IP manualmente.
+          </Text>
+        </View>
 
-      <View style={styles.manual}>
-        <Text style={styles.sectionTitle}>Conexao manual</Text>
         <View style={styles.manualRow}>
           <TextInput
             autoCapitalize="none"
@@ -56,16 +84,16 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
             value={manualIp}
           />
           <Button
-            title="OK"
+            title="Entrar"
             onPress={connectManual}
             loading={isSearching}
+            variant="secondary"
             style={styles.okButton}
           />
         </View>
       </View>
 
       {isSearching ? <LoadingState label="Procurando consoles via /info..." /> : null}
-      {error ? <ErrorState message={error} actionLabel="Tentar novamente" onAction={scan} /> : null}
 
       <View style={styles.list}>
         {devices.map((device) => (
@@ -78,38 +106,85 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
 
 const styles = StyleSheet.create({
   hero: {
-    gap: 8,
-    marginBottom: 20,
+    gap: spacing.sm,
+  },
+  heroBadge: {
+    alignSelf: 'flex-start',
+    backgroundColor: colors.surface.glassOverlay,
+    borderColor: colors.border.subtle,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  heroBadgeText: {
+    color: colors.accent.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  heroCard: {
+    backgroundColor: colors.background.secondary,
+    borderColor: colors.border.primary,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    gap: spacing.lg,
+    marginBottom: spacing.lg,
+    overflow: 'hidden',
+    padding: spacing.xl,
   },
   input: {
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: colors.surface.screen,
     borderColor: colors.border.primary,
-    borderRadius: 8,
+    borderRadius: radius.md,
     borderWidth: 1,
     color: colors.text.primary,
     flex: 1,
     fontSize: 16,
-    minHeight: 48,
+    minHeight: 52,
     paddingHorizontal: 14,
   },
   list: {
-    gap: 12,
-    marginTop: 16,
+    gap: spacing.sm,
+    marginTop: spacing.md,
   },
-  manual: {
-    gap: 10,
-    marginTop: 22,
+  manualCard: {
+    backgroundColor: colors.surface.elevated,
+    borderColor: colors.border.primary,
+    borderRadius: radius.lg,
+    borderWidth: 1,
+    gap: spacing.md,
+    padding: spacing.lg,
   },
   manualRow: {
     flexDirection: 'row',
-    gap: 10,
+    gap: spacing.sm,
   },
   okButton: {
-    minWidth: 72,
+    minWidth: 96,
+  },
+  screen: {
+    backgroundColor: colors.background.deep,
+  },
+  sectionDescription: {
+    color: colors.text.secondary,
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  sectionEyebrow: {
+    color: colors.text.secondary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+  },
+  sectionHeader: {
+    gap: spacing.xs,
   },
   sectionTitle: {
     color: colors.text.primary,
-    fontSize: 15,
+    fontSize: 18,
     fontWeight: '800',
   },
   subtitle: {
@@ -119,7 +194,7 @@ const styles = StyleSheet.create({
   },
   title: {
     color: colors.text.primary,
-    fontSize: 30,
+    fontSize: 28,
     fontWeight: '900',
   },
 });

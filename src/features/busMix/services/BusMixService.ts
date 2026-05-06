@@ -15,7 +15,7 @@ const asNumber = (message: OscMessage, fallback: number): number => {
 };
 
 export class BusMixService {
-  constructor(private readonly client = new OscClient()) { }
+  constructor(private readonly client = new OscClient()) {}
 
   async connect(consoleIp: string): Promise<void> {
     await this.client.connect(consoleIp);
@@ -80,7 +80,7 @@ export class BusMixService {
     }
   }
 
-  private async safeRequestColor(path: string): Promise<number | string> {
+  private async safeRequestColor(path: string): Promise<number> {
     try {
       return asNumber(await this.client.request<OscMessage>(path, [], 1000), 0);
     } catch {

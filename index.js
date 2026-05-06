@@ -1,4 +1,3 @@
-import 'react-native-reanimated';
 import 'react-native-gesture-handler';
 import { Buffer } from 'buffer';
 import { AppRegistry } from 'react-native';

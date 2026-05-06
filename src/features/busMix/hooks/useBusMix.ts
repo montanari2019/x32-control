@@ -59,7 +59,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     );
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [channels, service]);
+  }, [busNumber, channels, service]);
 
   const setLevel = (channelNumber: number, level: number): void => {
     setChannels((current) =>
