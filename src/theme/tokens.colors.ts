@@ -9,6 +9,8 @@ export const colors = {
     elevated: '#131D31',
     glassOverlay: 'rgba(255, 255, 255, 0.03)',
     screen: '#08111E',
+    strip: '#182233',
+    stripMaster: '#1C2636',
     channelStrip: '#131E30',
     control: '#3F4856',
     modal: '#121A27',
@@ -45,6 +47,19 @@ export const colors = {
   },
 
   button: {
+    channels: {
+      background: 'transparent',
+      border: '#1D6FFF',
+      text: '#EAF2FF',
+    },
+    presets: {
+      background: '#1E63F0',
+      text: '#FFFFFF',
+    },
+    icon: {
+      background: '#394250',
+      text: '#FFFFFF',
+    },
     success: {
       background: '#1F8E4B',
       border: '#37D973',
@@ -113,6 +128,20 @@ export const colors = {
   mixer: {
     neutralFader: '#6B7787',
     track: '#27313F',
+  },
+
+  master: {
+    track: '#5D6572',
+    thumb: '#D8DDE5',
+    label: '#E7EBF0',
+  },
+
+  mca: {
+    blue: '#1D63F0',
+    green: '#38D978',
+    yellow: '#F0C61C',
+    pink: '#E86AB2',
+    purple: '#A86BFF',
   },
 
   x32: {

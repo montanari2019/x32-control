@@ -1,3 +1,4 @@
+import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
 import { useCallback, useEffect, useRef } from 'react';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
@@ -21,6 +22,7 @@ const getBlobArg = (message: OscMessage): Uint8Array | null => {
 };
 
 export const useMeterSubscription = (consoleIp: string) => {
+  const isMock = isMockConsoleIp(consoleIp);
   const subscriptionsRef = useRef(new Map<number, ChannelSubscription>());
 
   const startChannel = useCallback(
@@ -67,6 +69,10 @@ export const useMeterSubscription = (consoleIp: string) => {
 
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
+      if (isMock) {
+        return mockMixerProvider.subscribeMeter(channelId, listener);
+      }
+
       let entry = subscriptionsRef.current.get(channelId);
       if (!entry) {
         entry = { client: new OscClient(), listeners: new Set<MeterListener>() };
@@ -85,7 +91,7 @@ export const useMeterSubscription = (consoleIp: string) => {
         }
       };
     },
-    [startChannel, stopChannel],
+    [isMock, startChannel, stopChannel],
   );
 
   useEffect(

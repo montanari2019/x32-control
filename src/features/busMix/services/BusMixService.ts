@@ -1,3 +1,4 @@
+import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
 import { clamp } from '@shared/utils/clamp';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
@@ -15,24 +16,46 @@ const asNumber = (message: OscMessage, fallback: number): number => {
 };
 
 export class BusMixService {
+  private useMockProvider = false;
+
   constructor(private readonly client = new OscClient()) {}
 
   async connect(consoleIp: string): Promise<void> {
+    this.useMockProvider = isMockConsoleIp(consoleIp);
+    if (this.useMockProvider) {
+      await mockMixerProvider.connect(consoleIp);
+      return;
+    }
+
     await this.client.connect(consoleIp);
     this.client.startXRemoteKeepAlive();
   }
 
   disconnect(): void {
+    if (this.useMockProvider) {
+      mockMixerProvider.disconnect();
+      this.useMockProvider = false;
+      return;
+    }
+
     this.client.disconnect();
   }
 
   onLevel(channel: number, bus: number, listener: (level: number) => void): () => void {
+    if (this.useMockProvider) {
+      return mockMixerProvider.subscribeChannelLevel(channel, bus, listener);
+    }
+
     return this.client.subscribe(X32Protocol.getBusSendLevelPath(channel, bus), (message) => {
       listener(clamp(asNumber(message, 0)));
     });
   }
 
   async loadChannels(bus: number): Promise<Channel[]> {
+    if (this.useMockProvider) {
+      return mockMixerProvider.getChannels(bus);
+    }
+
     return Promise.all(
       Array.from({ length: 32 }, async (_, index) => {
         const number = index + 1;
@@ -61,14 +84,29 @@ export class BusMixService {
   }
 
   async setChannelFader(channel: number, bus: number, level: number): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setChannelFader(channel, bus, level);
+      return;
+    }
+
     await this.client.send(X32Protocol.getBusSendLevelPath(channel, bus), [clamp(level)]);
   }
 
   async setChannelOn(channel: number, bus: number, on: boolean): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setChannelOn(channel, bus, on);
+      return;
+    }
+
     await this.client.send(X32Protocol.getBusSendOnPath(channel, bus), [on ? 1 : 0]);
   }
 
   async setChannelPan(channel: number, bus: number, pan: number): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setChannelPan(channel, bus, pan);
+      return;
+    }
+
     await this.client.send(X32Protocol.getBusSendPanPath(channel, bus), [clamp(pan, 0, 1)]);
   }
 

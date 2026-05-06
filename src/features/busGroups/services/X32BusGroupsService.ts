@@ -1,0 +1,238 @@
+import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
+import { AppError } from '@shared/errors/AppError';
+import { OscClient } from '@shared/osc/OscClient';
+import { OscMessage } from '@shared/osc/OscMessage';
+import { X32Protocol } from '@shared/osc/X32Protocol';
+import { clamp } from '@shared/utils/clamp';
+import { X32HeartbeatService } from '../../../services/x32/X32HeartbeatService';
+import { BusGroupsState, McaColorToken, McaGroup } from '../types/busGroups.types';
+
+const DCA_NUMBERS = [1, 2, 3, 4, 5] as const;
+const MCA_COLOR_TOKENS: Record<(typeof DCA_NUMBERS)[number], McaColorToken> = {
+  1: 'blue',
+  2: 'green',
+  3: 'yellow',
+  4: 'pink',
+  5: 'purple',
+};
+
+const asNumber = (message: OscMessage, fallback: number): number => {
+  const value = message.args[0];
+  return typeof value === 'number' ? value : fallback;
+};
+
+const asString = (message: OscMessage, fallback: string): string => {
+  const value = message.args[0];
+  return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+};
+
+export const isChannelInDca = (dcaBitmask: number, dcaIndex: number): boolean => {
+  const divisor = 2 ** (dcaIndex - 1);
+  return Math.floor(dcaBitmask / divisor) % 2 === 1;
+};
+
+export class X32BusGroupsService {
+  private readonly heartbeat = new X32HeartbeatService();
+  private useMockProvider = false;
+
+  constructor(private readonly client = new OscClient()) {}
+
+  async connect(consoleIp: string): Promise<void> {
+    this.useMockProvider = isMockConsoleIp(consoleIp);
+    if (this.useMockProvider) {
+      await mockMixerProvider.connect(consoleIp);
+      return;
+    }
+
+    await this.client.connect(consoleIp);
+  }
+
+  disconnect(): void {
+    if (this.useMockProvider) {
+      mockMixerProvider.disconnect();
+      this.useMockProvider = false;
+      return;
+    }
+
+    this.stopHeartbeat();
+    this.client.disconnect();
+  }
+
+  startHeartbeat(): void {
+    if (this.useMockProvider) {
+      return;
+    }
+
+    this.heartbeat.start(() => {
+      this.client.send(X32Protocol.getXRemotePath()).catch(() => undefined);
+    });
+  }
+
+  stopHeartbeat(): void {
+    if (this.useMockProvider) {
+      return;
+    }
+
+    this.heartbeat.stop();
+  }
+
+  async fetchInitialState(busId: number): Promise<BusGroupsState> {
+    if (this.useMockProvider) {
+      return mockMixerProvider.getBusGroupsState(busId);
+    }
+
+    await this.client.send(X32Protocol.getXRemotePath());
+
+    const dcaStates = await Promise.all(
+      DCA_NUMBERS.map(async (dcaNumber) => ({
+        dcaNumber,
+        faderRawValue: await this.safeRequestFloat(X32Protocol.getDcaFaderPath(dcaNumber), 0),
+        isOn: await this.safeRequestInt(X32Protocol.getDcaOnPath(dcaNumber), 1),
+        name: await this.safeRequestString(
+          X32Protocol.getDcaNamePath(dcaNumber),
+          `MCA ${dcaNumber.toString().padStart(2, '0')}`,
+        ),
+      })),
+    );
+
+    const [masterFaderRaw, masterOn, channelAssignments] = await Promise.all([
+      this.safeRequestFloat(X32Protocol.getBusMasterFaderPath(busId), 0),
+      this.safeRequestInt(X32Protocol.getBusMasterOnPath(busId), 1),
+      Promise.all(
+        Array.from({ length: 32 }, async (_, index) => ({
+          channelId: index + 1,
+          dcaBitmask: await this.safeRequestInt(
+            X32Protocol.getChannelDcaAssignmentPath(index + 1),
+            0,
+          ),
+        })),
+      ),
+    ]);
+
+    const mcas: McaGroup[] = dcaStates.map((dcaState) => ({
+      id: `mca-${dcaState.dcaNumber}`,
+      dcaNumber: dcaState.dcaNumber,
+      name: dcaState.name,
+      colorToken: MCA_COLOR_TOKENS[dcaState.dcaNumber],
+      faderRawValue: dcaState.faderRawValue,
+      isMuted: dcaState.isOn === 0,
+      assignedChannelIds: channelAssignments
+        .filter((assignment) => isChannelInDca(assignment.dcaBitmask, dcaState.dcaNumber))
+        .map((assignment) => assignment.channelId),
+    }));
+
+    return {
+      busId,
+      masterFaderRaw,
+      masterMuted: masterOn === 0,
+      mcas,
+      isConnected: true,
+      isLoading: false,
+      error: null,
+    };
+  }
+
+  subscribeToDcaFader(dcaNumber: number, listener: (value: number) => void): () => void {
+    if (this.useMockProvider) {
+      return mockMixerProvider.subscribeDcaFader(dcaNumber, listener);
+    }
+
+    return this.client.subscribe(X32Protocol.getDcaFaderPath(dcaNumber), (message) => {
+      listener(clamp(asNumber(message, 0)));
+    });
+  }
+
+  subscribeToDcaOn(dcaNumber: number, listener: (isMuted: boolean) => void): () => void {
+    if (this.useMockProvider) {
+      return mockMixerProvider.subscribeDcaOn(dcaNumber, listener);
+    }
+
+    return this.client.subscribe(X32Protocol.getDcaOnPath(dcaNumber), (message) => {
+      listener(asNumber(message, 1) === 0);
+    });
+  }
+
+  subscribeToBusMasterFader(busId: number, listener: (value: number) => void): () => void {
+    if (this.useMockProvider) {
+      return mockMixerProvider.subscribeBusMasterFader(busId, listener);
+    }
+
+    return this.client.subscribe(X32Protocol.getBusMasterFaderPath(busId), (message) => {
+      listener(clamp(asNumber(message, 0)));
+    });
+  }
+
+  subscribeToBusMasterOn(busId: number, listener: (isMuted: boolean) => void): () => void {
+    if (this.useMockProvider) {
+      return mockMixerProvider.subscribeBusMasterOn(busId, listener);
+    }
+
+    return this.client.subscribe(X32Protocol.getBusMasterOnPath(busId), (message) => {
+      listener(asNumber(message, 1) === 0);
+    });
+  }
+
+  async setDcaFader(dcaNumber: number, value: number): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setDcaFader(dcaNumber, value);
+      return;
+    }
+
+    await this.client.send(X32Protocol.getDcaFaderPath(dcaNumber), [clamp(value)]);
+  }
+
+  async setDcaOn(dcaNumber: number, isOn: boolean): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setDcaOn(dcaNumber, isOn);
+      return;
+    }
+
+    await this.client.send(X32Protocol.getDcaOnPath(dcaNumber), [isOn ? 1 : 0]);
+  }
+
+  async setBusMasterFader(busId: number, value: number): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setBusMasterFader(busId, value);
+      return;
+    }
+
+    await this.client.send(X32Protocol.getBusMasterFaderPath(busId), [clamp(value)]);
+  }
+
+  async setBusMasterOn(busId: number, isOn: boolean): Promise<void> {
+    if (this.useMockProvider) {
+      await mockMixerProvider.setBusMasterOn(busId, isOn);
+      return;
+    }
+
+    await this.client.send(X32Protocol.getBusMasterOnPath(busId), [isOn ? 1 : 0]);
+  }
+
+  private async safeRequestFloat(path: string, fallback: number): Promise<number> {
+    try {
+      return clamp(asNumber(await this.client.request<OscMessage>(path, [], 1200), fallback));
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async safeRequestInt(path: string, fallback: number): Promise<number> {
+    try {
+      return Math.round(asNumber(await this.client.request<OscMessage>(path, [], 1200), fallback));
+    } catch {
+      return fallback;
+    }
+  }
+
+  private async safeRequestString(path: string, fallback: string): Promise<string> {
+    try {
+      return asString(await this.client.request<OscMessage>(path, [], 1200), fallback);
+    } catch (error) {
+      if (error instanceof AppError) {
+        return fallback;
+      }
+
+      return fallback;
+    }
+  }
+}

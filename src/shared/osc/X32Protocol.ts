@@ -90,6 +90,31 @@ export class X32Protocol {
     return `/bus/${two(bus)}/mix/on`;
   }
 
+  static getDcaFaderPath(dca: number): string {
+    assertRange(dca, 1, 8, 'dca');
+    return `/dca/${dca}/fader`;
+  }
+
+  static getDcaOnPath(dca: number): string {
+    assertRange(dca, 1, 8, 'dca');
+    return `/dca/${dca}/on`;
+  }
+
+  static getDcaNamePath(dca: number): string {
+    assertRange(dca, 1, 8, 'dca');
+    return `/dca/${dca}/config/name`;
+  }
+
+  static getDcaColorPath(dca: number): string {
+    assertRange(dca, 1, 8, 'dca');
+    return `/dca/${dca}/config/color`;
+  }
+
+  static getChannelDcaAssignmentPath(channel: number): string {
+    assertRange(channel, 1, 32, 'channel');
+    return `/ch/${two(channel)}/grp/dca`;
+  }
+
   static getMeters1Path(): string {
     return '/meters/1';
   }

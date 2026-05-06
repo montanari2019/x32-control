@@ -35,7 +35,7 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
   };
 
   const openBus = (bus: Bus): void => {
-    navigation.navigate('BusMix', {
+    navigation.navigate('BusGroups', {
       consoleIp,
       busNumber: bus.number,
       busName: bus.name,
