@@ -5,8 +5,11 @@
   "scripts": {
     "android": "powershell -ExecutionPolicy Bypass -File scripts/android-run.ps1",
     "android:clean": "powershell -ExecutionPolicy Bypass -File scripts/android-reset-gradle-cache.ps1",
+    "assemble:android": "cd android && gradlew.bat assembleHomologRelease",
+    "bundle:android": "cd android && gradlew.bat bundleHomologRelease",
     "icons": "node scripts/generate-icons.js",
-    "ios": "react-native run-ios",
+    "ios": "react-native run-ios --mode Debug",
+    "pod": "powershell -ExecutionPolicy Bypass -File scripts/pod-install.ps1",
     "start": "react-native start",
     "test": "jest",
     "lint": "eslint . --ext .ts,.tsx",
