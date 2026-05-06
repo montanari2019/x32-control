@@ -20,7 +20,14 @@ const encodeFloat = (value: number): Buffer => {
   return buffer;
 };
 
+const isTypedArg = (arg: OscArg): arg is Extract<OscArg, { type: string }> =>
+  typeof arg === 'object' && arg !== null && 'type' in arg && 'value' in arg;
+
 const getTypeTag = (arg: OscArg): string => {
+  if (isTypedArg(arg)) {
+    return arg.type;
+  }
+
   if (typeof arg === 'string') {
     return 's';
   }
@@ -37,6 +44,12 @@ const getTypeTag = (arg: OscArg): string => {
 };
 
 const encodeArg = (arg: OscArg): Buffer => {
+  if (isTypedArg(arg)) {
+    if (arg.type === 's') return encodeString(arg.value);
+    if (arg.type === 'i') return encodeInt(Math.round(arg.value));
+    return encodeFloat(arg.value);
+  }
+
   if (typeof arg === 'string') {
     return encodeString(arg);
   }

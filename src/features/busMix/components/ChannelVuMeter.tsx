@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef } from 'react';
 import { Animated, Easing, StyleSheet, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
-import { ChannelMeterValues, dbToMeterHeight } from '../utils/meterDecoder';
+import { ChannelMeterValues, dbfsToMeterHeight } from '../utils/meterDecoder';
 import { PeakHoldState, updatePeakHold } from '../utils/peakHold';
 import { MeterSegments } from './MeterSegments';
 
@@ -26,32 +26,47 @@ export const ChannelVuMeter = ({
   const clipOpacity = useRef(new Animated.Value(0.2)).current;
   const peakStateRef = useRef<PeakHoldState>({ peakDb: -60, peakHoldFrames: 0 });
   const currentLevelRef = useRef(0);
+  const currentClipOpacityRef = useRef(0.2);
+  const currentPeakPxRef = useRef(0);
 
   const updateMeter = useCallback(
     (values: ChannelMeterValues) => {
-      const nextLevel = dbToMeterHeight(values.postFadeDb);
-      const nextPeakState = updatePeakHold(values.preFadeDb, peakStateRef.current);
+      const nextLevel = dbfsToMeterHeight(values.preFadeDbfs);
+      const nextLevelPx = nextLevel * height;
+      const prevLevel = currentLevelRef.current;
+      const delta = Math.abs(nextLevel - currentLevelRef.current);
+      const nextPeakState = updatePeakHold(values.preFadeDbfs, peakStateRef.current);
       peakStateRef.current = nextPeakState;
-      const nextPeak = dbToMeterHeight(nextPeakState.peakDb);
+      const nextPeakPx = dbfsToMeterHeight(nextPeakState.peakDb) * height;
+      const isRising = nextLevel > prevLevel;
+      const nextClipOpacity = values.preFadeDbfs > 8 ? 1 : 0;
 
-      Animated.timing(meterHeight, {
-        toValue: nextLevel * height,
-        duration: nextLevel > currentLevelRef.current ? 5 : 200,
-        easing: Easing.out(Easing.ease),
-        useNativeDriver: false,
-      }).start();
+      if (delta < 0.015) {
+        meterHeight.setValue(nextLevelPx);
+      } else {
+        meterHeight.stopAnimation();
+        Animated.timing(meterHeight, {
+          toValue: nextLevelPx,
+          duration: isRising ? 5 : 160,
+          easing: Easing.out(Easing.ease),
+          useNativeDriver: false,
+        }).start();
+      }
 
-      Animated.timing(peakOffset, {
-        toValue: nextPeak * height,
-        duration: 80,
-        useNativeDriver: false,
-      }).start();
+      if (Math.abs(nextPeakPx - currentPeakPxRef.current) >= 0.5) {
+        peakOffset.setValue(nextPeakPx);
+        currentPeakPxRef.current = nextPeakPx;
+      }
 
-      Animated.timing(clipOpacity, {
-        toValue: values.postFadeDb >= 0 ? 1 : 0.2,
-        duration: 80,
-        useNativeDriver: false,
-      }).start();
+      if (nextClipOpacity !== currentClipOpacityRef.current) {
+        clipOpacity.stopAnimation();
+        Animated.timing(clipOpacity, {
+          toValue: nextClipOpacity,
+          duration: nextClipOpacity === 1 ? 0 : 200,
+          useNativeDriver: true,
+        }).start();
+        currentClipOpacityRef.current = nextClipOpacity;
+      }
 
       currentLevelRef.current = nextLevel;
     },

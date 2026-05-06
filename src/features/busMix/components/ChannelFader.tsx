@@ -2,7 +2,7 @@ import Slider from '@react-native-community/slider';
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
-import { levelToDb } from '@shared/utils/levelToDb';
+import { formatDbLabel, x32RawToDb } from '@shared/utils/faderDb';
 import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { Channel } from '../types/Channel';
 
@@ -13,8 +13,7 @@ type ChannelFaderProps = {
 };
 
 const formatDb = (level: number): string => {
-  const db = levelToDb(level);
-  return Number.isFinite(db) ? `${db.toFixed(1)} dB` : '-inf dB';
+  return `${formatDbLabel(x32RawToDb(level))} dB`;
 };
 
 export const ChannelFader = ({
@@ -44,14 +43,14 @@ export const ChannelFader = ({
           minimumValue={0}
           maximumValue={1}
           step={0.001}
-          value={channel.level}
+          value={channel.localFaderRaw}
           onValueChange={onLevelChange}
           minimumTrackTintColor={accentColor}
           maximumTrackTintColor={colors.mixer.track}
           thumbTintColor={accentColor}
         />
         <Text style={styles.value}>
-          {Math.round(channel.level * 100)}% · {formatDb(channel.level)}
+          {Math.round(channel.localFaderRaw * 100)}% - {formatDb(channel.localFaderRaw)}
         </Text>
       </View>
 

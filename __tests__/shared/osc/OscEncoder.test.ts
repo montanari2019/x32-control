@@ -20,4 +20,15 @@ describe('OscEncoder', () => {
 
     expect(decoded.args).toEqual(['X32', 1, true, false]);
   });
+
+  it('keeps explicitly typed float arguments as floats even when the value is integer-like', () => {
+    const encoded = OscEncoder.encode({
+      address: '/bus/01/mix/fader',
+      args: [{ type: 'f', value: 1 }],
+    });
+    const decoded = OscDecoder.decode(encoded);
+
+    expect(decoded.address).toBe('/bus/01/mix/fader');
+    expect(decoded.args[0]).toBeCloseTo(1, 5);
+  });
 });

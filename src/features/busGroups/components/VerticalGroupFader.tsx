@@ -21,6 +21,8 @@ type VerticalGroupFaderProps = {
 };
 
 const THUMB_HEIGHT = 34;
+const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
+const THUMB_BOTTOM_GUARD = 8;
 
 export const VerticalGroupFader = ({
   accentColor,
@@ -29,7 +31,7 @@ export const VerticalGroupFader = ({
   trackHeight = 300,
   value,
 }: VerticalGroupFaderProps): JSX.Element => {
-  const availableHeight = Math.max(1, trackHeight - THUMB_HEIGHT);
+  const availableHeight = Math.max(1, trackHeight - THUMB_HEIGHT - THUMB_BOTTOM_GUARD);
   const animatedY = useRef(new Animated.Value(0)).current;
   const currentY = useRef(0);
   const startY = useRef(0);
@@ -79,6 +81,7 @@ export const VerticalGroupFader = ({
           styles.track,
           isMaster ? styles.masterTrack : styles.mcaTrack,
           { backgroundColor: isMaster ? colors.master.track : colors.surface.control },
+          { marginBottom: TRACK_EDGE_PADDING + THUMB_BOTTOM_GUARD, marginTop: TRACK_EDGE_PADDING },
         ]}
       />
       <Animated.View
@@ -130,6 +133,7 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.35,
     shadowRadius: 8,
+    top: 0,
     zIndex: 2,
   },
   thumbLine: {
