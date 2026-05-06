@@ -1,4 +1,4 @@
-import React, { useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FlatList, StyleSheet, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
@@ -27,6 +27,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     isSaving,
     refresh,
     save,
+    sendLevelOnly,
     setLevel,
     setPan,
     toggleOn,
@@ -45,6 +46,54 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     return `${busLabel} · ${busName}`;
   }, [busName, busNumber, linkedBusNumber]);
 
+  const openPanModal = useCallback((channelNumber: number): void => {
+    const channel = channelsRef.current.find((item) => item.number === channelNumber);
+    if (!channel) {
+      return;
+    }
+
+    showModal(PanControlModal, {
+      channelLabel: channel.label,
+      channelName: channel.name,
+      value: getPanPercent(channel.pan),
+      onChange: (value) => setPan(channelNumber, value),
+    });
+  }, [getPanPercent, setPan, showModal]);
+
+  const handleFaderChange = useCallback(
+    (channelNumber: number, level: number): void => sendLevelOnly(channelNumber, level),
+    [sendLevelOnly],
+  );
+
+  const handleFaderChangeEnd = useCallback(
+    (channelNumber: number, level: number): void => setLevel(channelNumber, level),
+    [setLevel],
+  );
+
+  const handleToggleMute = useCallback(
+    (channelNumber: number): void => {
+      toggleOn(channelNumber).catch(() => undefined);
+    },
+    [toggleOn],
+  );
+
+  const renderChannel = useCallback(({ item }: { item: Channel }) => (
+    <ChannelStrip
+      channel={item}
+      registerMeterListener={registerMeterListener}
+      onToggleMute={() => handleToggleMute(item.number)}
+      onFaderChange={(level) => handleFaderChange(item.number, level)}
+      onFaderChangeEnd={(level) => handleFaderChangeEnd(item.number, level)}
+      onPressBadge={() => openPanModal(item.number)}
+    />
+  ), [
+    handleFaderChange,
+    handleFaderChangeEnd,
+    handleToggleMute,
+    openPanModal,
+    registerMeterListener,
+  ]);
+
   if (isLoading) {
     return (
       <Screen style={styles.screen}>
@@ -60,33 +109,6 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       </Screen>
     );
   }
-
-  const openPanModal = (channelNumber: number): void => {
-    const channel = channelsRef.current.find((item) => item.number === channelNumber);
-    if (!channel) {
-      return;
-    }
-
-    showModal(PanControlModal, {
-      channelLabel: channel.label,
-      channelName: channel.name,
-      value: getPanPercent(channel.pan),
-      onChange: (value) => setPan(channelNumber, value),
-    });
-  };
-
-  const renderChannel = ({ item }: { item: Channel }) => (
-    <ChannelStrip
-      channel={item}
-      registerMeterListener={registerMeterListener}
-      onToggleMute={() => {
-        toggleOn(item.number).catch(() => undefined);
-      }}
-      onFaderChange={(level) => setLevel(item.number, level)}
-      onFaderChangeEnd={(level) => setLevel(item.number, level)}
-      onPressBadge={() => openPanModal(item.number)}
-    />
-  );
 
   return (
     <Screen style={styles.screen}>

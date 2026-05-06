@@ -30,7 +30,12 @@ export const ChannelNamePlate = ({
         pressed && styles.pressed,
       ]}
     >
-      <Text style={[styles.name, { color: uiColor.textColor }]} numberOfLines={1}>
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.75}
+        numberOfLines={2}
+        style={[styles.name, { color: uiColor.textColor }]}
+      >
         {name}
       </Text>
       <View style={styles.labelWrapper}>
@@ -43,9 +48,9 @@ export const ChannelNamePlate = ({
 const styles = StyleSheet.create({
   label: {
     color: colors.text.primary,
-    fontSize: 10,
+    fontSize: 9,
     fontWeight: '800',
-    letterSpacing: 0.6,
+    letterSpacing: 0.3,
   },
   labelWrapper: {
     backgroundColor: colors.surface.control,
@@ -55,15 +60,19 @@ const styles = StyleSheet.create({
     paddingVertical: 2,
   },
   name: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '900',
+    minHeight: 26,
     textAlign: 'center',
+    width: '100%',
   },
   plate: {
     alignItems: 'center',
     borderRadius: radius.sm,
-    paddingHorizontal: 2,
-    paddingVertical: 2,
+    justifyContent: 'center',
+    minHeight: 48,
+    paddingHorizontal: 3,
+    paddingVertical: 3,
     width: '100%',
   },
   pressed: {

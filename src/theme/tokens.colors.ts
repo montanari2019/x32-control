@@ -81,21 +81,21 @@ export const colors = {
   },
 
   meter: {
-    green: '#22AA33',
-    greenBright: '#33DD44',
-    yellow: '#FFB300',
+    green: '#00C853',
+    greenBright: '#69F0AE',
+    yellow: '#FFD600',
     orange: '#FF4400',
-    red: '#FF2222',
-    clip: '#FF0000',
+    red: '#FF1744',
+    clip: '#FF1744',
     peak: '#FFFFFF',
-    background: '#0A0F14',
+    background: '#0A0A0A',
     segmentOff: {
-      green: '#0A1F0E',
-      yellow: '#332900',
+      green: '#0A2E14',
+      yellow: '#2E2600',
       orange: '#351500',
-      red: '#3A1010',
+      red: '#2E0008',
     },
-    off: '#1A2332',
+    off: '#1A1A1A',
   },
 
   fader: {

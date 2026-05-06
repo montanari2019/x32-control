@@ -3,8 +3,8 @@ import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
-import { formatDbLabel } from '@shared/utils/faderDb';
-import { levelToDb } from '@shared/utils/levelToDb';
+import { formatDbLabel, x32RawToDb } from '@shared/utils/faderDb';
+import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { Channel } from '../types/Channel';
 import { ChannelMeterValues } from '../utils/meterDecoder';
 import { ChannelVuMeter } from './ChannelVuMeter';
@@ -24,7 +24,16 @@ type ChannelStripProps = {
   onPressBadge: () => void;
 };
 
-export const ChannelStrip = ({
+const withAlpha = (hexColor: string, alphaHex: string): string =>
+  /^#[0-9A-Fa-f]{6}$/.test(hexColor) ? `${hexColor}${alphaHex}` : hexColor;
+
+const opacityToAlphaHex = (opacity: number): string =>
+  Math.round(Math.max(0, Math.min(1, opacity)) * 255)
+    .toString(16)
+    .padStart(2, '0')
+    .toUpperCase();
+
+const ChannelStripComponent = ({
   channel,
   registerMeterListener,
   onToggleMute,
@@ -32,7 +41,9 @@ export const ChannelStrip = ({
   onFaderChangeEnd,
   onPressBadge,
 }: ChannelStripProps): JSX.Element => {
-  const dbValue = levelToDb(channel.level);
+  const faderDb = x32RawToDb(channel.localFaderRaw);
+  const channelColor = mapX32ColorToUiColor(channel.color ?? 0).backgroundColor;
+  const backgroundColor = withAlpha(channelColor, opacityToAlphaHex(channel.backgroundOpacity));
   const [faderHeight, setFaderHeight] = useState(240);
 
   const handleLayout = (event: LayoutChangeEvent): void => {
@@ -41,7 +52,7 @@ export const ChannelStrip = ({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor }]}>
       <ChannelNamePlate
         label={channel.label}
         name={channel.name}
@@ -51,15 +62,21 @@ export const ChannelStrip = ({
 
       <View style={styles.stripBody} onLayout={handleLayout}>
         <View style={styles.faderRow}>
-          <ChannelVuMeter
-            channelId={channel.number}
-            height={faderHeight}
-            width={10}
-            registerMeterListener={registerMeterListener}
-          />
+          {channel.meterChannelId ? (
+            <ChannelVuMeter
+              channelId={channel.meterChannelId}
+              height={faderHeight}
+              width={10}
+              registerMeterListener={registerMeterListener}
+            />
+          ) : (
+            <View style={[styles.meterPlaceholder, { height: faderHeight, width: 10 }]} />
+          )}
           <VerticalFader
-            level={channel.level}
+            level={channel.localFaderRaw}
             height={faderHeight}
+            meterChannelId={channel.meterChannelId}
+            registerMeterListener={registerMeterListener}
             onChange={onFaderChange}
             onChangeEnd={onFaderChangeEnd}
           />
@@ -68,22 +85,34 @@ export const ChannelStrip = ({
 
       <View style={styles.footer}>
         <MuteButton isMuted={!channel.on} onToggle={onToggleMute} />
-        <Text style={styles.dbValue}>{formatDbLabel(dbValue)} dB</Text>
+        <Text style={styles.dbValue}>{formatDbLabel(faderDb)} dB</Text>
       </View>
     </View>
   );
 };
 
+export const ChannelStrip = React.memo(
+  ChannelStripComponent,
+  (prev, next) =>
+    prev.channel.localFaderRaw === next.channel.localFaderRaw &&
+    prev.channel.on === next.channel.on &&
+    prev.channel.name === next.channel.name &&
+    prev.channel.label === next.channel.label &&
+    prev.channel.color === next.channel.color &&
+    prev.channel.number === next.channel.number &&
+    prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
+    prev.channel.meterChannelId === next.channel.meterChannelId,
+);
+
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    backgroundColor: colors.surface.channelStrip,
     borderColor: colors.border.subtle,
     borderRadius: radius.md,
-    borderWidth: 1,
+    borderWidth: 1.5,
     gap: spacing.xxs,
     padding: spacing.xs,
-    width: 72,
+    width: 86,
   },
   dbValue: {
     color: colors.text.muted,
@@ -98,6 +127,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexDirection: 'row',
     gap: 4,
+  },
+  meterPlaceholder: {
+    backgroundColor: colors.meter.background,
+    borderRadius: 3,
+    opacity: 0.55,
   },
   stripBody: {
     alignItems: 'center',

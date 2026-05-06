@@ -16,26 +16,26 @@ type MeterSegmentsProps = {
 };
 
 const SEGMENTS: Segment[] = [
-  { min: -60, max: -18, active: colors.meter.green, off: colors.meter.segmentOff.green },
-  { min: -18, max: -9, active: colors.meter.greenBright, off: colors.meter.segmentOff.green },
-  { min: -9, max: -3, active: colors.meter.yellow, off: colors.meter.segmentOff.yellow },
-  { min: -3, max: 0, active: colors.meter.red, off: colors.meter.segmentOff.red },
+  { min: -60, max: -2, active: colors.meter.green, off: colors.meter.segmentOff.green },
+  { min: -2, max: 8, active: colors.meter.yellow, off: colors.meter.segmentOff.yellow },
+  { min: 8, max: 10, active: colors.meter.red, off: colors.meter.segmentOff.red },
 ];
 
 const GAP = 1;
-const TOTAL_RANGE = 60;
+const TOTAL_RANGE = 70;
 
 export const MeterSegments = ({ height, width, variant }: MeterSegmentsProps): JSX.Element => {
   const totalGap = GAP * (SEGMENTS.length - 1);
   const availableHeight = Math.max(1, height - totalGap);
+  const visualSegments = [...SEGMENTS].reverse();
 
   return (
     <View style={[styles.container, { height, width }]}>
-      {SEGMENTS.map((segment, index) => {
+      {visualSegments.map((segment, index) => {
         const range = segment.max - segment.min;
         const segmentHeight = Math.max(1, (availableHeight * range) / TOTAL_RANGE);
         const backgroundColor = variant === 'active' ? segment.active : segment.off;
-        const isLast = index === SEGMENTS.length - 1;
+        const isLast = index === visualSegments.length - 1;
         const dynamicStyle = {
           height: segmentHeight,
           backgroundColor,

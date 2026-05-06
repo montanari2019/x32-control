@@ -62,6 +62,17 @@ export class X32Protocol {
     return `/config/buslink/${leftBus}-${rightBus}`;
   }
 
+  static getChannelLinkPath(leftChannel: number, rightChannel: number): string {
+    assertRange(leftChannel, 1, 31, 'leftChannel');
+    assertRange(rightChannel, 2, 32, 'rightChannel');
+
+    if (leftChannel % 2 !== 1 || rightChannel !== leftChannel + 1) {
+      throw new RangeError('Channel link deve ser consultado em pares 1-2, 3-4, ..., 31-32.');
+    }
+
+    return `/config/chlink/${leftChannel}-${rightChannel}`;
+  }
+
   static getBusSendLevelPath(channel: number, bus: number): string {
     assertRange(channel, 1, 32, 'channel');
     assertRange(bus, 1, 16, 'bus');
@@ -78,6 +89,62 @@ export class X32Protocol {
     assertRange(channel, 1, 32, 'channel');
     assertRange(bus, 1, 16, 'bus');
     return `/ch/${two(channel)}/mix/${two(bus)}/pan`;
+  }
+
+  static getAuxInNamePath(aux: number): string {
+    assertRange(aux, 1, 8, 'aux');
+    return `/auxin/${two(aux)}/config/name`;
+  }
+
+  static getAuxInColorPath(aux: number): string {
+    assertRange(aux, 1, 8, 'aux');
+    return `/auxin/${two(aux)}/config/color`;
+  }
+
+  static getAuxInBusSendLevelPath(aux: number, bus: number): string {
+    assertRange(aux, 1, 8, 'aux');
+    assertRange(bus, 1, 16, 'bus');
+    return `/auxin/${two(aux)}/mix/${two(bus)}/level`;
+  }
+
+  static getAuxInBusSendOnPath(aux: number, bus: number): string {
+    assertRange(aux, 1, 8, 'aux');
+    assertRange(bus, 1, 16, 'bus');
+    return `/auxin/${two(aux)}/mix/${two(bus)}/on`;
+  }
+
+  static getAuxInBusSendPanPath(aux: number, bus: number): string {
+    assertRange(aux, 1, 8, 'aux');
+    assertRange(bus, 1, 16, 'bus');
+    return `/auxin/${two(aux)}/mix/${two(bus)}/pan`;
+  }
+
+  static getFxReturnNamePath(fxReturn: number): string {
+    assertRange(fxReturn, 1, 8, 'fxReturn');
+    return `/fxrtn/${two(fxReturn)}/config/name`;
+  }
+
+  static getFxReturnColorPath(fxReturn: number): string {
+    assertRange(fxReturn, 1, 8, 'fxReturn');
+    return `/fxrtn/${two(fxReturn)}/config/color`;
+  }
+
+  static getFxReturnBusSendLevelPath(fxReturn: number, bus: number): string {
+    assertRange(fxReturn, 1, 8, 'fxReturn');
+    assertRange(bus, 1, 16, 'bus');
+    return `/fxrtn/${two(fxReturn)}/mix/${two(bus)}/level`;
+  }
+
+  static getFxReturnBusSendOnPath(fxReturn: number, bus: number): string {
+    assertRange(fxReturn, 1, 8, 'fxReturn');
+    assertRange(bus, 1, 16, 'bus');
+    return `/fxrtn/${two(fxReturn)}/mix/${two(bus)}/on`;
+  }
+
+  static getFxReturnBusSendPanPath(fxReturn: number, bus: number): string {
+    assertRange(fxReturn, 1, 8, 'fxReturn');
+    assertRange(bus, 1, 16, 'bus');
+    return `/fxrtn/${two(fxReturn)}/mix/${two(bus)}/pan`;
   }
 
   static getBusMasterFaderPath(bus: number): string {

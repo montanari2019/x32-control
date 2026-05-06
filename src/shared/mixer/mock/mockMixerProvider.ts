@@ -1,10 +1,11 @@
 import { BusGroupsState, McaGroup } from '@features/busGroups/types/busGroups.types';
-import { Channel } from '@features/busMix/types/Channel';
+import { Channel, ChannelKind } from '@features/busMix/types/Channel';
 import { ChannelMeterValues } from '@features/busMix/utils/meterDecoder';
 import { Bus } from '@features/busSelection/types/Bus';
 import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
 import { MixerControlProvider } from '@shared/mixer/MixerControlProvider';
 import { clamp } from '@shared/utils/clamp';
+import { x32RawToDb } from '@shared/utils/faderDb';
 
 export const DEV_MOCK_CONSOLE_IP = '10.254.254.10';
 const DEV_MOCK_CONSOLE_ID = 'dev-mock-console';
@@ -71,6 +72,28 @@ const CHANNEL_NAMES = [
   'Spare',
 ];
 
+const AUX_NAMES = [
+  'Aux 1',
+  'Aux 2',
+  'Aux 3',
+  'Aux 4',
+  'Aux 5',
+  'Aux 6',
+  'USB L',
+  'USB R',
+];
+
+const FX_RETURN_NAMES = [
+  'FX 1 L',
+  'FX 1 R',
+  'FX 2 L',
+  'FX 2 R',
+  'FX 3 L',
+  'FX 3 R',
+  'FX 4 L',
+  'FX 4 R',
+];
+
 type Listener<T> = (value: T) => void;
 
 const createBusList = (): Bus[] =>
@@ -80,24 +103,87 @@ const createBusList = (): Bus[] =>
     name,
   }));
 
-const createChannelsForBus = (busId: number): Channel[] =>
-  Array.from({ length: 32 }, (_, index) => {
-    const number = index + 1;
-    const baseLevel = 0.18 + ((number * 7 + busId * 5) % 50) / 100;
-    const basePan = number % 2 === 0 ? 0.6 : 0.4;
+const createChannelForBus = (
+  busId: number,
+  number: number,
+  sourceNumber: number,
+  kind: ChannelKind,
+  labelPrefix: string,
+  idPrefix: string,
+  name: string,
+  backgroundOpacity: number,
+  meterChannelId?: number,
+): Channel => {
+  const baseLevel = 0.18 + ((number * 7 + busId * 5) % 50) / 100;
+  const basePan = number % 2 === 0 ? 0.6 : 0.4;
 
-    return {
-      id: `bus-${busId}-ch-${number}`,
-      number,
-      label: `CH ${number.toString().padStart(2, '0')}`,
-      name: CHANNEL_NAMES[index] ?? `Channel ${number}`,
-      color: (number % 15) + 1,
-      level: clamp(baseLevel),
-      signalLevel: 0,
-      pan: clamp(basePan),
-      on: number % 9 !== 0,
-    };
-  });
+  return {
+    id: `bus-${busId}-${idPrefix}-${sourceNumber}`,
+    kind,
+    number,
+    sourceNumber,
+    label: `${labelPrefix} ${sourceNumber.toString().padStart(2, '0')}`,
+    name,
+    color: (number % 15) + 1,
+    backgroundOpacity,
+    meterChannelId,
+    faderRaw: clamp(baseLevel),
+    faderDb: x32RawToDb(baseLevel),
+    localFaderRaw: clamp(baseLevel),
+    remoteFaderRaw: clamp(baseLevel),
+    isDirty: false,
+    lastLocalChangeAt: 0,
+    meterDbfs: -60,
+    visualMeterDbfs: -60,
+    level: clamp(baseLevel),
+    signalLevel: 0,
+    pan: clamp(basePan),
+    on: number % 9 !== 0,
+  };
+};
+
+const createChannelsForBus = (busId: number): Channel[] => [
+  ...Array.from({ length: 32 }, (_, index) => {
+    const sourceNumber = index + 1;
+    return createChannelForBus(
+      busId,
+      sourceNumber,
+      sourceNumber,
+      'channel',
+      'CH',
+      'ch',
+      CHANNEL_NAMES[index] ?? `Channel ${sourceNumber}`,
+      0.2,
+      sourceNumber,
+    );
+  }),
+  ...Array.from({ length: 8 }, (_, index) => {
+    const sourceNumber = index + 1;
+    return createChannelForBus(
+      busId,
+      32 + sourceNumber,
+      sourceNumber,
+      'aux',
+      'AUX',
+      'aux',
+      AUX_NAMES[index] ?? `Aux ${sourceNumber}`,
+      0.2,
+    );
+  }),
+  ...Array.from({ length: 8 }, (_, index) => {
+    const sourceNumber = index + 1;
+    return createChannelForBus(
+      busId,
+      40 + sourceNumber,
+      sourceNumber,
+      'fxReturn',
+      'FX',
+      'fxrtn',
+      FX_RETURN_NAMES[index] ?? `FX Return ${sourceNumber}`,
+      0.3,
+    );
+  }),
+];
 
 const createDcaGroups = (): McaGroup[] =>
   MCA_DEFINITIONS.map((definition, index) => ({
@@ -191,8 +277,13 @@ export class MockMixerProvider implements MixerControlProvider {
       return;
     }
 
-    channel.level = clamp(value);
-    this.emitChannelLevel(channelId, busId, channel.level);
+    channel.faderRaw = clamp(value);
+    channel.faderDb = x32RawToDb(channel.faderRaw);
+    channel.localFaderRaw = channel.faderRaw;
+    channel.remoteFaderRaw = channel.faderRaw;
+    channel.isDirty = false;
+    channel.level = channel.faderRaw;
+    this.emitChannelLevel(channelId, busId, channel.faderRaw);
   }
 
   async setChannelPan(channelId: number, busId: number, value: number): Promise<void> {
@@ -261,7 +352,7 @@ export class MockMixerProvider implements MixerControlProvider {
 
     const channel = this.getMutableChannel(busId, channelId);
     if (channel) {
-      listener(channel.level);
+      listener(channel.faderRaw);
     }
 
     return () => listeners.delete(listener);
@@ -343,7 +434,7 @@ export class MockMixerProvider implements MixerControlProvider {
   private getMeterValues(channelId: number): ChannelMeterValues {
     const now = Date.now() / 1000;
     const channel = this.findChannelAcrossBuses(channelId);
-    const baseLevel = channel?.level ?? 0.5;
+    const baseLevel = channel?.faderRaw ?? 0.5;
     const isOn = channel?.on ?? true;
     const dcaGain = this.getDcaGainForChannel(channelId);
     const phase = channelId * 0.37;
@@ -352,10 +443,14 @@ export class MockMixerProvider implements MixerControlProvider {
     const preFadeDb = -58 + wobble * 52 * Math.max(baseLevel, 0.15);
     const postFactor = isOn ? baseLevel * dcaGain : 0;
     const postFadeDb = postFactor <= 0.001 ? -60 : -55 + wobble * 58 * postFactor;
+    const preFadeDbfs = clamp(preFadeDb, -60, 2);
+    const postFadeDbfs = clamp(postFadeDb, -60, 2);
 
     return {
-      preFadeDb: clamp(preFadeDb, -60, 2),
-      postFadeDb: clamp(postFadeDb, -60, 2),
+      preFadeDbfs,
+      postFadeDbfs,
+      preFadeDb: preFadeDbfs,
+      postFadeDb: postFadeDbfs,
       gateGrDb: clamp(-12 + Math.sin(now * 1.6 + phase) * 6, -24, 0),
       dynGrDb: clamp(-7 + Math.cos(now * 1.2 + phase) * 5, -18, 0),
     };
@@ -406,7 +501,8 @@ export class MockMixerProvider implements MixerControlProvider {
 
 export const mockMixerProvider = new MockMixerProvider();
 
-export const isMockConsoleIp = (_consoleIp: string): boolean => false;
+export const isMockConsoleIp = (consoleIp: string): boolean =>
+  consoleIp === DEV_MOCK_CONSOLE_IP;
 
 export const getMockConsoleDevice = (): ConsoleDevice => ({
   id: DEV_MOCK_CONSOLE_ID,

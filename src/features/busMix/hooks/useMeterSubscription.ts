@@ -3,18 +3,12 @@ import { useCallback, useEffect, useRef } from 'react';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
-import { ChannelMeterValues, decodeMeterBlob } from '../utils/meterDecoder';
+import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDecoder';
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
-type ChannelSubscription = {
-  client: OscClient;
-  listeners: Set<MeterListener>;
-  renewInterval?: ReturnType<typeof setInterval>;
-  unsubscribe?: () => void;
-};
-
-const RENEW_MS = 9000;
+// Poll at ~20fps. The X32 responds immediately to each /meters/1 request.
+const POLL_INTERVAL_MS = 50;
 
 const getBlobArg = (message: OscMessage): Uint8Array | null => {
   const [first] = message.args;
@@ -23,49 +17,69 @@ const getBlobArg = (message: OscMessage): Uint8Array | null => {
 
 export const useMeterSubscription = (consoleIp: string) => {
   const isMock = isMockConsoleIp(consoleIp);
-  const subscriptionsRef = useRef(new Map<number, ChannelSubscription>());
+  const clientRef = useRef<OscClient | null>(null);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const unsubscribeOscRef = useRef<(() => void) | null>(null);
+  const listenersRef = useRef(new Map<number, Set<MeterListener>>());
 
-  const startChannel = useCallback(
-    async (channelId: number, entry: ChannelSubscription): Promise<void> => {
-      try {
-        await entry.client.connect(consoleIp);
-        entry.client.startXRemoteKeepAlive();
-
-        entry.unsubscribe = entry.client.subscribe(X32Protocol.getMeters0Path(), (message) => {
-          const blob = getBlobArg(message);
-          if (!blob) return;
-          const values = decodeMeterBlob(blob);
-          entry.listeners.forEach((listener) => listener(values));
-        });
-
-        await entry.client.send(X32Protocol.getMetersSubscribePath(), [
-          X32Protocol.getMeters0Path(),
-          channelId,
-        ]);
-
-        entry.renewInterval = setInterval(() => {
-          entry.client
-            .send(X32Protocol.getMetersRenewPath(), [X32Protocol.getMeters0Path()])
-            .catch(() => undefined);
-        }, RENEW_MS);
-      } catch {
-        // Keep silent; connection errors are handled by the main flow.
-      }
-    },
-    [consoleIp],
-  );
-
-  const stopChannel = useCallback((channelId: number) => {
-    const entry = subscriptionsRef.current.get(channelId);
-    if (!entry) return;
-
-    entry.unsubscribe?.();
-    if (entry.renewInterval) {
-      clearInterval(entry.renewInterval);
+  useEffect(() => {
+    if (isMock) {
+      return undefined;
     }
-    entry.client.disconnect();
-    subscriptionsRef.current.delete(channelId);
-  }, []);
+
+    const client = new OscClient();
+    clientRef.current = client;
+
+    const start = async (): Promise<void> => {
+      try {
+        await client.connect(consoleIp);
+        client.startXRemoteKeepAlive();
+
+        // Listen for /meters/1 responses
+        unsubscribeOscRef.current = client.subscribe(
+          X32Protocol.getMeters1Path(),
+          (message) => {
+            const blob = getBlobArg(message);
+            if (!blob) {
+              return;
+            }
+
+            listenersRef.current.forEach((listeners, channelId) => {
+              if (listeners.size === 0) return;
+              const values = decodeMeter1BlobForChannel(blob, channelId);
+              listeners.forEach((listener) => listener(values));
+            });
+          },
+        );
+
+        // Poll: send /meters/1 (no args) at fixed interval.
+        // The X32 responds immediately with a blob containing all channel levels.
+        // This avoids the 10-second subscription timeout and renewal complexity.
+        pollIntervalRef.current = setInterval(() => {
+          if (listenersRef.current.size === 0) return;
+          client.send(X32Protocol.getMeters1Path(), []).catch(() => undefined);
+        }, POLL_INTERVAL_MS);
+      } catch {
+        // Keep silent; connection errors handled by main flow.
+      }
+    };
+
+    start().catch(() => undefined);
+
+    return () => {
+      unsubscribeOscRef.current?.();
+      unsubscribeOscRef.current = null;
+
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
+        pollIntervalRef.current = null;
+      }
+
+      client.disconnect();
+      clientRef.current = null;
+      listenersRef.current.clear();
+    };
+  }, [consoleIp, isMock]);
 
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
@@ -73,34 +87,20 @@ export const useMeterSubscription = (consoleIp: string) => {
         return mockMixerProvider.subscribeMeter(channelId, listener);
       }
 
-      let entry = subscriptionsRef.current.get(channelId);
-      if (!entry) {
-        entry = { client: new OscClient(), listeners: new Set<MeterListener>() };
-        subscriptionsRef.current.set(channelId, entry);
-        startChannel(channelId, entry).catch(() => undefined);
-      }
-
-      entry.listeners.add(listener);
+      const listeners = listenersRef.current.get(channelId) ?? new Set<MeterListener>();
+      listeners.add(listener);
+      listenersRef.current.set(channelId, listeners);
 
       return () => {
-        const current = subscriptionsRef.current.get(channelId);
+        const current = listenersRef.current.get(channelId);
         if (!current) return;
-        current.listeners.delete(listener);
-        if (current.listeners.size === 0) {
-          stopChannel(channelId);
+        current.delete(listener);
+        if (current.size === 0) {
+          listenersRef.current.delete(channelId);
         }
       };
     },
-    [isMock, startChannel, stopChannel],
-  );
-
-  useEffect(
-    () => () => {
-      subscriptionsRef.current.forEach((_entry, channelId) => {
-        stopChannel(channelId);
-      });
-    },
-    [stopChannel],
+    [isMock],
   );
 
   return { registerMeterListener };

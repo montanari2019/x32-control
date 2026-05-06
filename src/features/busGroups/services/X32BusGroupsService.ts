@@ -178,7 +178,9 @@ export class X32BusGroupsService {
       return;
     }
 
-    await this.client.send(X32Protocol.getDcaFaderPath(dcaNumber), [clamp(value)]);
+    await this.client.send(X32Protocol.getDcaFaderPath(dcaNumber), [
+      { type: 'f', value: clamp(value) },
+    ]);
   }
 
   async setDcaOn(dcaNumber: number, isOn: boolean): Promise<void> {
@@ -196,7 +198,9 @@ export class X32BusGroupsService {
       return;
     }
 
-    await this.client.send(X32Protocol.getBusMasterFaderPath(busId), [clamp(value)]);
+    await this.client.send(X32Protocol.getBusMasterFaderPath(busId), [
+      { type: 'f', value: clamp(value) },
+    ]);
   }
 
   async setBusMasterOn(busId: number, isOn: boolean): Promise<void> {

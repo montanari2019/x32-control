@@ -12,6 +12,8 @@ type PendingRequest<T> = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
+const XREMOTE_RENEW_INTERVAL_MS = 8000;
+
 export class OscClient {
   private ip?: string;
   private port = X32Protocol.defaultPort;
@@ -79,7 +81,7 @@ export class OscClient {
     this.send(X32Protocol.getXRemotePath()).catch(() => undefined);
     this.keepAlive = setInterval(() => {
       this.send(X32Protocol.getXRemotePath()).catch(() => undefined);
-    }, 9000);
+    }, XREMOTE_RENEW_INTERVAL_MS);
   }
 
   stopXRemoteKeepAlive(): void {
