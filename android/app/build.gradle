@@ -92,6 +92,22 @@ android {
             keyPassword 'android'
         }
     }
+    flavorDimensions "environment"
+    productFlavors {
+        develop {
+            dimension "environment"
+            applicationIdSuffix ".develop"
+            versionNameSuffix "-develop"
+        }
+        homolog {
+            dimension "environment"
+            applicationIdSuffix ".homolog"
+            versionNameSuffix "-homolog"
+        }
+        production {
+            dimension "environment"
+        }
+    }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
