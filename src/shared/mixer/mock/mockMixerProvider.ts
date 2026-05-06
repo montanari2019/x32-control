@@ -406,7 +406,7 @@ export class MockMixerProvider implements MixerControlProvider {
 
 export const mockMixerProvider = new MockMixerProvider();
 
-export const isMockConsoleIp = (consoleIp: string): boolean => consoleIp === DEV_MOCK_CONSOLE_IP;
+export const isMockConsoleIp = (_consoleIp: string): boolean => false;
 
 export const getMockConsoleDevice = (): ConsoleDevice => ({
   id: DEV_MOCK_CONSOLE_ID,
