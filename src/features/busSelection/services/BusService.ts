@@ -1,3 +1,4 @@
+import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
@@ -12,18 +13,36 @@ import { Bus } from '../types/Bus';
 const defaultBusNames = ['Guitarra', 'Baixo', 'Bateria', 'Vocal', 'Click', 'Playback'];
 
 export class BusService {
+  private useMockProvider = false;
+
   constructor(private readonly client = new OscClient()) {}
 
   async connect(consoleIp: string): Promise<void> {
+    this.useMockProvider = isMockConsoleIp(consoleIp);
+    if (this.useMockProvider) {
+      await mockMixerProvider.connect(consoleIp);
+      return;
+    }
+
     await this.client.connect(consoleIp);
     this.client.startXRemoteKeepAlive();
   }
 
   disconnect(): void {
+    if (this.useMockProvider) {
+      mockMixerProvider.disconnect();
+      this.useMockProvider = false;
+      return;
+    }
+
     this.client.disconnect();
   }
 
   async getBuses(): Promise<Bus[]> {
+    if (this.useMockProvider) {
+      return mockMixerProvider.getBuses();
+    }
+
     const byNumber = new Map<number, Bus>();
 
     await Promise.all(

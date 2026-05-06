@@ -1,53 +1,150 @@
-import React, { PropsWithChildren, createContext, useCallback, useMemo, useState } from 'react';
+import React, {
+  ComponentType,
+  PropsWithChildren,
+  createContext,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
+import { ModalHandle, ModalPropsType } from './types';
 
-export type ModalRenderProps = {
-  visible: boolean;
-  onDismiss: () => void;
-  onDismissEnd: () => void;
-};
-
-type ModalRenderer = (props: ModalRenderProps) => React.ReactNode;
+type ModalComponent<Props extends ModalPropsType = ModalPropsType> = ComponentType<Props>;
 
 type ModalEntry = {
   id: string;
-  render: ModalRenderer;
+  component: ModalComponent<any>;
+  props: Record<string, unknown>;
   visible: boolean;
+  animationDuration: number;
 };
 
 type ModalContextValue = {
-  showModal: (render: ModalRenderer) => string;
+  showModal: <Props extends ModalPropsType>(
+    Component: ModalComponent<Props>,
+    props?: Omit<Props, keyof ModalPropsType>,
+  ) => ModalHandle;
   hideModal: (id: string) => void;
   hideAll: () => void;
 };
 
+type ModalProviderProps = PropsWithChildren<{
+  throttleTimeout?: number;
+}>;
+
 export const ModalContext = createContext<ModalContextValue | undefined>(undefined);
 
-const DISMISS_DELAY_MS = 200;
+const DEFAULT_ANIMATION_DURATION = 250;
+const DEFAULT_THROTTLE_TIMEOUT = 500;
 
-export const ModalProvider = ({ children }: PropsWithChildren): JSX.Element => {
+const getModalSignature = (Component: ModalComponent<any>): string =>
+  (Component as { displayName?: string }).displayName || Component.name || 'anonymous-modal';
+
+export const ModalProvider = ({
+  children,
+  throttleTimeout = DEFAULT_THROTTLE_TIMEOUT,
+}: ModalProviderProps): JSX.Element => {
   const [modals, setModals] = useState<ModalEntry[]>([]);
+  const dismissTimeoutsRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
+  const throttleRef = useRef<Map<string, number>>(new Map());
 
-  const hideModal = useCallback((id: string) => {
-    setModals((current) =>
-      current.map((entry) => (entry.id === id ? { ...entry, visible: false } : entry)),
-    );
-    setTimeout(() => {
-      setModals((current) => current.filter((entry) => entry.id !== id));
-    }, DISMISS_DELAY_MS);
+  const removeModal = useCallback((id: string) => {
+    const pendingTimeout = dismissTimeoutsRef.current.get(id);
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+      dismissTimeoutsRef.current.delete(id);
+    }
+
+    setModals((current) => current.filter((entry) => entry.id !== id));
   }, []);
+
+  const scheduleRemoval = useCallback((id: string, animationDuration: number) => {
+    const pendingTimeout = dismissTimeoutsRef.current.get(id);
+    if (pendingTimeout) {
+      clearTimeout(pendingTimeout);
+    }
+
+    const timeoutId = setTimeout(() => {
+      dismissTimeoutsRef.current.delete(id);
+      setModals((current) => current.filter((entry) => entry.id !== id));
+    }, animationDuration + 60);
+
+    dismissTimeoutsRef.current.set(id, timeoutId);
+  }, []);
+
+  const hideModal = useCallback(
+    (id: string) => {
+      setModals((current) => {
+        const entry = current.find((item) => item.id === id);
+        scheduleRemoval(id, entry?.animationDuration ?? DEFAULT_ANIMATION_DURATION);
+
+        return current.map((item) => (item.id === id ? { ...item, visible: false } : item));
+      });
+    },
+    [scheduleRemoval],
+  );
 
   const hideAll = useCallback(() => {
-    setModals((current) => current.map((entry) => ({ ...entry, visible: false })));
-    setTimeout(() => {
-      setModals([]);
-    }, DISMISS_DELAY_MS);
-  }, []);
+    setModals((current) => {
+      current.forEach((entry) => {
+        scheduleRemoval(entry.id, entry.animationDuration);
+      });
 
-  const showModal = useCallback((render: ModalRenderer) => {
-    const id = `modal-${Date.now()}-${Math.round(Math.random() * 10000)}`;
-    setModals((current) => [...current, { id, render, visible: true }]);
-    return id;
-  }, []);
+      return current.map((entry) => ({ ...entry, visible: false }));
+    });
+  }, [scheduleRemoval]);
+
+  const showModal = useCallback(
+    <Props extends ModalPropsType>(
+      Component: ModalComponent<Props>,
+      props?: Omit<Props, keyof ModalPropsType>,
+    ): ModalHandle => {
+      const signature = getModalSignature(Component);
+      const now = Date.now();
+      const lastOpenedAt = throttleRef.current.get(signature);
+
+      if (
+        typeof lastOpenedAt === 'number' &&
+        throttleTimeout > 0 &&
+        now - lastOpenedAt < throttleTimeout
+      ) {
+        return {
+          id: `${signature}-throttled`,
+          dismiss: () => undefined,
+        };
+      }
+
+      throttleRef.current.set(signature, now);
+
+      const id = `modal-${now}-${Math.round(Math.random() * 10000)}`;
+
+      setModals((current) => [
+        ...current,
+        {
+          id,
+          component: Component,
+          props: props ? { ...props } : {},
+          visible: true,
+          animationDuration: DEFAULT_ANIMATION_DURATION,
+        },
+      ]);
+
+      return {
+        id,
+        dismiss: () => hideModal(id),
+      };
+    },
+    [hideModal, throttleTimeout],
+  );
+
+  useEffect(
+    () => () => {
+      dismissTimeoutsRef.current.forEach((timeoutId) => clearTimeout(timeoutId));
+      dismissTimeoutsRef.current.clear();
+    },
+    [],
+  );
 
   const value = useMemo(
     () => ({
@@ -61,15 +158,19 @@ export const ModalProvider = ({ children }: PropsWithChildren): JSX.Element => {
   return (
     <ModalContext.Provider value={value}>
       {children}
-      {modals.map((entry) => (
-        <React.Fragment key={entry.id}>
-          {entry.render({
-            visible: entry.visible,
-            onDismiss: () => hideModal(entry.id),
-            onDismissEnd: () => hideModal(entry.id),
-          })}
-        </React.Fragment>
-      ))}
+      {modals.map((entry) => {
+        const Component = entry.component;
+
+        return (
+          <Component
+            key={entry.id}
+            {...entry.props}
+            visible={entry.visible}
+            onDismiss={() => hideModal(entry.id)}
+            onDismissEnd={() => removeModal(entry.id)}
+          />
+        );
+      })}
     </ModalContext.Provider>
   );
 };

@@ -62,23 +62,16 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   }
 
   const openPanModal = (channelNumber: number): void => {
-    showModal(({ visible, onDismiss }) => {
-      const channel = channelsRef.current.find((item) => item.number === channelNumber);
-      if (!channel) {
-        return null;
-      }
+    const channel = channelsRef.current.find((item) => item.number === channelNumber);
+    if (!channel) {
+      return;
+    }
 
-      return (
-        <PanControlModal
-          visible={visible}
-          onDismiss={onDismiss}
-          onDismissEnd={onDismiss}
-          channelLabel={channel.label}
-          channelName={channel.name}
-          value={getPanPercent(channel.pan)}
-          onChange={(value) => setPan(channelNumber, value)}
-        />
-      );
+    showModal(PanControlModal, {
+      channelLabel: channel.label,
+      channelName: channel.name,
+      value: getPanPercent(channel.pan),
+      onChange: (value) => setPan(channelNumber, value),
     });
   };
 
