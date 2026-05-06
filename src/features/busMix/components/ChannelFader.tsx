@@ -24,10 +24,7 @@ export const ChannelFader = ({
   <View style={styles.card}>
     <View style={styles.channelInfo}>
       <View
-        style={[
-          styles.colorStrip,
-          { backgroundColor: channel.color ?? colors.neutralFader },
-        ]}
+        style={[styles.colorStrip, { backgroundColor: channel.color ?? colors.mixer.neutralFader }]}
       />
       <View style={styles.textBlock}>
         <Text style={styles.label}>{channel.label}</Text>
@@ -44,9 +41,9 @@ export const ChannelFader = ({
         step={0.001}
         value={channel.level}
         onValueChange={onLevelChange}
-        minimumTrackTintColor={channel.color ?? colors.neutralFader}
-        maximumTrackTintColor={colors.track}
-        thumbTintColor={channel.color ?? colors.neutralFader}
+        minimumTrackTintColor={channel.color ?? colors.mixer.neutralFader}
+        maximumTrackTintColor={colors.mixer.track}
+        thumbTintColor={channel.color ?? colors.mixer.neutralFader}
       />
       <Text style={styles.value}>
         {Math.round(channel.level * 100)}% · {formatDb(channel.level)}
@@ -66,8 +63,8 @@ export const ChannelFader = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surface.elevated,
+    borderColor: colors.border.primary,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
@@ -87,18 +84,18 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   label: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 12,
     fontWeight: '800',
   },
   name: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 16,
     fontWeight: '800',
     marginTop: 2,
   },
   onActive: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.status.success,
   },
   onButton: {
     alignItems: 'center',
@@ -109,10 +106,10 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   onMuted: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.status.danger,
   },
   onText: {
-    color: colors.background,
+    color: colors.text.inverse,
     fontSize: 12,
     fontWeight: '900',
   },
@@ -120,7 +117,7 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   value: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 12,
     textAlign: 'right',
   },

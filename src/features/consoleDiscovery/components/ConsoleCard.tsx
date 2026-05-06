@@ -8,10 +8,7 @@ type ConsoleCardProps = {
   onPress: (device: ConsoleDevice) => void;
 };
 
-export const ConsoleCard = ({
-  device,
-  onPress,
-}: ConsoleCardProps): JSX.Element => (
+export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element => (
   <Pressable
     onPress={() => onPress(device)}
     style={({ pressed }) => [styles.card, pressed && styles.pressed]}
@@ -25,9 +22,7 @@ export const ConsoleCard = ({
         <View
           style={[
             styles.dot,
-            device.status === 'connected'
-              ? styles.connected
-              : styles.disconnected,
+            device.status === 'connected' ? styles.connected : styles.disconnected,
           ]}
         />
         <Text style={styles.statusText}>{device.status}</Text>
@@ -41,18 +36,18 @@ export const ConsoleCard = ({
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surface.elevated,
+    borderColor: colors.border.primary,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
     padding: 16,
   },
   connected: {
-    backgroundColor: colors.success,
+    backgroundColor: colors.status.success,
   },
   disconnected: {
-    backgroundColor: colors.danger,
+    backgroundColor: colors.status.danger,
   },
   dot: {
     borderRadius: 5,
@@ -60,17 +55,17 @@ const styles = StyleSheet.create({
     width: 10,
   },
   ip: {
-    color: colors.primary,
+    color: colors.accent.primary,
     fontSize: 14,
     fontWeight: '600',
   },
   meta: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 13,
     marginTop: 4,
   },
   name: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 18,
     fontWeight: '800',
   },
@@ -83,7 +78,7 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   statusText: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 12,
     textTransform: 'capitalize',
   },

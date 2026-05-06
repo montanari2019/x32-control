@@ -1,7 +1,7 @@
 module.exports = {
   preset: 'react-native',
   transform: {
-    '^.+\\.(ts|tsx)$': ['ts-jest', {tsconfig: 'tsconfig.json'}],
+    '^.+\\.(ts|tsx)$': ['ts-jest', { tsconfig: 'tsconfig.json' }],
   },
   moduleNameMapper: {
     '^@app/(.*)$': '<rootDir>/src/app/$1',

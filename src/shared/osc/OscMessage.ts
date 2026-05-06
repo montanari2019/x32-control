@@ -1,4 +1,4 @@
-export type OscArg = string | number | boolean | null;
+export type OscArg = string | number | boolean | null | Uint8Array;
 
 export type OscMessage = {
   address: string;

@@ -15,6 +15,7 @@ export type RootStackParamList = {
     consoleIp: string;
     busNumber: number;
     busName: string;
+    linkedBusNumber?: number;
   };
 };
 
@@ -25,9 +26,9 @@ export const RootNavigator = (): JSX.Element => (
     initialRouteName="ConsoleDiscovery"
     screenOptions={{
       animation: 'slide_from_right',
-      contentStyle: { backgroundColor: colors.background },
-      headerStyle: { backgroundColor: colors.background },
-      headerTintColor: colors.text,
+      contentStyle: { backgroundColor: colors.background.primary },
+      headerStyle: { backgroundColor: colors.background.primary },
+      headerTintColor: colors.text.primary,
       headerTitleStyle: { fontWeight: '700' },
     }}
   >
@@ -39,12 +40,8 @@ export const RootNavigator = (): JSX.Element => (
     <Stack.Screen
       name="BusSelection"
       component={BusSelectionScreen}
-      options={{ title: 'Selecionar BUS' }}
+      options={{ headerShown: false }}
     />
-    <Stack.Screen
-      name="BusMix"
-      component={BusMixScreen}
-      options={{ title: 'Mix do BUS' }}
-    />
+    <Stack.Screen name="BusMix" component={BusMixScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );

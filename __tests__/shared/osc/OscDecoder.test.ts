@@ -5,9 +5,7 @@ import { OscEncoder } from '../../../src/shared/osc/OscEncoder';
 
 describe('OscDecoder', () => {
   it('decodes a valid OSC message', () => {
-    const message = OscDecoder.decode(
-      OscEncoder.encode({ address: '/status', args: ['active'] }),
-    );
+    const message = OscDecoder.decode(OscEncoder.encode({ address: '/status', args: ['active'] }));
 
     expect(message).toEqual({ address: '/status', args: ['active'] });
   });

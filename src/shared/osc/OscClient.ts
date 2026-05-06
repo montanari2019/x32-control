@@ -24,10 +24,7 @@ export class OscClient {
 
   async connect(ip: string, port = X32Protocol.defaultPort): Promise<void> {
     if (!this.isValidIp(ip)) {
-      throw new AppError(
-        'INVALID_IP',
-        'IP inválido. Use um endereço IPv4 da rede da mesa.',
-      );
+      throw new AppError('INVALID_IP', 'IP inválido. Use um endereço IPv4 da rede da mesa.');
     }
 
     this.ip = ip;
@@ -56,18 +53,10 @@ export class OscClient {
       throw new AppError('CONNECTION_LOST', 'Cliente OSC não conectado.');
     }
 
-    await this.transport.send(
-      OscEncoder.encode({ address, args }),
-      this.ip,
-      this.port,
-    );
+    await this.transport.send(OscEncoder.encode({ address, args }), this.ip, this.port);
   }
 
-  async request<T>(
-    address: string,
-    args: OscArg[] = [],
-    timeoutMs = 1500,
-  ): Promise<T> {
+  async request<T>(address: string, args: OscArg[] = [], timeoutMs = 1500): Promise<T> {
     await this.send(address, args);
 
     return new Promise<T>((resolve, reject) => {
@@ -77,12 +66,7 @@ export class OscClient {
         reject,
         timeout: setTimeout(() => {
           this.pending.delete(pending as PendingRequest<unknown>);
-          reject(
-            new AppError(
-              'UDP_TIMEOUT',
-              `Timeout aguardando resposta de ${address}.`,
-            ),
-          );
+          reject(new AppError('UDP_TIMEOUT', `Timeout aguardando resposta de ${address}.`));
         }, timeoutMs),
       };
 
@@ -105,13 +89,8 @@ export class OscClient {
     }
   }
 
-  subscribe(
-    address: string,
-    listener: (message: OscMessage) => void,
-  ): () => void {
-    const listeners =
-      this.subscriptions.get(address) ??
-      new Set<(message: OscMessage) => void>();
+  subscribe(address: string, listener: (message: OscMessage) => void): () => void {
+    const listeners = this.subscriptions.get(address) ?? new Set<(message: OscMessage) => void>();
     listeners.add(listener);
     this.subscriptions.set(address, listeners);
     return () => listeners.delete(listener);
@@ -126,9 +105,7 @@ export class OscClient {
       return;
     }
 
-    this.subscriptions
-      .get(message.address)
-      ?.forEach((listener) => listener(message));
+    this.subscriptions.get(message.address)?.forEach((listener) => listener(message));
 
     const matchingRequest = [...this.pending].find(
       (request) => request.address === message.address,
@@ -148,12 +125,7 @@ export class OscClient {
       parts.length === 4 &&
       parts.every((part) => {
         const value = Number(part);
-        return (
-          Number.isInteger(value) &&
-          value >= 0 &&
-          value <= 255 &&
-          part === String(value)
-        );
+        return Number.isInteger(value) && value >= 0 && value <= 255 && part === String(value);
       })
     );
   }

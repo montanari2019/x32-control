@@ -17,9 +17,7 @@ export const useConsoleDiscovery = () => {
       const found = await service.scan();
       setDevices(found);
       if (found.length === 0) {
-        setError(
-          'Nenhuma X32/M32 respondeu ao broadcast. Tente informar o IP manualmente.',
-        );
+        setError('Nenhuma X32/M32 respondeu ao broadcast. Tente informar o IP manualmente.');
       }
     } catch (scanError) {
       setError(getErrorMessage(scanError));
@@ -28,18 +26,13 @@ export const useConsoleDiscovery = () => {
     }
   };
 
-  const validateManualIp = async (
-    ip: string,
-  ): Promise<ConsoleDevice | undefined> => {
+  const validateManualIp = async (ip: string): Promise<ConsoleDevice | undefined> => {
     setIsSearching(true);
     setError(undefined);
 
     try {
       const device = await service.validateManualIp(ip.trim());
-      setDevices((current) => [
-        device,
-        ...current.filter((item) => item.ip !== device.ip),
-      ]);
+      setDevices((current) => [device, ...current.filter((item) => item.ip !== device.ip)]);
       return device;
     } catch (manualError) {
       setError(getErrorMessage(manualError));

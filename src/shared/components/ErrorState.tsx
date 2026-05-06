@@ -9,11 +9,7 @@ type ErrorStateProps = {
   onAction?: () => void;
 };
 
-export const ErrorState = ({
-  message,
-  actionLabel,
-  onAction,
-}: ErrorStateProps): JSX.Element => (
+export const ErrorState = ({ message, actionLabel, onAction }: ErrorStateProps): JSX.Element => (
   <View style={styles.container}>
     <Text style={styles.title}>Algo saiu do tom</Text>
     <Text style={styles.message}>{message}</Text>
@@ -25,20 +21,20 @@ export const ErrorState = ({
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.surface,
-    borderColor: colors.border,
+    backgroundColor: colors.surface.elevated,
+    borderColor: colors.border.primary,
     borderRadius: 8,
     borderWidth: 1,
     gap: 12,
     padding: 16,
   },
   message: {
-    color: colors.textMuted,
+    color: colors.text.secondary,
     fontSize: 14,
     lineHeight: 20,
   },
   title: {
-    color: colors.text,
+    color: colors.text.primary,
     fontSize: 17,
     fontWeight: '700',
   },

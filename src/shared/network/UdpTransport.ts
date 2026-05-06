@@ -12,10 +12,7 @@ type UdpSocket = {
     address: string,
     callback?: (error?: Error) => void,
   ) => void;
-  on: (
-    event: 'message' | 'error' | 'listening',
-    listener: (...args: unknown[]) => void,
-  ) => void;
+  on: (event: 'message' | 'error' | 'listening', listener: (...args: unknown[]) => void) => void;
   setBroadcast?: (enabled: boolean) => void;
 };
 
@@ -49,9 +46,7 @@ export class UdpTransport {
 
     await new Promise<void>((resolve, reject) => {
       if (!this.socket) {
-        reject(
-          new AppError('UDP_TRANSPORT_ERROR', 'Socket UDP não inicializado.'),
-        );
+        reject(new AppError('UDP_TRANSPORT_ERROR', 'Socket UDP não inicializado.'));
         return;
       }
 
@@ -72,11 +67,7 @@ export class UdpTransport {
       });
 
       this.socket.on('error', (error) => {
-        const appError = new AppError(
-          'UDP_TRANSPORT_ERROR',
-          'Erro no transporte UDP.',
-          error,
-        );
+        const appError = new AppError('UDP_TRANSPORT_ERROR', 'Erro no transporte UDP.', error);
         this.errorHandlers.forEach((handler) => handler(appError));
         reject(appError);
       });
@@ -93,13 +84,7 @@ export class UdpTransport {
     await new Promise<void>((resolve, reject) => {
       this.socket?.send(data, 0, data.length, port, ip, (error) => {
         if (error) {
-          reject(
-            new AppError(
-              'UDP_TRANSPORT_ERROR',
-              'Falha ao enviar pacote UDP.',
-              error,
-            ),
-          );
+          reject(new AppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
           return;
         }
 

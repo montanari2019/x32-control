@@ -6,11 +6,11 @@ export const darkTheme: Theme = {
   dark: true,
   colors: {
     ...DefaultTheme.colors,
-    background: colors.background,
-    border: colors.border,
-    card: colors.surface,
-    notification: colors.primary,
-    primary: colors.primary,
-    text: colors.text,
+    background: colors.background.primary,
+    border: colors.border.primary,
+    card: colors.surface.elevated,
+    notification: colors.accent.primary,
+    primary: colors.accent.primary,
+    text: colors.text.primary,
   },
 };
