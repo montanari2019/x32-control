@@ -1,0 +1,3 @@
+Titulo: Escopo por console para persistencia de DCA no secure store
+Timestamp: 2026-05-06 10:35:55 -04:00
+Contexto: Ajustei a infraestrutura de storage para permitir escopo por namespace e chave derivada do console selecionado. Tambem criei um servico especifico para estado de DCA em busGroups, garantindo que snapshots de DCAs fiquem isolados por console no dispositivo, sem colisao entre mesas diferentes.

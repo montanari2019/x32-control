@@ -8,18 +8,20 @@ type PersonalMixHeaderProps = {
   title: string;
   subtitle?: string;
   onBack: () => void;
-  onSave: () => void;
-  isSaving?: boolean;
-  isSaveDisabled?: boolean;
+  onAction: () => void;
+  actionLabel?: string;
+  isActionLoading?: boolean;
+  isActionDisabled?: boolean;
 };
 
 export const PersonalMixHeader = ({
   title,
   subtitle,
   onBack,
-  onSave,
-  isSaving = false,
-  isSaveDisabled = false,
+  onAction,
+  actionLabel = 'Presets',
+  isActionLoading = false,
+  isActionDisabled = false,
 }: PersonalMixHeaderProps): JSX.Element => (
   <View style={styles.container}>
     <Pressable
@@ -38,16 +40,16 @@ export const PersonalMixHeader = ({
 
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel="Salvar"
-      disabled={isSaveDisabled || isSaving}
-      onPress={onSave}
+      accessibilityLabel={actionLabel}
+      disabled={isActionDisabled || isActionLoading}
+      onPress={onAction}
       style={({ pressed }) => [
         styles.saveButton,
-        (isSaveDisabled || isSaving) && styles.saveDisabled,
-        pressed && !(isSaveDisabled || isSaving) && styles.savePressed,
+        (isActionDisabled || isActionLoading) && styles.saveDisabled,
+        pressed && !(isActionDisabled || isActionLoading) && styles.savePressed,
       ]}
     >
-      <Text style={styles.saveText}>{isSaving ? 'Salvando...' : 'Salvar'}</Text>
+      <Text style={styles.saveText}>{isActionLoading ? 'Abrindo...' : actionLabel}</Text>
     </Pressable>
   </View>
 );

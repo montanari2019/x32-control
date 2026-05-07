@@ -1,0 +1,117 @@
+Projeto: x32-control
+Data do log: 2026-05-07 09:28:53
+Contexto: implementacao de presets locais na tela de Bus Mix.
+
+Objetivo da rodada
+------------------
+- Implementar presets locais para o Bus Mix.
+- Trocar o botao de salvar da tela por um botao chamado Presets.
+- Permitir salvar, listar, sobrescrever e restaurar presets locais.
+- Vincular os presets ao console e ao bus atual.
+- Limitar o total a 10 presets por combinacao console + bus.
+
+Implementacoes realizadas
+-------------------------
+1. Persistencia local de presets
+- Criado o tipo:
+  - src/features/busMix/types/BusMixPreset.ts
+- Criado o service:
+  - src/features/busMix/services/BusMixPresetService.ts
+- Responsabilidades do service:
+  - listar presets
+  - carregar preset individual
+  - salvar novo preset
+  - sobrescrever preset existente
+  - persistir no Secure Storage
+- Escopo de armazenamento:
+  - console + bus
+  - chave derivada com namespace via SecureStoreService
+- Limite implementado:
+  - MAX_BUS_MIX_PRESETS = 10
+
+2. Integracao no hook do Bus Mix
+- Arquivo:
+  - src/features/busMix/hooks/useBusMix.ts
+- Adicionado suporte a:
+  - presets
+  - refreshPresets
+  - createPreset
+  - overwritePreset
+  - restorePreset
+  - isRestoringPreset
+  - isLoadingPresets
+- A captura do preset usa o estado atual dos canais carregados.
+- Cada canal salvo inclui:
+  - identificador visual do Bus Mix
+  - nome/label
+  - kind
+  - sourceNumber
+  - raw
+  - db
+- A restauracao reaproveita a logica ja existente de commit de fader e envio para a mesa.
+- A aplicacao do preset ocorre canal por canal, com pequeno intervalo para permitir feedback visual.
+
+3. UI do modal de presets
+- Criado:
+  - src/features/busMix/components/BusMixPresetsModal.tsx
+- Comportamentos implementados:
+  - botao Novo Preset no topo
+  - campo de nome ao expandir criacao
+  - listagem de presets do Bus Mix atual
+  - acao de sobrescrever preset
+  - acao de restaurar preset
+  - feedback por Toast para sucesso e erro
+- Observacao:
+  - como o sistema de modal do projeto congela props ao abrir, o modal passou a manter sua propria lista local e recarregar os presets ao ser aberto.
+
+4. Overlay de loading na restauracao
+- Criado:
+  - src/features/busMix/components/BusMixPresetRestoreOverlay.tsx
+- O overlay:
+  - bloqueia interacao
+  - cobre a tela inteira
+  - usa fundo escurecido com opacidade aproximada de 0.5
+  - mantem a tela visivel por tras
+  - mostra ActivityIndicator e texto de restauracao
+
+5. Ajuste do header do Bus Mix
+- Arquivos:
+  - src/features/busMix/components/PersonalMixHeader.tsx
+  - src/features/busMix/screens/BusMixScreen.tsx
+- O botao da direita deixou de ser Salvar e passou a abrir Presets.
+- O screen agora injeta o modal e o overlay de restauracao.
+
+Testes executados
+-----------------
+- npm run tsc
+  - sucesso
+- npm test -- BusMixPresetService.test.ts --runInBand
+  - sucesso
+
+Teste adicionado
+----------------
+- __tests__/features/busMix/services/BusMixPresetService.test.ts
+- Cobertura principal:
+  - isolamento por console + bus
+  - sobrescrita sem duplicidade
+  - limite maximo de 10 presets
+
+Pontos importantes do comportamento atual
+-----------------------------------------
+- Os presets sao apenas locais no dispositivo.
+- Nada e salvo como cena real na X32.
+- A restauracao envia os valores para a mesa usando o fluxo real ja existente do Bus Mix.
+- O escopo esta separado por console e bus, conforme solicitado.
+- Foi usado o valor raw para restauracao fiel, mantendo tambem informacao de db no preset salvo.
+
+Proximo ponto recomendado
+-------------------------
+- Validar visualmente no dispositivo e em mesa real:
+  - abertura do modal
+  - criacao de preset
+  - sobrescrita
+  - restauracao com movimento de faders
+  - comportamento com AUX e FX no mesmo Bus Mix
+- Se desejado na proxima rodada:
+  - refinar visual dos botoes de acao do preset
+  - atualizar README/documentacao funcional do Bus Mix

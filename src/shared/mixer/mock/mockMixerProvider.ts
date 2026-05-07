@@ -1,4 +1,4 @@
-import { BusGroupsState, McaGroup } from '@features/busGroups/types/busGroups.types';
+import { BusGroupsState, McaAssignedChannel, McaGroup } from '@features/busGroups/types/busGroups.types';
 import { Channel, ChannelKind } from '@features/busMix/types/Channel';
 import { ChannelMeterValues } from '@features/busMix/utils/meterDecoder';
 import { Bus } from '@features/busSelection/types/Bus';
@@ -186,15 +186,25 @@ const createChannelsForBus = (busId: number): Channel[] => [
 ];
 
 const createDcaGroups = (): McaGroup[] =>
-  MCA_DEFINITIONS.map((definition, index) => ({
-    id: `mca-${definition.dcaNumber}`,
-    dcaNumber: definition.dcaNumber,
-    name: definition.name,
-    colorToken: definition.colorToken,
-    faderRawValue: clamp(0.45 + index * 0.08),
-    isMuted: false,
-    assignedChannelIds: [...definition.channels],
-  }));
+  MCA_DEFINITIONS.map((definition, index) => {
+    const assignedChannels: McaAssignedChannel[] = definition.channels.map((channelId) => ({
+      channelId,
+      channelLabel: `CH ${channelId.toString().padStart(2, '0')}`,
+      channelName: CHANNEL_NAMES[channelId - 1] ?? `Channel ${channelId}`,
+      channelType: 'channel',
+    }));
+
+    return {
+      id: `mca-${definition.dcaNumber}`,
+      dcaNumber: definition.dcaNumber,
+      name: `MCA ${definition.dcaNumber}`,
+      colorToken: definition.colorToken,
+      faderRawValue: clamp(0.45 + index * 0.08),
+      isMuted: false,
+      assignedChannels,
+      assignedChannelIds: [...definition.channels],
+    };
+  });
 
 export class MockMixerProvider implements MixerControlProvider {
   private readonly console: ConsoleDevice = {
@@ -259,6 +269,7 @@ export class MockMixerProvider implements MixerControlProvider {
       masterMuted: master.isMuted,
       mcas: this.mcas.map((mca) => ({
         ...mca,
+        assignedChannels: mca.assignedChannels.map((channel) => ({ ...channel })),
         assignedChannelIds: [...mca.assignedChannelIds],
       })),
       isConnected: true,

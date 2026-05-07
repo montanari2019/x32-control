@@ -1,0 +1,3 @@
+Titulo: Reset do Metro para corrigir resolucao falsa de react-native
+Timestamp: 2026-05-06 10:51:41 -04:00
+Contexto: O pacote react-native estava presente no node_modules, mas o Metro antigo em 8081 mantinha um cache de resolucao inconsistente apos as trocas de dependencia. Encerrei o packager antigo, limpei metro-cache e metro-file-map no TEMP e subi um novo yarn start --reset-cache, validando que http://127.0.0.1:8081/status voltou como package-status:running.

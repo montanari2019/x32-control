@@ -5,7 +5,7 @@ import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { clamp } from '@shared/utils/clamp';
 import { X32HeartbeatService } from '../../../services/x32/X32HeartbeatService';
-import { BusGroupsState, McaColorToken, McaGroup } from '../types/busGroups.types';
+import { BusGroupsState, McaAssignedChannel, McaColorToken, McaGroup } from '../types/busGroups.types';
 
 const DCA_NUMBERS = [1, 2, 3, 4, 5] as const;
 const MCA_COLOR_TOKENS: Record<(typeof DCA_NUMBERS)[number], McaColorToken> = {
@@ -30,6 +30,14 @@ export const isChannelInDca = (dcaBitmask: number, dcaIndex: number): boolean =>
   const divisor = 2 ** (dcaIndex - 1);
   return Math.floor(dcaBitmask / divisor) % 2 === 1;
 };
+
+const buildAssignedChannelsFromIds = (channelIds: number[]): McaAssignedChannel[] =>
+  channelIds.map((channelId) => ({
+    channelId,
+    channelName: `CH ${channelId.toString().padStart(2, '0')}`,
+    channelLabel: `CH ${channelId.toString().padStart(2, '0')}`,
+    channelType: 'channel',
+  }));
 
 export class X32BusGroupsService {
   private readonly heartbeat = new X32HeartbeatService();
@@ -88,10 +96,7 @@ export class X32BusGroupsService {
         dcaNumber,
         faderRawValue: await this.safeRequestFloat(X32Protocol.getDcaFaderPath(dcaNumber), 0),
         isOn: await this.safeRequestInt(X32Protocol.getDcaOnPath(dcaNumber), 1),
-        name: await this.safeRequestString(
-          X32Protocol.getDcaNamePath(dcaNumber),
-          `MCA ${dcaNumber.toString().padStart(2, '0')}`,
-        ),
+        name: `MCA ${dcaNumber}`,
       })),
     );
 
@@ -109,17 +114,22 @@ export class X32BusGroupsService {
       ),
     ]);
 
-    const mcas: McaGroup[] = dcaStates.map((dcaState) => ({
-      id: `mca-${dcaState.dcaNumber}`,
-      dcaNumber: dcaState.dcaNumber,
-      name: dcaState.name,
-      colorToken: MCA_COLOR_TOKENS[dcaState.dcaNumber],
-      faderRawValue: dcaState.faderRawValue,
-      isMuted: dcaState.isOn === 0,
-      assignedChannelIds: channelAssignments
+    const mcas: McaGroup[] = dcaStates.map((dcaState) => {
+      const assignedChannelIds = channelAssignments
         .filter((assignment) => isChannelInDca(assignment.dcaBitmask, dcaState.dcaNumber))
-        .map((assignment) => assignment.channelId),
-    }));
+        .map((assignment) => assignment.channelId);
+
+      return {
+        id: `mca-${dcaState.dcaNumber}`,
+        dcaNumber: dcaState.dcaNumber,
+        name: dcaState.name,
+        colorToken: MCA_COLOR_TOKENS[dcaState.dcaNumber],
+        faderRawValue: dcaState.faderRawValue,
+        isMuted: dcaState.isOn === 0,
+        assignedChannels: buildAssignedChannelsFromIds(assignedChannelIds),
+        assignedChannelIds,
+      };
+    });
 
     return {
       busId,

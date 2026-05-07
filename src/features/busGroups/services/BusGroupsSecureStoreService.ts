@@ -1,10 +1,11 @@
 import { secureStore } from '@shared/storage';
-import { McaGroup } from '../types/busGroups.types';
+import { McaAssignedChannel, McaGroup } from '../types/busGroups.types';
 
 type StoredDcaGroup = Pick<
   McaGroup,
-  'assignedChannelIds' | 'colorToken' | 'dcaNumber' | 'isMuted' | 'name'
+  'colorToken' | 'dcaNumber' | 'isMuted' | 'name'
 > & {
+  assignedChannels: McaAssignedChannel[];
   faderRawValue: number;
 };
 
@@ -17,7 +18,7 @@ type StoredDcaPayload = {
 const DCA_STATE_KEY = 'dca-state';
 
 const toStoredDcaGroup = (mca: McaGroup): StoredDcaGroup => ({
-  assignedChannelIds: [...mca.assignedChannelIds],
+  assignedChannels: mca.assignedChannels.map((channel) => ({ ...channel })),
   colorToken: mca.colorToken,
   dcaNumber: mca.dcaNumber,
   faderRawValue: mca.faderRawValue,

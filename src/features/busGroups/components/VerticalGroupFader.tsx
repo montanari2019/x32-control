@@ -48,7 +48,9 @@ export const VerticalGroupFader = ({
   const responder: PanResponderInstance = useMemo(
     () =>
       PanResponder.create({
+        onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: (event) => {
           startY.current = currentY.current;
           updateFromPosition(event.nativeEvent.locationY - THUMB_HEIGHT / 2);
@@ -59,6 +61,7 @@ export const VerticalGroupFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy);
         },
+        onShouldBlockNativeResponder: () => true,
       }),
     [updateFromPosition],
   );

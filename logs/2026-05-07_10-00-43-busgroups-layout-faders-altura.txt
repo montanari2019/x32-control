@@ -1,0 +1,69 @@
+Projeto: x32-control
+Data do log: 2026-05-07 10:00:43
+Contexto: ajuste de layout da tela BusGroups para remover area inferior e expandir altura util dos faders.
+
+Objetivo da rodada
+------------------
+- Remover o rodape com Presets e Configuracoes da BusGroupsScreen.
+- Fazer Bus Master e MCAs ocuparem melhor a altura disponivel da tela.
+- Preservar a funcionalidade existente dos faders.
+
+Implementacoes realizadas
+-------------------------
+1. Remocao da area inferior
+- Arquivo:
+  - src/features/busGroups/BusGroupsScreen.tsx
+- Foi removido o uso de BusGroupsFooter.
+- A tela deixou de reservar espaco para os botoes inferiores.
+
+2. Area de strips responsiva
+- Arquivo:
+  - src/features/busGroups/BusGroupsScreen.tsx
+- Foi criada uma area flexivel para os strips:
+  - stripsArea com flex: 1
+  - medicao da altura real via onLayout
+- A altura medida e repassada para Bus Master e MCAs.
+
+3. Altura dos faders baseada no espaco real
+- Arquivo:
+  - src/features/busGroups/components/GroupStrip.tsx
+- O antigo slot fixo de 300 px foi removido.
+- Agora:
+  - o card ocupa a altura disponivel
+  - a area do fader usa flex
+  - o tamanho efetivo do fader e medido com onLayout
+  - VerticalGroupFader recebe a altura real da area util
+
+4. Preservacao da logica do Bus Master
+- A logica funcional do Bus Master nao foi alterada:
+  - onFaderChange continua igual
+  - fluxo de envio e sincronizacao continua igual
+  - ajuste foi apenas estrutural/visual para a nova altura
+
+5. Ajuste de largura e espacamento
+- Arquivos:
+  - src/features/busGroups/components/GroupStrip.tsx
+  - src/features/busGroups/BusGroupsScreen.tsx
+- Espacamento horizontal entre strips foi reduzido de forma leve.
+- Larguras ajustadas:
+  - MasterStrip levemente menor que antes, mas ainda mais largo que os MCAs
+  - MCAs mais estreitos
+
+Validacao executada
+-------------------
+- npm run tsc
+  - sucesso
+
+Observacoes
+-----------
+- A altura dos faders agora se adapta melhor ao espaco disponivel e ao tamanho da tela.
+- A medicao via onLayout evita depender de numero fixo absoluto para o trilho do fader.
+- A tela ficou sem o rodape inferior, aproveitando melhor a area util.
+
+Proximo ponto recomendado
+-------------------------
+- Validar visualmente em dispositivo:
+  - altura final dos strips em telas menores e maiores
+  - toque/arraste do Bus Master
+  - conforto do arraste dos MCAs
+  - espacamento horizontal apos o ajuste

@@ -1,0 +1,3 @@
+Titulo: Implementacao de console mock de desenvolvimento para o fluxo completo de mixagem
+Timestamp: 2026-05-06 10:58:04 -04:00
+Contexto: Criei uma camada isolada de provider mock para desenvolvimento cobrindo descoberta de console, selecao de buses, grupos/DCAs, mixagem de canais e meters simulados em tempo real. Os services reais agora detectam um console mock somente em __DEV__ e usam o provider fake sem contaminar as telas, mantendo o comportamento real intacto para mesas fisicas.

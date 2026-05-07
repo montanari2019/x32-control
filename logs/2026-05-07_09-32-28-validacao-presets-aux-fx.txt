@@ -1,0 +1,59 @@
+Projeto: x32-control
+Data do log: 2026-05-07 09:32:28
+Contexto: validacao da cobertura de presets locais para AUX e FX Return.
+
+Conclusao
+---------
+- A implementacao atual de presets do Bus Mix ja cobre AUX e FX Return.
+- Nao foi necessario alterar codigo nesta rodada.
+
+Evidencias tecnicas
+-------------------
+1. Captura do preset
+- Em src/features/busMix/hooks/useBusMix.ts, buildPresetChannels usa channelsRef.current.
+- channelsRef.current contem toda a lista carregada no Bus Mix:
+  - 32 channels
+  - 8 aux
+  - 8 fxReturn
+- Cada item salvo leva:
+  - channelId = channel.number
+  - kind = channel.kind
+  - sourceNumber = channel.sourceNumber
+  - raw
+  - db
+
+2. Origem da lista de canais
+- Em src/features/busMix/services/BusMixService.ts, loadChannels monta a lista a partir de SOURCE_DEFINITIONS.
+- SOURCE_DEFINITIONS contem explicitamente:
+  - kind: channel
+  - kind: aux
+  - kind: fxReturn
+- Portanto os presets capturam AUX e FX porque esses itens ja fazem parte da mesma lista base do Bus Mix.
+
+3. Restauracao do preset
+- Em src/features/busMix/hooks/useBusMix.ts, restorePreset percorre preset.channels.
+- A aplicacao usa presetChannel.channelId e procura o canal atual pelo number.
+- Como a numeracao e unica no Bus Mix:
+  - CH 01..32 => 1..32
+  - AUX 01..08 => 33..40
+  - FX 01..08 => 41..48
+  nao ha colisao entre tipos.
+
+4. Envio para a mesa
+- Durante a restauracao, applyCommittedLevel chama sendFaderImmediately.
+- O flush usa service.setChannelFader(channel, busNumber, level).
+- Em BusMixService.setChannelFader, o path OSC e escolhido por channel.kind e channel.sourceNumber.
+- Isso cobre corretamente:
+  - /ch/... para channels
+  - /auxin/... para aux
+  - /fxrtn/... para fxReturn
+
+Observacao importante
+---------------------
+- O meter visual continua desabilitado para AUX e FX Return por decisao anterior de seguranca de mapeamento.
+- Isso nao afeta presets, porque o preset trabalha com fader/level e nao depende de meter.
+
+Ponto de parada
+---------------
+- Presets locais confirmados como compativeis com channels, AUX e FX Return.
+- Proxima validacao recomendada continua sendo teste em mesa real para confirmar restauracao completa nesses tres grupos.

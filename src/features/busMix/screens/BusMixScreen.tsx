@@ -8,6 +8,9 @@ import { useModal } from '@shared/components/Modal';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
+import { MAX_BUS_MIX_PRESETS } from '../services/BusMixPresetService';
+import { BusMixPresetRestoreOverlay } from '../components/BusMixPresetRestoreOverlay';
+import { BusMixPresetsModal } from '../components/BusMixPresetsModal';
 import { ChannelStrip } from '../components/ChannelStrip';
 import { PanControlModal } from '../components/PanControlModal';
 import { PersonalMixHeader } from '../components/PersonalMixHeader';
@@ -23,15 +26,18 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     channels,
     error,
     isLoading,
-    hasPendingChanges,
-    isSaving,
     refresh,
-    save,
     sendLevelOnly,
     setLevel,
     setPan,
     toggleOn,
     getPanPercent,
+    presets,
+    isRestoringPreset,
+    refreshPresets,
+    createPreset,
+    overwritePreset,
+    restorePreset,
   } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp);
@@ -59,6 +65,26 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       onChange: (value) => setPan(channelNumber, value),
     });
   }, [getPanPercent, setPan, showModal]);
+
+  const openPresetsModal = useCallback((): void => {
+    showModal(BusMixPresetsModal, {
+      presets,
+      maxPresets: MAX_BUS_MIX_PRESETS,
+      isRestoringPreset,
+      onRefreshPresets: refreshPresets,
+      onCreatePreset: createPreset,
+      onOverwritePreset: overwritePreset,
+      onRestorePreset: restorePreset,
+    });
+  }, [
+    createPreset,
+    isRestoringPreset,
+    overwritePreset,
+    presets,
+    refreshPresets,
+    restorePreset,
+    showModal,
+  ]);
 
   const handleFaderChange = useCallback(
     (channelNumber: number, level: number): void => sendLevelOnly(channelNumber, level),
@@ -101,9 +127,9 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
           title="Personal Mix Channel"
           subtitle={subtitle}
           onBack={() => navigation.goBack()}
-          onSave={save}
-          isSaving={isSaving}
-          isSaveDisabled={!hasPendingChanges}
+          onAction={openPresetsModal}
+          actionLabel="Presets"
+          isActionDisabled={isRestoringPreset}
         />
         <LoadingState label="Carregando canais, cores e niveis..." />
       </Screen>
@@ -116,9 +142,9 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         title="Personal Mix Channel"
         subtitle={subtitle}
         onBack={() => navigation.goBack()}
-        onSave={save}
-        isSaving={isSaving}
-        isSaveDisabled={!hasPendingChanges}
+        onAction={openPresetsModal}
+        actionLabel="Presets"
+        isActionDisabled={isRestoringPreset}
       />
 
       {error ? (
@@ -135,6 +161,8 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         contentContainerStyle={styles.list}
         renderItem={renderChannel}
       />
+
+      {isRestoringPreset ? <BusMixPresetRestoreOverlay /> : null}
     </Screen>
   );
 };

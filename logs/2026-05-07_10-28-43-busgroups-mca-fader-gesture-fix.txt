@@ -1,0 +1,47 @@
+Projeto: x32-control
+Data do log: 2026-05-07 10:28:43
+Contexto: ajuste do comportamento de arraste do fader dos MCAs para ficar equivalente ao Bus Master.
+
+Problema observado
+------------------
+- O Bus Master estava com comportamento de arraste correto.
+- Nos MCAs, o fader ainda apresentava problema de alcance/interacao.
+- A causa mais provavel era a competicao entre:
+  - o PanResponder do VerticalGroupFader
+  - o Pressable do card do MCA usado para abrir o modal
+
+Implementacao realizada
+-----------------------
+1. Prioridade de gesto do fader
+- Arquivo:
+  - src/features/busGroups/components/VerticalGroupFader.tsx
+- Ajustes no PanResponder:
+  - onStartShouldSetPanResponder => true
+  - onMoveShouldSetPanResponder => true
+  - onPanResponderTerminationRequest => false
+  - onShouldBlockNativeResponder => true
+- Isso faz o fader capturar o toque ja no inicio e manter a posse do gesto durante o drag.
+
+2. Remocao da disputa do Pressable sobre a area do fader
+- Arquivo:
+  - src/features/busGroups/components/GroupStrip.tsx
+- O card deixou de ser um Pressable unico envolvendo toda a area.
+- Agora:
+  - a area superior do card pode abrir o modal do MCA
+  - a area inferior com label/contador pode abrir o modal do MCA
+  - a area central do fader fica livre para o gesto de arraste
+
+Resultado esperado
+------------------
+- O MCA passa a arrastar de forma equivalente ao Bus Master.
+- O thumb respeita toda a altura util da barra central medida em runtime.
+- O modal do MCA continua acessivel ao toque no card, sem disputar com a area do fader.
+
+Validacao executada
+-------------------
+- npm run tsc
+  - sucesso
+
+Proximo ponto recomendado
+-------------------------
+- Validar no dispositivo se o thumb do MCA agora percorre corretamente toda a barra central, inclusive na regiao superior, da mesma forma que o Bus Master.
