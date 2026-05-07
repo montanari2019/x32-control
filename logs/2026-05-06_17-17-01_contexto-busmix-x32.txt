@@ -1,0 +1,212 @@
+Projeto: x32-control
+Data do log: 2026-05-06 17:17:01
+Contexto: resumo para retomada futura da conversa e do estado atual das features busMix/busGroups.
+
+Objetivo geral da rodada
+------------------------
+Estamos ajustando um app React Native que controla uma mesa Behringer X32 via OSC/UDP.
+O foco principal foi a tela src/features/busMix, que mostra 32 ChannelStrips com:
+- nome/cor do canal vindo da X32
+- VU meter em tempo real
+- fader vertical do send do canal para o bus selecionado
+- botão de mute
+- label de dB
+
+Também houve ajustes pontuais em src/features/busGroups, especialmente no fader vertical
+de master/MCA.
+
+Principais correções implementadas
+----------------------------------
+1. Separação técnica entre fader e meter
+- Fader agora é tratado como controle OSC raw normalizado.
+- Meter agora é tratado como leitura real de sinal em dBFS.
+- Foi criada/ajustada a conversão em src/shared/utils/faderDb.ts.
+- Curva atual usada:
+  - raw 0.25 = -60 dB
+  - raw 0.5 = -30 dB
+  - raw 0.75 = 0 dB
+  - raw 1.0 = +10 dB
+- O label visual usa x32RawToDb/formatDbLabel.
+
+2. Envio OSC de fader como float
+- Foi adicionado suporte a argumento OSC tipado em src/shared/osc/OscMessage.ts e OscEncoder.ts.
+- Isso corrigiu o bug em que raw 1.0 era enviado como inteiro OSC porque Number.isInteger(1) retornava true.
+- Faders e pan agora enviam { type: 'f', value } quando necessário.
+- Arquivos impactados:
+  - src/shared/osc/OscMessage.ts
+  - src/shared/osc/OscEncoder.ts
+  - src/features/busMix/services/BusMixService.ts
+  - src/features/busGroups/services/X32BusGroupsService.ts
+
+3. Fader do busMix mais fluido e sem re-render durante drag
+- VerticalFader atualiza seu thumb localmente com animatedY.setValue durante o drag.
+- onFaderChange envia OSC com throttle, sem setChannels.
+- onFaderChangeEnd faz commit do estado e envia imediatamente para a mesa.
+- Foi corrigido o bug do simples toque no thumb mandar +10 dB:
+  - onPanResponderGrant agora apenas inicia o drag, sem recalcular posição.
+- Arquivos:
+  - src/features/busMix/components/VerticalFader.tsx
+  - src/features/busMix/hooks/useBusMix.ts
+  - src/features/busMix/screens/BusMixScreen.tsx
+
+4. Estado local/remoto do fader
+- Channel passou a ter campos:
+  - faderRaw
+  - faderDb
+  - localFaderRaw
+  - remoteFaderRaw
+  - isDirty
+  - lastLocalChangeAt
+  - meterDbfs
+  - visualMeterDbfs
+- Isso permite UI otimista, reconciliação com a mesa e proteção contra eco atrasado.
+- Arquivo:
+  - src/features/busMix/types/Channel.ts
+
+5. Meter do busMix sem crosstalk entre canais
+- useMeterSubscription foi refeito para usar um único OscClient compartilhado.
+- Assina /meters/1 uma vez e distribui o blob para listeners por channelId.
+- Foi abandonado o modelo anterior de 32 clientes UDP assinando /meters/0, que causava todos os canais receberem o mesmo pacote.
+- Arquivos:
+  - src/features/busMix/hooks/useMeterSubscription.ts
+  - src/features/busMix/utils/meterDecoder.ts
+
+6. Decoder de meter corrigido
+- decodeMeter1BlobForChannel agora tenta ler o formato X32/M32 com floats:
+  - header de 8 bytes
+  - valores Float32 little-endian
+  - índice channelId - 1
+- Mantém fallback para formato short-based.
+- Se o canal não existe no blob, retorna -60 dBFS.
+- Isso foi feito porque sinais fantasmas apareciam em canais sem áudio, possivelmente por leitura errada de bytes de header/float como int16.
+
+7. Visual do VU meter estilo X32
+- MeterSegments renderiza vermelho no topo e verde na base.
+- Zonas atuais:
+  - -60 a -48: green
+  - -48 a -24: green
+  - -24 a -12: greenBright
+  - -12 a -3: yellow
+  - -3 a 0: red
+- ChannelVuMeter:
+  - subida rápida
+  - descida suave
+  - peak marker via bottom
+  - clip indicator no topo
+- peakHold:
+  - hold por ~30 frames
+  - decay de 1.5 dB/frame
+- Cores do meter em src/theme/tokens.colors.ts ajustadas para ficarem próximas da X32.
+
+8. Performance do ChannelVuMeter
+- Foi removido o excesso de Animated.timing em todo pacote.
+- O warning "Excessive number of pending callbacks" vinha principalmente de startAnimatingNode do clipOpacity.
+- Agora clipOpacity só anima quando muda de estado.
+- meterHeight e peakOffset usam setValue/limiares para reduzir trabalho.
+
+9. Layout do busMix
+- ChannelStrip foi alargado para 86 px.
+- ChannelNamePlate:
+  - nome aceita até 2 linhas
+  - adjustsFontSizeToFit
+  - minimumFontScale 0.75
+  - label menor
+- Fundo externo do ChannelStrip agora usa a cor do canal vinda da X32 com alpha de 20% (hex 33).
+- A borda interna do meter/fader foi removida.
+- A borda externa voltou para a borda sutil padrão.
+
+10. busGroups
+- VerticalGroupFader recebeu correções de posição/origem do thumb.
+- top: 0 foi adicionado ao thumb para +10 dB ficar no topo real do percurso.
+- O trilho central foi ajustado para respeitar melhor o percurso do thumb e não parecer colado ao mute.
+- busGroups/utils/audio.ts agora reutiliza a curva compartilhada de fader X32.
+
+Testes adicionados/atualizados
+------------------------------
+1. __tests__/shared/utils/faderDb.test.ts
+- cobre x32RawToDb, x32DbToRaw e formatDbLabel.
+
+2. __tests__/shared/osc/OscEncoder.test.ts
+- adicionou caso para garantir que argumento tipado { type: 'f', value: 1 } seja tratado como float.
+
+3. __tests__/features/busMix/utils/meterDecoder.test.ts
+- cobre decodeMeter1BlobForChannel:
+  - blob float X32
+  - fallback short
+  - canal ausente retornando silêncio.
+
+Validações rodadas com sucesso
+------------------------------
+- npm run tsc
+- npm test -- meterDecoder.test.ts --runInBand
+- npm test -- OscEncoder.test.ts faderDb.test.ts --runInBand
+- npm test -- meterDecoder.test.ts OscEncoder.test.ts faderDb.test.ts --runInBand
+
+Observações importantes
+----------------------
+1. Logs de socket
+- É esperado ver pelo menos dois sockets:
+  - um para controle OSC principal
+  - um para meters
+- Antes havia muitos clientes UDP para meter; isso foi corrigido.
+
+2. Estado atual do workspace
+- Existem muitas alterações ainda não commitadas.
+- git status no momento do log:
+  M __tests__/shared/osc/OscEncoder.test.ts
+  M src/features/busGroups/components/VerticalGroupFader.tsx
+  M src/features/busGroups/services/X32BusGroupsService.ts
+  M src/features/busGroups/utils/audio.ts
+  M src/features/busMix/components/ChannelFader.tsx
+  M src/features/busMix/components/ChannelNamePlate.tsx
+  M src/features/busMix/components/ChannelStrip.tsx
+  M src/features/busMix/components/ChannelVuMeter.tsx
+  M src/features/busMix/components/MeterSegments.tsx
+  M src/features/busMix/components/VerticalFader.tsx
+  M src/features/busMix/hooks/useBusMix.ts
+  M src/features/busMix/hooks/useMeterSubscription.ts
+  M src/features/busMix/screens/BusMixScreen.tsx
+  M src/features/busMix/services/BusMixService.ts
+  M src/features/busMix/types/Channel.ts
+  M src/features/busMix/utils/meterDecoder.ts
+  M src/features/busMix/utils/peakHold.ts
+  M src/shared/mixer/mock/mockMixerProvider.ts
+  M src/shared/osc/OscClient.ts
+  M src/shared/osc/OscEncoder.ts
+  M src/shared/osc/OscMessage.ts
+  M src/shared/utils/faderDb.ts
+  M src/theme/tokens.colors.ts
+  ?? __tests__/features/
+  ?? __tests__/shared/utils/faderDb.test.ts
+
+Pontos sensíveis para retomar
+-----------------------------
+1. Meter ainda deve ser validado fisicamente na X32.
+- Se ainda aparecer sinal fantasma, verificar qual blob real está chegando em /meters/1.
+- Pode ser necessário logar tamanho do blob e os primeiros bytes/valores.
+
+2. Formato de meters X32 vs X Air
+- X Air usa lista de 40 shorts em algumas docs.
+- X32/M32 parece usar floats em /meters/1.
+- O decoder atual suporta ambos, mas o caminho principal foi ajustado para floats.
+
+3. Fader real na mesa
+- O envio final do fader agora é imediato no release.
+- Durante o drag, usa fila/throttle.
+- Se a mesa não refletir, verificar rede OSC e se o path /ch/XX/mix/YY/level é o path correto para o bus send.
+
+4. Performance
+- Se voltar warning de callbacks, investigar ChannelVuMeter e qualquer Animated.timing em loop.
+
+5. Visual
+- Fundo do ChannelStrip usa cor do canal com alpha 20%.
+- Nome do canal usa placa colorida pela X32.
+
+Instrução de continuidade
+-------------------------
+Quando retomar a conversa, usar este log como contexto inicial. A próxima etapa provável é testar fisicamente:
+- meter em canais sem sinal
+- fader replicando na mesa
+- label dB vs valor mostrado na X32
+- fluidez do drag no celular/tablet.
+
