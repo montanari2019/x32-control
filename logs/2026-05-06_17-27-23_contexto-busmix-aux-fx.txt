@@ -1,0 +1,74 @@
+Contexto do ponto final - 2026-05-06 17:27:23
+
+Resumo geral
+- O app React Native controla a Behringer X32 via OSC.
+- A tela principal trabalhada foi src/features/busMix, com apoio em src/features/busGroups e shared/osc.
+- Antes deste ponto, ja havia sido corrigida a escala X32 de fader, envio OSC tipado como float, fader vertical responsivo, VU meter por /meters/1, memoizacao do ChannelStrip, cor de fundo do strip baseada na cor da mesa e opacidade visual de 0.2 para canais normais.
+
+Mudanca deste ponto
+- O Bus Mix agora monta uma listagem final com:
+  - 32 canais padrao CH 01..32
+  - 8 auxiliares AUX 01..08
+  - 8 FX returns FX 01..08
+- Cada item da lista usa o novo modelo Channel com:
+  - kind: channel, aux ou fxReturn
+  - number: indice absoluto visual/estado local
+  - sourceNumber: indice real dentro da familia OSC da X32
+  - backgroundOpacity: 0.2 para channel/aux e 0.3 para fxReturn
+  - meterChannelId: definido somente para canais padrao enquanto nao houver mapeamento seguro de meter para aux/fx
+
+Arquivos alterados neste ponto
+- src/features/busMix/types/Channel.ts
+  - Adicionado ChannelKind.
+  - Adicionados campos de origem, opacidade, fader local/remoto e meter opcional.
+- src/shared/osc/X32Protocol.ts
+  - Adicionados paths OSC para auxin:
+    - /auxin/XX/config/name
+    - /auxin/XX/config/color
+    - /auxin/XX/mix/YY/level
+    - /auxin/XX/mix/YY/on
+    - /auxin/XX/mix/YY/pan
+  - Adicionados paths OSC para fxrtn:
+    - /fxrtn/XX/config/name
+    - /fxrtn/XX/config/color
+    - /fxrtn/XX/mix/YY/level
+    - /fxrtn/XX/mix/YY/on
+    - /fxrtn/XX/mix/YY/pan
+- src/features/busMix/services/BusMixService.ts
+  - Criada lista SOURCE_DEFINITIONS para channel/aux/fxReturn.
+  - loadChannels agora carrega nomes, cores, level, on e pan das tres familias.
+  - setChannelFader, setChannelOn, setChannelPan e onLevel agora recebem Channel completo e escolhem o path OSC conforme kind/sourceNumber.
+  - loadChannelFaders aceita uma lista existente para sync leve sem recarregar nomes/cores.
+- src/features/busMix/hooks/useBusMix.ts
+  - Mantem channelsRef para localizar o Channel completo durante flush de fader, mute, pan e sync.
+  - onLevel agora assina cada fonte usando o Channel inteiro, nao so o numero.
+  - syncRemoteFaders reconcilia usando channel.number.
+- src/features/busMix/components/ChannelStrip.tsx
+  - Fundo usa channel.backgroundOpacity.
+  - FX Return fica com opacidade 0.3.
+  - CH e AUX ficam com opacidade 0.2.
+  - Meter real continua apenas quando channel.meterChannelId existe.
+  - AUX/FX recebem placeholder no espaco do meter para evitar sinal falso/crosstalk.
+- src/shared/mixer/mock/mockMixerProvider.ts
+  - Mock atualizado para gerar 48 strips: 32 CH, 8 AUX e 8 FX.
+  - Mock preenche os novos campos obrigatorios de Channel.
+
+Estado atual do comportamento
+- CH 01..32 continuam com VU meter vindo do registerMeterListener.
+- AUX 01..08 e FX 01..08 aparecem juntos na mesma FlatList horizontal.
+- AUX e FX usam os mesmos controles de fader, mute e pan do Bus Mix, mas seus paths OSC sao proprios (/auxin e /fxrtn).
+- FX Return e visualmente mais destacado no fundo por usar 0.3 de opacidade da cor da mesa.
+- AUX fica visualmente no mesmo padrao dos canais normais, com 0.2.
+- Meters de AUX/FX foram deixados sem leitura ativa para evitar mostrar sinal errado enquanto nao houver mapeamento confirmado do blob de meter para essas fontes.
+
+Validacao
+- git diff --check foi executado e nao apontou erro de whitespace; mostrou apenas avisos de LF/CRLF.
+- npm run tsc foi tentado, mas falhou no sandbox com EPERM ao resolver C:\Users\ikaro.montanari.
+- A tentativa de rodar tsc com permissao elevada foi bloqueada pelo revisor automatico por limite de uso.
+- Portanto, a validacao TypeScript/Jest ainda precisa ser rodada localmente no proximo retorno:
+  - npm run tsc
+  - npm test -- meterDecoder.test.ts OscEncoder.test.ts faderDb.test.ts --runInBand
+
+Proximo ponto recomendado
+- Testar na mesa fisica se os paths /auxin/XX/mix/YY/* e /fxrtn/XX/mix/YY/* respondem corretamente para fader, mute e pan.
+- Se a X32 expuser meter seguro para aux/fx no blob atual, mapear meterChannelId para essas fontes; ate la, manter placeholder evita falso sinal.
