@@ -1,0 +1,3 @@
+Titulo: Implementacao da tela busGroups com integracao X32 real
+Timestamp: 2026-05-06 10:33:18 -04:00
+Contexto: Criei a nova etapa busSelection -> busGroups -> busMix com uma tela de controle macro baseada em DCA da X32. Adicionei suporte de protocolo para DCA e grp/dca, um heartbeat /xremote dedicado, servico de leitura e escrita da tela, subscriptions em tempo real, strips verticais de master e MCA, e a navegacao para entrar em busMix pelo botao Channels. Tambem expandi os tokens de cor para o visual da tela e mantive a base validada com TypeScript e ESLint.

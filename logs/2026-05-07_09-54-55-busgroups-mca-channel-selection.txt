@@ -1,0 +1,122 @@
+Projeto: x32-control
+Data do log: 2026-05-07 09:54:55
+Contexto: implementacao da selecao local de canais por MCA na feature busGroups.
+
+Objetivo da rodada
+------------------
+- Ajustar a feature src/features/busGroups.
+- Renomear visualmente os MCAs para o padrao MCA 1, MCA 2, etc.
+- Permitir abrir um modal ao tocar em cada MCA.
+- Listar canais do Bus Mix no modal:
+  - channels
+  - AUX
+  - FX Return
+- Persistir a composicao local dos MCAs em storage vinculado ao console.
+
+Implementacoes realizadas
+-------------------------
+1. Tipos de MCA expandidos
+- Arquivo:
+  - src/features/busGroups/types/busGroups.types.ts
+- Adicionado:
+  - McaAssignedChannel
+- McaGroup agora carrega:
+  - assignedChannels
+  - assignedChannelIds
+
+2. Persistencia local dos MCAs
+- Arquivo:
+  - src/features/busGroups/services/BusGroupsSecureStoreService.ts
+- O payload salvo agora inclui a composicao detalhada de canais por MCA.
+- O escopo continua vinculado ao console:
+  - console + bus-groups
+- Isso segue a mesma ideia de isolamento por console usada nas outras persistencias locais do projeto.
+
+3. Carga dos canais reais do Bus Mix
+- Arquivo:
+  - src/features/busGroups/hooks/useBusGroups.ts
+- O hook passou a carregar a lista de canais usando:
+  - src/features/busMix/services/BusMixService.ts
+- Isso evita duplicar a logica de montagem de:
+  - 32 channels
+  - 8 AUX
+  - 8 FX Return
+
+4. Nomenclatura dos MCAs
+- A exibicao foi normalizada para:
+  - MCA 1
+  - MCA 2
+  - MCA 3
+  - MCA 4
+  - MCA 5
+- Isso foi aplicado tanto no estado carregado quanto no mock.
+
+5. Modal de selecao de canais por MCA
+- Criado:
+  - src/features/busGroups/components/McaChannelSelectionModal.tsx
+- Comportamento:
+  - abre ao tocar no strip do MCA
+  - mostra titulo com a cor do proprio MCA
+  - mostra contador de canais vinculados
+  - lista todos os canais em cards selecionaveis
+  - layout com 4 itens por linha
+  - scroll vertical
+  - opacidade:
+    - 1 para selecionado
+    - 0.6 para nao selecionado
+
+6. Visual dos cards de canal
+- As cores usam a mesma logica ja existente no app:
+  - mapX32ColorToUiColor
+- O card mostra:
+  - nome do canal
+  - identificacao abaixo
+- Identificacoes usadas:
+  - CH n
+  - AUX n
+  - FX Return n
+
+7. Persistencia imediata
+- Ao tocar em um canal no modal:
+  - adiciona ou remove do MCA local
+  - atualiza imediatamente a opacidade
+  - o estado de mcas muda no hook
+  - a persistencia ocorre pelo fluxo ja existente de save do BusGroupsSecureStoreService
+
+8. Clique no strip do MCA
+- Arquivos:
+  - src/features/busGroups/components/GroupStrip.tsx
+  - src/features/busGroups/components/McaStrip.tsx
+  - src/features/busGroups/BusGroupsScreen.tsx
+- O strip do MCA agora aceita onPress e abre o modal.
+- O count exibido no card usa assignedChannels.length.
+
+9. Mock atualizado
+- Arquivo:
+  - src/shared/mixer/mock/mockMixerProvider.ts
+- O mock agora devolve assignedChannels alem de assignedChannelIds.
+- Os nomes mockados tambem foram normalizados para MCA n.
+
+Validacao executada
+-------------------
+- npm run tsc
+  - sucesso
+
+Observacoes importantes
+-----------------------
+- A composicao dos MCAs e local ao dispositivo, conforme solicitado.
+- A lista do modal reutiliza os canais do Bus Mix e portanto cobre:
+  - channel
+  - aux
+  - fxReturn
+- O modal mantem estado visual interno para atualizar contador e selecao imediatamente, porque o sistema de modal do projeto congela props no momento da abertura.
+
+Proximo ponto recomendado
+-------------------------
+- Validar no dispositivo:
+  - abertura do modal ao tocar no MCA
+  - contagem de canais vinculados
+  - opacidade 1 e 0.6
+  - scroll vertical
+  - persistencia ao fechar e reabrir a tela
+  - presenca correta de CH, AUX e FX Return na grade

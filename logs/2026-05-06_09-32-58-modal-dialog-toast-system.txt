@@ -1,0 +1,3 @@
+Titulo: Implementacao global de Modal, Dialog, AlertDialog e Toast reutilizaveis
+Timestamp: 2026-05-06 09:32:58 -04:00
+Contexto: Segui a skill docs/skills/17-modal-dialog-toast.md para evoluir o ModalProvider existente para o padrao showModal(Component, props) com throttle, dismiss e ciclo de vida de overlays. Criei os componentes reutilizaveis Toast, Dialog e AlertDialog, adicionei o helper showCommonErrors, adaptei o BusMix para o novo provider e migrei a ConsoleDiscovery para consumir Toast via useModal. Validei com TypeScript e ESLint.

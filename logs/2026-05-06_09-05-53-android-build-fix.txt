@@ -1,0 +1,31 @@
+Title: Correcao do build Android no Windows
+Timestamp: 2026-05-06 09:05:53 America/Cuiaba
+
+Context:
+- `yarn android` falhava primeiro na configuracao do Gradle/React Native.
+- Depois da correcao inicial, surgiram bloqueios de SSL do Java/Gradle e incompatibilidades de dependencias nativas com React Native 0.78.1.
+- Por fim, o Windows falhava no CMake do react-native-reanimated por comprimento de caminho.
+
+Task Details:
+- Ajustei `android/app/build.gradle` para mover `autolinkLibrariesWithApp()` para dentro do bloco `react`.
+- Troquei a definicao de SDK para o formato mais compativel com a avaliacao do Android Gradle Plugin.
+- Configurei `android/gradle.properties` para usar `Windows-ROOT` como trust store do Java, resolvendo o SSL handshake do Maven/Google.
+- Atualizei bibliotecas nativas incompativeis com RN 0.78.1:
+  - `react-native-svg` -> 15.15.4
+  - `react-native-safe-area-context` -> 5.7.0
+  - `react-native-gesture-handler` -> 2.31.2
+- Removi `react-native-reanimated` do projeto porque ele era usado apenas em um medidor simples e estava introduzindo falha estrutural de CMake/path no Windows.
+- Reescrevi `ChannelVuMeter.tsx` para usar `Animated` nativo do React Native.
+- Removi o import de bootstrap do Reanimated em `index.js`.
+- Removi o plugin do Reanimated do `babel.config.js`.
+
+Validation:
+- `npm run tsc`
+- `npm run lint`
+- `cmd /c gradlew.bat :app:tasks --all`
+- `cmd /c gradlew.bat app:installDevelopDebug -PreactNativeDevServerPort=8081`
+
+Outcome:
+- Build Android concluido com sucesso.
+- APK `app-develop-debug.apk` instalado no dispositivo `Redmi Note 9S - 12`.
+- Permaneceram apenas warnings nao-bloqueantes do bundling JS, sem impedir instalacao.

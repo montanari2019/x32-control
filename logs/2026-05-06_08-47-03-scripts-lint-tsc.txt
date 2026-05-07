@@ -1,0 +1,29 @@
+Title: Migracao dos scripts + saneamento de lint e tsc
+Timestamp: 2026-05-06 08:47:03 America/Cuiaba
+
+Context:
+- Alinhei a inicializacao do projeto ao padrao definido em docs/skills/16-scripts-and-tooling.md.
+- Substitui os entrypoints principais em PowerShell por scripts padronizados no package.json e shell scripts auxiliares.
+- Atualizei package.json, README.md, Gemfile, pod-install.sh e scripts Android de build.
+
+Task Details:
+- Estruturei os scripts por categoria no package.json: execucao, build, testes, qualidade e setup.
+- Adicionei variantes de CI e automacao com husky e npm-run-all.
+- Criei pod-install.sh na raiz e os scripts android/assembleHomologRelease.sh e android/bundleRelease.sh.
+- Removi scripts antigos de inicializacao que nao eram mais o caminho principal.
+- Normalizei a formatacao do codigo com Prettier para eliminar os erros massivos de lint por line ending e identacao.
+- Corrigi incompatibilidades de tipagem com React 19 e TypeScript, incluindo o suporte centralizado ao namespace JSX.
+- Ajustei os tipos de cor dos canais e o fluxo de componentes que consumiam cores no mixer.
+- Corrigi dependencias de hooks e um warning de inline style para deixar o lint coeso.
+
+Validation:
+- npm install
+- npm run tsc
+- npm run lint
+- npm run test -- --runInBand
+
+Outcome:
+- TypeScript sem erros.
+- ESLint sem erros e sem warnings.
+- Testes passando.
+- Projeto com padrao de scripts mais consistente e documentado.

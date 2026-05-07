@@ -1,0 +1,129 @@
+Projeto: x32-control
+Data do log: 2026-05-07 09:01:37
+Tipo: fechamento do prompt de analise geral
+
+Resumo executivo
+----------------
+- A aplicacao esta organizada por features e com uma separacao razoavelmente clara entre UI, hooks e servicos.
+- O fluxo principal atual e:
+  1. descobrir consoles na rede
+  2. carregar lista de buses
+  3. abrir BusGroups como hub do bus escolhido
+  4. navegar para BusMix e controlar sends por canal/aux/fx
+- O estado de desenvolvimento atual esta concentrado em consolidar o Bus Mix com CH + AUX + FX e validar isso em mesa real.
+
+Arquitetura observada
+---------------------
+- Entrada do app:
+  - src/app/App.tsx
+  - src/app/navigation/RootNavigator.tsx
+- Fluxo de navegacao:
+  - ConsoleDiscovery -> BusSelection -> BusGroups -> BusMix
+- Features principais:
+  - src/features/consoleDiscovery
+  - src/features/busSelection
+  - src/features/busGroups
+  - src/features/busMix
+- Infraestrutura compartilhada:
+  - src/shared/osc
+  - src/shared/network
+  - src/shared/storage
+  - src/shared/components
+  - src/shared/utils
+
+Leitura funcional da aplicacao
+------------------------------
+1. Descoberta de console
+- ConsoleDiscoveryService usa NetworkScanner.
+- NetworkScanner abre UDP broadcast para /info e coleta respostas OSC.
+- Existe suporte a validacao de IP manual no servico, mas a tela atual lida principalmente com descoberta por broadcast.
+
+2. Selecao de buses
+- BusService conecta no console, inicia xremote keep-alive e busca 16 buses.
+- Tambem tenta identificar pares stereo linkados com /config/buslink.
+- O resultado da UI ja considera buses stereo agrupados quando detectados.
+
+3. BusGroups
+- X32BusGroupsService carrega master do bus, mute e DCAs.
+- useBusGroups restaura estado persistido dos MCAs por console usando AsyncStorage namespaced.
+- Ao abrir a tela, o estado salvo pode ser reaplicado na mesa.
+- Existe subscription OSC para master e DCA durante a vida da tela.
+
+4. BusMix
+- BusMixService monta uma lista unica com 48 strips:
+  - channel
+  - aux
+  - fxReturn
+- Cada strip tem kind, number visual, sourceNumber OSC e opacidade de fundo.
+- O meter real esta habilitado apenas para channels padrao; AUX/FX ainda usam placeholder.
+- useBusMix faz reconciliacao entre estado local e remoto para fader, pan e mute.
+- Durante drag, o fader usa envio em lote com throttle curto.
+- No fim do drag, o envio e forcado imediatamente.
+- Ha sync em background a cada 30s para reconciliar faders remotos.
+
+5. OSC e rede
+- OscClient centraliza connect, send, request, subscriptions e xremote keep-alive.
+- UdpTransport isola react-native-udp.
+- X32Protocol concentra os paths OSC de channel, bus, dca, auxin, fxreturn e meters.
+
+6. Mock de desenvolvimento
+- Existe console mock em 10.254.254.10.
+- O mock ja espelha a estrutura nova de 48 strips e gera meter sintetico.
+
+Pontos fortes atuais
+--------------------
+- Boa separacao entre camada visual e camada de protocolo.
+- Paths OSC centralizados em um unico modulo.
+- Mock provider util para desenvolvimento sem mesa fisica.
+- Persistencia de DCA isolada por console para evitar vazamento entre mesas.
+- Decoder de meter e utilitarios de fader receberam testes dedicados.
+
+Riscos e observacoes importantes
+--------------------------------
+1. Validacao real ainda e a principal lacuna
+- O maior risco funcional continua sendo confirmar em hardware real:
+  - paths de AUX/FX
+  - meters sem falso positivo
+  - coerencia de pan/fader/mute
+
+2. README desatualizado
+- README informa React Native 0.74.
+- package.json usa React Native 0.78.1.
+- A documentacao ja nao representa com precisao o estado atual da stack.
+
+3. Save do BusMix e apenas simbolico
+- Em src/features/busMix/hooks/useBusMix.ts, save apenas espera ~300ms e limpa hasPendingChanges.
+- Na pratica, as alteracoes reais ja estao sendo enviadas antes.
+- Isso sugere que o botao Salvar hoje funciona mais como confirmacao de UI do que persistencia/transacao.
+
+4. Escopo de DCA da tela
+- X32Protocol suporta DCA 1..8.
+- X32BusGroupsService atualmente trabalha com DCA_NUMBERS = [1, 2, 3, 4, 5].
+- Pode ser decisao intencional de produto, mas e um limite importante a lembrar.
+
+5. BusSelection com caracteres estranhos
+- O arquivo da tela mostra caracteres corrompidos em alguns labels/icones.
+- Indica problema de encoding em trechos do texto fonte.
+
+6. Workspace com historico local fora do git
+- A pasta logs segue como artefato local nao versionado.
+- Isso e util para continuidade local, mas nao entra automaticamente no historico do repositorio.
+
+Estado recomendado para retomada
+--------------------------------
+- Prioridade 1:
+  - testar na mesa fisica AUX e FX no BusMix
+  - confirmar paths de level/on/pan
+- Prioridade 2:
+  - rodar tsc e testes pendentes fora da restricao que bloqueou a execucao anterior
+- Prioridade 3:
+  - alinhar README com a stack e com o comportamento atual do app
+- Prioridade 4:
+  - decidir se o botao Salvar do BusMix deve continuar apenas visual ou ganhar uma responsabilidade real
+
+Ponto de parada desta rodada
+----------------------------
+- Contexto anterior foi recuperado com sucesso pelos logs de 2026-05-06.
+- Aplicacao inteira foi analisada em nivel arquitetural e funcional.
+- Nao houve alteracao de codigo de produto nesta rodada; apenas criacao de logs de contexto.
+- Proxima retomada recomendada: validacao funcional do BusMix em mesa real e saneamento das pendencias documentais/tecnicas identificadas acima.

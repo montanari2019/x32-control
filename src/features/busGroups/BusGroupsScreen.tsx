@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import Toast from '@shared/components/Toast';
 import { ErrorState } from '@shared/components/ErrorState';
@@ -9,8 +9,8 @@ import { useModal } from '@shared/components/Modal';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
-import { BusGroupsFooter } from './components/BusGroupsFooter';
 import { BusGroupsHeader } from './components/BusGroupsHeader';
+import { McaChannelSelectionModal } from './components/McaChannelSelectionModal';
 import { MasterStrip } from './components/MasterStrip';
 import { McaStrip } from './components/McaStrip';
 import { useBusGroups } from './hooks/useBusGroups';
@@ -20,10 +20,12 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BusGroups'>;
 export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { consoleIp, busNumber, busName, linkedBusNumber } = route.params;
   const { showModal } = useModal();
+  const [stripsHeight, setStripsHeight] = useState(0);
   const {
     masterFaderRaw,
     masterMuted,
     mcas,
+    availableChannels,
     isLoading,
     error,
     reload,
@@ -31,6 +33,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     toggleMasterMute,
     setMcaFader,
     toggleMcaMute,
+    toggleMcaChannelAssignment,
   } = useBusGroups(consoleIp, busNumber);
 
   useEffect(() => {
@@ -45,12 +48,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     });
   }, [error, showModal]);
 
-  const showPlaceholderToast = (title: string): void => {
-    showModal(Toast, {
-      title,
-      message: 'Este controle ainda nao foi conectado a uma acao da mesa.',
-      variant: 'warning',
-    });
+  const handleStripsAreaLayout = (event: LayoutChangeEvent): void => {
+    setStripsHeight(Math.max(320, Math.floor(event.nativeEvent.layout.height)));
   };
 
   return (
@@ -76,35 +75,47 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
         ) : null}
 
         {!isLoading ? (
-          <ScrollView
-            horizontal
-            contentContainerStyle={styles.strips}
-            showsHorizontalScrollIndicator={false}
-          >
-            <MasterStrip
-              busId={busNumber}
-              busName={busName}
-              isMuted={masterMuted}
-              onFaderChange={setMasterFader}
-              onToggleMute={toggleMasterMute}
-              value={masterFaderRaw}
-            />
-
-            {mcas.map((mca) => (
-              <McaStrip
-                key={mca.id}
-                mca={mca}
-                onFaderChange={(value) => setMcaFader(mca.dcaNumber, value)}
-                onToggleMute={() => toggleMcaMute(mca.dcaNumber)}
+          <View style={styles.stripsArea} onLayout={handleStripsAreaLayout}>
+            <ScrollView
+              horizontal
+              contentContainerStyle={[
+                styles.strips,
+                stripsHeight > 0 ? { minHeight: stripsHeight } : undefined,
+              ]}
+              showsHorizontalScrollIndicator={false}
+              style={styles.stripsScroll}
+            >
+              <MasterStrip
+                busId={busNumber}
+                busName={busName}
+                isMuted={masterMuted}
+                onFaderChange={setMasterFader}
+                onToggleMute={toggleMasterMute}
+                stripHeight={stripsHeight}
+                value={masterFaderRaw}
               />
-            ))}
-          </ScrollView>
-        ) : null}
 
-        <BusGroupsFooter
-          onPressPresets={() => showPlaceholderToast('Presets em breve')}
-          onPressSettings={() => showPlaceholderToast('Configuracoes em breve')}
-        />
+              {mcas.map((mca) => (
+                <McaStrip
+                  key={mca.id}
+                  mca={mca}
+                  onFaderChange={(value) => setMcaFader(mca.dcaNumber, value)}
+                  onPress={() =>
+                    showModal(McaChannelSelectionModal, {
+                      accentColor: colors.mca[mca.colorToken],
+                      channels: availableChannels,
+                      mca,
+                      onToggleChannel: (channel) =>
+                        toggleMcaChannelAssignment(mca.dcaNumber, channel),
+                    })
+                  }
+                  onToggleMute={() => toggleMcaMute(mca.dcaNumber)}
+                  stripHeight={stripsHeight}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        ) : null}
       </View>
     </Screen>
   );
@@ -120,13 +131,21 @@ const styles = StyleSheet.create({
   },
   screen: {
     backgroundColor: colors.background.deep,
-    paddingBottom: spacing.lg,
+    paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
   },
+  stripsArea: {
+    flex: 1,
+    minHeight: 0,
+  },
+  stripsScroll: {
+    flex: 1,
+  },
   strips: {
-    gap: spacing.md,
-    paddingBottom: spacing.sm,
-    paddingHorizontal: spacing.xs,
+    alignItems: 'stretch',
+    gap: spacing.sm,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.xxs,
   },
 });

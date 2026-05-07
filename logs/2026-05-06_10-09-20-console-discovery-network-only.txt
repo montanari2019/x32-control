@@ -1,0 +1,3 @@
+Titulo: Remocao do acesso direto por IP na descoberta de consoles
+Timestamp: 2026-05-06 10:09:20 -04:00
+Contexto: Removi da feature src/features/consoleDiscovery o card de conexao manual por IP para deixar o fluxo restrito a busca automatica em rede. A tela inicial ficou mais simples e o hook foi limpo para remover a validacao manual, com ajuste da mensagem de erro para o novo comportamento.

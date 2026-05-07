@@ -7,6 +7,7 @@ type MasterStripProps = {
   isMuted: boolean;
   onFaderChange: (value: number) => void;
   onToggleMute: () => void;
+  stripHeight?: number;
   value: number;
 };
 
@@ -16,6 +17,7 @@ export const MasterStrip = ({
   isMuted,
   onFaderChange,
   onToggleMute,
+  stripHeight,
   value,
 }: MasterStripProps): JSX.Element => (
   <GroupStrip
@@ -26,6 +28,7 @@ export const MasterStrip = ({
     name={busName}
     onFaderChange={onFaderChange}
     onToggleMute={onToggleMute}
+    stripHeight={stripHeight}
     value={value}
   />
 );

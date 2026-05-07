@@ -1,5 +1,5 @@
-import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -15,7 +15,9 @@ type GroupStripProps = {
   label: string;
   name: string;
   onFaderChange: (value: number) => void;
+  onPress?: () => void;
   onToggleMute: () => void;
+  stripHeight?: number;
   value: number;
 };
 
@@ -27,13 +29,28 @@ export const GroupStrip = ({
   label,
   name,
   onFaderChange,
+  onPress,
   onToggleMute,
+  stripHeight,
   value,
 }: GroupStripProps): JSX.Element => {
   const dbLabel = formatDb(faderToDb(value));
+  const [measuredFaderHeight, setMeasuredFaderHeight] = useState(320);
+  const canOpenDetails = Boolean(onPress && !isMaster);
+
+  const handleFaderSlotLayout = (event: LayoutChangeEvent): void => {
+    const nextHeight = Math.max(180, Math.floor(event.nativeEvent.layout.height));
+    setMeasuredFaderHeight(nextHeight);
+  };
 
   return (
-    <View style={[styles.wrapper, isMaster ? styles.masterWrapper : styles.mcaWrapper]}>
+    <View
+      style={[
+        styles.wrapper,
+        isMaster ? styles.masterWrapper : styles.mcaWrapper,
+        stripHeight ? { height: stripHeight } : undefined,
+      ]}
+    >
       <View
         style={[
           styles.card,
@@ -41,44 +58,63 @@ export const GroupStrip = ({
           { borderColor: isMaster ? colors.border.subtle : accentColor },
         ]}
       >
-        <Text style={styles.kicker}>{label}</Text>
-        <Text
-          style={[
-            styles.name,
-            {
-              color: isMaster ? colors.master.label : accentColor,
-            },
+        <Pressable
+          disabled={!canOpenDetails}
+          onPress={onPress}
+          style={({ pressed }) => [
+            styles.headerPressable,
+            pressed && canOpenDetails ? styles.cardPressed : undefined,
           ]}
-          numberOfLines={2}
         >
-          {name}
-        </Text>
+          <Text style={styles.kicker}>{label}</Text>
+          <Text
+            style={[
+              styles.name,
+              {
+                color: isMaster ? colors.master.label : accentColor,
+              },
+            ]}
+            numberOfLines={2}
+          >
+            {name}
+          </Text>
+        </Pressable>
 
-        <View style={styles.faderSlot}>
+        <View style={styles.faderSlot} onLayout={handleFaderSlotLayout}>
           <VerticalGroupFader
             accentColor={accentColor}
             isMaster={isMaster}
             onFaderChange={onFaderChange}
+            trackHeight={measuredFaderHeight}
             value={value}
           />
         </View>
 
-        <View
-          style={[
-            styles.labelPlate,
-            {
-              backgroundColor: isMaster ? colors.master.thumb : accentColor,
-            },
+        <Pressable
+          disabled={!canOpenDetails}
+          onPress={onPress}
+          style={({ pressed }) => [
+            styles.footerPressable,
+            pressed && canOpenDetails ? styles.cardPressed : undefined,
           ]}
         >
-          <Text style={styles.labelPlateText}>{dbLabel}</Text>
-        </View>
+          <View
+            style={[
+              styles.labelPlate,
+              {
+                backgroundColor: isMaster ? colors.master.thumb : accentColor,
+              },
+            ]}
+          >
+            <Text style={styles.labelPlateText}>{dbLabel}</Text>
+          </View>
 
-        {assignmentCount != null ? (
-          <Text style={styles.assignmentText}>{assignmentCount} canais</Text>
-        ) : (
-          <Text style={styles.assignmentText}>Bus master</Text>
-        )}
+          {assignmentCount != null ? (
+            <Text style={styles.assignmentText}>{assignmentCount} canais</Text>
+          ) : (
+            <Text style={styles.assignmentText}>Bus master</Text>
+          )}
+        </Pressable>
       </View>
 
       <GroupMuteButton isMuted={isMuted} onPress={onToggleMute} />
@@ -97,17 +133,28 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: radius.xl,
     borderWidth: 1,
+    flex: 1,
     gap: spacing.sm,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.sm,
     paddingTop: spacing.md,
     width: '100%',
   },
+  cardPressed: {
+    opacity: 0.9,
+  },
   faderSlot: {
     alignItems: 'center',
-    height: 300,
+    flex: 1,
     justifyContent: 'center',
     marginTop: spacing.xs,
+    minHeight: 220,
+  },
+  footerPressable: {
+    gap: spacing.xs,
+  },
+  headerPressable: {
+    gap: spacing.xs,
   },
   kicker: {
     color: colors.text.secondary,
@@ -133,13 +180,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surface.stripMaster,
   },
   masterWrapper: {
-    width: 112,
+    width: 104,
   },
   mcaCard: {
     backgroundColor: colors.surface.strip,
   },
   mcaWrapper: {
-    width: 90,
+    width: 82,
   },
   name: {
     fontSize: 15,

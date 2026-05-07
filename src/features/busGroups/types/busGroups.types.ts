@@ -1,5 +1,12 @@
 export type McaColorToken = 'blue' | 'green' | 'yellow' | 'pink' | 'purple';
 
+export type McaAssignedChannel = {
+  channelId: number;
+  channelName?: string;
+  channelLabel?: string;
+  channelType: 'channel' | 'aux' | 'fxReturn';
+};
+
 export type McaGroup = {
   id: string;
   dcaNumber: number;
@@ -7,6 +14,7 @@ export type McaGroup = {
   colorToken: McaColorToken;
   faderRawValue: number;
   isMuted: boolean;
+  assignedChannels: McaAssignedChannel[];
   assignedChannelIds: number[];
 };
 

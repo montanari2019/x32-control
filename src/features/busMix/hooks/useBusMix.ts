@@ -2,8 +2,10 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
 import { x32RawToDb } from '@shared/utils/faderDb';
 import { percentToX32Pan, x32PanToPercent } from '@shared/x32/pan';
+import { BusMixPresetService } from '../services/BusMixPresetService';
 import { BusMixService } from '../services/BusMixService';
 import { Channel } from '../types/Channel';
+import { BusMixPreset, BusMixPresetChannel } from '../types/BusMixPreset';
 
 const FADER_SEND_INTERVAL_MS = 30;
 const LOCAL_PROTECTION_WINDOW_MS = 250;
@@ -11,12 +13,16 @@ const BACKGROUND_SYNC_INTERVAL_MS = 30000;
 
 export const useBusMix = (consoleIp: string, busNumber: number) => {
   const service = useMemo(() => new BusMixService(), []);
+  const presetService = useMemo(() => new BusMixPresetService(), []);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string>();
   const [hasPendingChanges, setHasPendingChanges] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [presets, setPresets] = useState<BusMixPreset[]>([]);
+  const [isLoadingPresets, setIsLoadingPresets] = useState(true);
+  const [isRestoringPreset, setIsRestoringPreset] = useState(false);
   const pendingFadersRef = useRef(new Map<number, number>());
   const pendingLocalChangeAtRef = useRef(new Map<number, number>());
   const faderFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -77,6 +83,33 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
       }),
     );
   }, []);
+
+  const buildPresetChannels = useCallback(
+    (sourceChannels: Channel[]): BusMixPresetChannel[] =>
+      sourceChannels.map((channel) => {
+        const db = x32RawToDb(channel.localFaderRaw);
+        return {
+          channelId: channel.number,
+          channelName: channel.name,
+          channelLabel: channel.label,
+          kind: channel.kind,
+          sourceNumber: channel.sourceNumber,
+          raw: channel.localFaderRaw,
+          db: typeof db === 'number' ? db : null,
+        };
+      }),
+    [],
+  );
+
+  const loadPresets = useCallback(async (): Promise<void> => {
+    setIsLoadingPresets(true);
+
+    try {
+      setPresets(await presetService.listPresets(consoleIp, busNumber));
+    } finally {
+      setIsLoadingPresets(false);
+    }
+  }, [busNumber, consoleIp, presetService]);
 
   const flushPendingFaders = useCallback((): void => {
     const pending = Array.from(pendingFadersRef.current.entries());
@@ -179,6 +212,12 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     };
   }, [load, service]);
 
+  useEffect(() => {
+    loadPresets().catch((loadError) => {
+      setError(getErrorMessage(loadError));
+    });
+  }, [loadPresets]);
+
   const channelSourcesKey = useMemo(
     () => channels.map((channel) => channel.id).join(','),
     [channels],
@@ -206,8 +245,8 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     return () => clearInterval(timer);
   }, [syncRemoteFaders]);
 
-  const setLevel = useCallback(
-    (channelNumber: number, level: number): void => {
+  const applyCommittedLevel = useCallback(
+    (channelNumber: number, level: number, markPendingChanges = true): void => {
       const now = Date.now();
       const faderDb = x32RawToDb(level);
       pendingLocalChangeAtRef.current.delete(channelNumber);
@@ -215,21 +254,32 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
         current.map((channel) =>
           channel.number === channelNumber
             ? {
-              ...channel,
-              faderRaw: level,
-              faderDb,
-              localFaderRaw: level,
-              level,
-              isDirty: true,
-              lastLocalChangeAt: now,
-            }
+                ...channel,
+                faderRaw: level,
+                faderDb,
+                localFaderRaw: level,
+                level,
+                isDirty: markPendingChanges,
+                lastLocalChangeAt: now,
+              }
             : channel,
         ),
       );
-      setHasPendingChanges(true);
+
+      if (markPendingChanges) {
+        setHasPendingChanges(true);
+      }
+
       sendFaderImmediately(channelNumber, level);
     },
     [sendFaderImmediately],
+  );
+
+  const setLevel = useCallback(
+    (channelNumber: number, level: number): void => {
+      applyCommittedLevel(channelNumber, level, true);
+    },
+    [applyCommittedLevel],
   );
 
   const toggleOn = useCallback(async (channelNumber: number): Promise<void> => {
@@ -295,6 +345,63 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     }
   }, [hasPendingChanges, isSaving]);
 
+  const createPreset = useCallback(
+    async (name: string): Promise<BusMixPreset[]> => {
+      const capturedChannels = buildPresetChannels(channelsRef.current);
+      await presetService.savePreset(consoleIp, busNumber, name, capturedChannels);
+      const nextPresets = await presetService.listPresets(consoleIp, busNumber);
+      setPresets(nextPresets);
+      return nextPresets;
+    },
+    [buildPresetChannels, busNumber, consoleIp, presetService],
+  );
+
+  const overwritePreset = useCallback(
+    async (presetId: string): Promise<BusMixPreset[]> => {
+      const capturedChannels = buildPresetChannels(channelsRef.current);
+      await presetService.overwritePreset(consoleIp, busNumber, presetId, capturedChannels);
+      const nextPresets = await presetService.listPresets(consoleIp, busNumber);
+      setPresets(nextPresets);
+      return nextPresets;
+    },
+    [buildPresetChannels, busNumber, consoleIp, presetService],
+  );
+
+  const restorePreset = useCallback(
+    async (presetId: string): Promise<void> => {
+      const preset = await presetService.loadPreset(consoleIp, busNumber, presetId);
+      if (!preset) {
+        throw new Error('Preset nao encontrado.');
+      }
+
+      setIsRestoringPreset(true);
+
+      try {
+        const byChannel = new Map(channelsRef.current.map((channel) => [channel.number, channel]));
+
+        for (const presetChannel of preset.channels) {
+          if (!byChannel.has(presetChannel.channelId)) {
+            continue;
+          }
+
+          applyCommittedLevel(presetChannel.channelId, presetChannel.raw, false);
+          await new Promise<void>((resolve) => setTimeout(resolve, 24));
+        }
+
+        setHasPendingChanges(false);
+        setChannels((current) =>
+          current.map((channel) => ({
+            ...channel,
+            isDirty: false,
+          })),
+        );
+      } finally {
+        setIsRestoringPreset(false);
+      }
+    },
+    [applyCommittedLevel, busNumber, consoleIp, presetService],
+  );
+
   return {
     channels,
     error,
@@ -302,12 +409,22 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     isRefreshing,
     hasPendingChanges,
     isSaving,
+    presets,
+    isLoadingPresets,
+    isRestoringPreset,
     refresh: () => load(true),
+    refreshPresets: async () => {
+      await loadPresets();
+      return presetService.listPresets(consoleIp, busNumber);
+    },
     setLevel,
     sendLevelOnly,
     toggleOn,
     setPan,
     getPanPercent: (value: number) => x32PanToPercent(value),
     save,
+    createPreset,
+    overwritePreset,
+    restorePreset,
   };
 };

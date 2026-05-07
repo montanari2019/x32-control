@@ -1,0 +1,3 @@
+Titulo: Reversao do toast superior na descoberta de consoles
+Timestamp: 2026-05-06 09:25:24 -04:00
+Contexto: Desfiz a implementacao do toast visual no topo da tela inicial de descoberta e retornei ao comportamento anterior, com feedback nativo temporario de erro sem ocupar a interface principal.

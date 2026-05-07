@@ -1,0 +1,46 @@
+Projeto: x32-control
+Data do log: 2026-05-07 09:01:29
+Tipo: contexto inicial do dia
+
+Origem do contexto
+------------------
+- Leitura dos logs:
+  - logs/2026-05-06_17-17-01_contexto-busmix-x32.txt
+  - logs/2026-05-06_17-27-23_contexto-busmix-aux-fx.txt
+- Leitura inicial da aplicacao e estrutura do repositorio.
+
+Onde o trabalho tinha parado
+----------------------------
+- O app React Native controla a Behringer X32/M32 via OSC sobre UDP.
+- O foco final de ontem foi a feature de Bus Mix.
+- A lista de strips do Bus Mix foi expandida para:
+  - 32 canais CH
+  - 8 entradas AUX
+  - 8 FX Returns
+- O envio OSC de fader/pan foi ajustado para float tipado.
+- O meter passou por revisao para usar /meters/1 e decoder dedicado por canal.
+- O mock local tambem foi expandido para refletir CH + AUX + FX.
+
+Pendencias herdadas do ultimo contexto
+--------------------------------------
+- Validar na mesa fisica:
+  - resposta real de /auxin/XX/mix/YY/*
+  - resposta real de /fxrtn/XX/mix/YY/*
+  - comportamento do meter em canais sem sinal
+  - coerencia entre valor visual do fader e valor exibido na X32
+- Rodar validacoes que ficaram pendentes:
+  - npm run tsc
+  - npm test -- meterDecoder.test.ts OscEncoder.test.ts faderDb.test.ts --runInBand
+- Confirmar se existe mapeamento seguro de meter para AUX/FX antes de habilitar VU nessas fontes.
+
+Estado do workspace observado no inicio de hoje
+-----------------------------------------------
+- Os arquivos da pasta logs continuam nao versionados no git status.
+- package.json mostra stack atual em React 19 e React Native 0.78.1.
+- README ainda descreve React Native 0.74 e parte do texto ficou desatualizada em relacao ao estado atual.
+
+Objetivo desta retomada
+-----------------------
+- Reconstituir o contexto pelos logs.
+- Analisar a aplicacao inteira para registrar arquitetura, fluxo principal e riscos tecnicos atuais.
+- Criar um novo log final ao terminar esta rodada para servir de ponto de retomada.

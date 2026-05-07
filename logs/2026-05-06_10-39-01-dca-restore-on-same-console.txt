@@ -1,0 +1,3 @@
+Titulo: Restauracao automatica dos DCAs salvos ao reconectar na mesma mesa
+Timestamp: 2026-05-06 10:39:01 -04:00
+Contexto: Conectei o storage escopado por console ao hook de busGroups. Ao entrar novamente na mesma mesa, o app busca o snapshot salvo dos MCAs/DCAs, reaplica os valores na X32 e atualiza a UI com esse estado restaurado. Tambem mantive autosave das alteracoes de DCA por console para persistencia continua.

@@ -1,0 +1,22 @@
+Title: Instalacao global do Yarn
+Timestamp: 2026-05-06 08:52:19 America/Cuiaba
+
+Context:
+- O ambiente tinha `node`, `npm` e `corepack`, mas o comando `yarn` nao estava disponivel no Git Bash.
+- O objetivo desta tarefa foi liberar o uso direto de `yarn start` e demais scripts.
+
+Task Details:
+- Tentei instalar `yarn@1.22.22` globalmente com npm.
+- A primeira tentativa falhou por validacao de certificado do registry npm.
+- Repeti a instalacao com `NODE_OPTIONS=--use-system-ca`, usando as CAs do sistema operacional.
+- Validei a disponibilidade do comando `yarn`.
+
+Validation:
+- npm install -g yarn@1.22.22
+- yarn --version
+- npm prefix -g
+
+Outcome:
+- Yarn 1.22.22 instalado globalmente.
+- Prefixo global do npm: C:\Users\Montanari\AppData\Roaming\npm
+- O comando `yarn` ja responde no ambiente atual do PowerShell.

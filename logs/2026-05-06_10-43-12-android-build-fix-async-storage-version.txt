@@ -1,0 +1,3 @@
+Titulo: Correcao do build Android quebrado pelo AsyncStorage 3.x
+Timestamp: 2026-05-06 10:43:12 -04:00
+Contexto: O projeto falhava no Android porque @react-native-async-storage/async-storage 3.0.2 exigia Kotlin 2.1.0 e um local_repo/shared_storage que nao estavam alinhados com a base RN 0.78.1 do app. Fiz o downgrade para a linha 2.2.0, revalidei a resolucao AAR e executei a instalacao completa do developDebug com sucesso no dispositivo.
