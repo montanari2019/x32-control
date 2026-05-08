@@ -1,6 +1,12 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FlatList, StyleSheet, View } from 'react-native';
+import {
+  FlatList,
+  ListRenderItemInfo,
+  Platform,
+  StyleSheet,
+  View,
+} from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -17,8 +23,81 @@ import { PersonalMixHeader } from '../components/PersonalMixHeader';
 import { useBusMix } from '../hooks/useBusMix';
 import { useMeterSubscription } from '../hooks/useMeterSubscription';
 import { Channel } from '../types/Channel';
+import { ChannelMeterValues } from '../utils/meterDecoder';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
+
+const CHANNEL_STRIP_WIDTH = 86;
+const CHANNEL_STRIP_GAP = 1;
+const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
+
+type BusMixChannelItemProps = {
+  channel: Channel;
+  registerMeterListener: (
+    channelId: number,
+    listener: (values: ChannelMeterValues) => void,
+  ) => () => void;
+  onChangeLevel: (channelNumber: number, level: number) => void;
+  onChangeLevelEnd: (channelNumber: number, level: number) => void;
+  onOpenPan: (channelNumber: number) => void;
+  onToggleMute: (channelNumber: number) => void;
+};
+
+const BusMixChannelItemComponent = ({
+  channel,
+  registerMeterListener,
+  onChangeLevel,
+  onChangeLevelEnd,
+  onOpenPan,
+  onToggleMute,
+}: BusMixChannelItemProps): JSX.Element => {
+  const handleToggleMute = useCallback(
+    () => onToggleMute(channel.number),
+    [channel.number, onToggleMute],
+  );
+  const handleFaderChange = useCallback(
+    (level: number) => onChangeLevel(channel.number, level),
+    [channel.number, onChangeLevel],
+  );
+  const handleFaderChangeEnd = useCallback(
+    (level: number) => onChangeLevelEnd(channel.number, level),
+    [channel.number, onChangeLevelEnd],
+  );
+  const handlePressBadge = useCallback(
+    () => onOpenPan(channel.number),
+    [channel.number, onOpenPan],
+  );
+
+  return (
+    <ChannelStrip
+      channel={channel}
+      registerMeterListener={registerMeterListener}
+      onToggleMute={handleToggleMute}
+      onFaderChange={handleFaderChange}
+      onFaderChangeEnd={handleFaderChangeEnd}
+      onPressBadge={handlePressBadge}
+    />
+  );
+};
+
+const BusMixChannelItem = React.memo(
+  BusMixChannelItemComponent,
+  (prev, next) =>
+    prev.channel.id === next.channel.id &&
+    prev.channel.number === next.channel.number &&
+    prev.channel.label === next.channel.label &&
+    prev.channel.name === next.channel.name &&
+    prev.channel.color === next.channel.color &&
+    prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
+    prev.channel.meterChannelId === next.channel.meterChannelId &&
+    prev.channel.localFaderRaw === next.channel.localFaderRaw &&
+    prev.channel.on === next.channel.on &&
+    prev.registerMeterListener === next.registerMeterListener &&
+    prev.onChangeLevel === next.onChangeLevel &&
+    prev.onChangeLevelEnd === next.onChangeLevelEnd &&
+    prev.onOpenPan === next.onOpenPan &&
+    prev.onToggleMute === next.onToggleMute,
+);
 
 export const BusMixScreen = ({ route, navigation }: Props) => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
@@ -37,12 +116,14 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     refreshPresets,
     createPreset,
     overwritePreset,
+    deletePreset,
     restorePreset,
   } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp);
   const channelsRef = useRef<Channel[]>(channels);
   channelsRef.current = channels;
+  const channelsData = useMemo(() => channels, [channels]);
 
   const subtitle = useMemo(() => {
     const busLabel = `BUS ${busNumber.toString().padStart(2, '0')}`;
@@ -52,19 +133,22 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     return `${busLabel} · ${busName}`;
   }, [busName, busNumber, linkedBusNumber]);
 
-  const openPanModal = useCallback((channelNumber: number): void => {
-    const channel = channelsRef.current.find((item) => item.number === channelNumber);
-    if (!channel) {
-      return;
-    }
+  const openPanModal = useCallback(
+    (channelNumber: number): void => {
+      const channel = channelsRef.current.find((item) => item.number === channelNumber);
+      if (!channel) {
+        return;
+      }
 
-    showModal(PanControlModal, {
-      channelLabel: channel.label,
-      channelName: channel.name,
-      value: getPanPercent(channel.pan),
-      onChange: (value) => setPan(channelNumber, value),
-    });
-  }, [getPanPercent, setPan, showModal]);
+      showModal(PanControlModal, {
+        channelLabel: channel.label,
+        channelName: channel.name,
+        value: getPanPercent(channel.pan),
+        onChange: (value) => setPan(channelNumber, value),
+      });
+    },
+    [getPanPercent, setPan, showModal],
+  );
 
   const openPresetsModal = useCallback((): void => {
     showModal(BusMixPresetsModal, {
@@ -74,10 +158,12 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       onRefreshPresets: refreshPresets,
       onCreatePreset: createPreset,
       onOverwritePreset: overwritePreset,
+      onDeletePreset: deletePreset,
       onRestorePreset: restorePreset,
     });
   }, [
     createPreset,
+    deletePreset,
     isRestoringPreset,
     overwritePreset,
     presets,
@@ -103,22 +189,36 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [toggleOn],
   );
 
-  const renderChannel = useCallback(({ item }: { item: Channel }) => (
-    <ChannelStrip
-      channel={item}
-      registerMeterListener={registerMeterListener}
-      onToggleMute={() => handleToggleMute(item.number)}
-      onFaderChange={(level) => handleFaderChange(item.number, level)}
-      onFaderChangeEnd={(level) => handleFaderChangeEnd(item.number, level)}
-      onPressBadge={() => openPanModal(item.number)}
-    />
-  ), [
-    handleFaderChange,
-    handleFaderChangeEnd,
-    handleToggleMute,
-    openPanModal,
-    registerMeterListener,
-  ]);
+  const keyExtractor = useCallback((item: Channel): string => item.id, []);
+
+  const getChannelItemLayout = useCallback(
+    (_data: ArrayLike<Channel> | null | undefined, index: number) => ({
+      length: CHANNEL_ITEM_LENGTH,
+      offset: CHANNEL_ITEM_LENGTH * index,
+      index,
+    }),
+    [],
+  );
+
+  const renderChannel = useCallback(
+    ({ item }: ListRenderItemInfo<Channel>) => (
+      <BusMixChannelItem
+        channel={item}
+        registerMeterListener={registerMeterListener}
+        onToggleMute={handleToggleMute}
+        onChangeLevel={handleFaderChange}
+        onChangeLevelEnd={handleFaderChangeEnd}
+        onOpenPan={openPanModal}
+      />
+    ),
+    [
+      handleFaderChange,
+      handleFaderChangeEnd,
+      handleToggleMute,
+      openPanModal,
+      registerMeterListener,
+    ],
+  );
 
   if (isLoading) {
     return (
@@ -154,12 +254,18 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       ) : null}
 
       <FlatList
-        data={channels}
-        keyExtractor={(item) => item.id}
+        data={channelsData}
+        keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
         renderItem={renderChannel}
+        getItemLayout={getChannelItemLayout}
+        initialNumToRender={12}
+        maxToRenderPerBatch={8}
+        removeClippedSubviews={Platform.OS === 'android'}
+        updateCellsBatchingPeriod={32}
+        windowSize={5}
       />
 
       {isRestoringPreset ? <BusMixPresetRestoreOverlay /> : null}

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
 import { x32RawToDb } from '@shared/utils/faderDb';
 import { percentToX32Pan, x32PanToPercent } from '@shared/x32/pan';
+import { busMixChannelStore } from '../services/BusMixChannelStore';
 import { BusMixPresetService } from '../services/BusMixPresetService';
 import { BusMixService } from '../services/BusMixService';
 import { Channel } from '../types/Channel';
@@ -14,7 +15,9 @@ const BACKGROUND_SYNC_INTERVAL_MS = 30000;
 export const useBusMix = (consoleIp: string, busNumber: number) => {
   const service = useMemo(() => new BusMixService(), []);
   const presetService = useMemo(() => new BusMixPresetService(), []);
-  const [channels, setChannels] = useState<Channel[]>([]);
+  const [channels, setChannels] = useState<Channel[]>(() =>
+    busMixChannelStore.getSnapshot(consoleIp, busNumber),
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [error, setError] = useState<string>();
@@ -39,50 +42,63 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     [],
   );
 
-  const reconcileRemoteOn = useCallback((channelNumber: number, remoteOn: boolean): void => {
-    setChannels((current) =>
-      current.map((channel) =>
-        channel.number === channelNumber ? { ...channel, on: remoteOn } : channel,
-      ),
-    );
-  }, []);
+  const updateSharedChannels = useCallback(
+    (updater: (current: Channel[]) => Channel[]): void => {
+      busMixChannelStore.updateChannels(consoleIp, busNumber, updater);
+    },
+    [busNumber, consoleIp],
+  );
 
-  const reconcileRemoteFader = useCallback((channelNumber: number, remoteLevel: number): void => {
-    const now = Date.now();
-    const faderDb = x32RawToDb(remoteLevel);
+  const reconcileRemoteOn = useCallback(
+    (channelNumber: number, remoteOn: boolean): void => {
+      updateSharedChannels((current) =>
+        current.map((channel) =>
+          channel.number === channelNumber ? { ...channel, on: remoteOn } : channel,
+        ),
+      );
+    },
+    [updateSharedChannels],
+  );
 
-    setChannels((current) =>
-      current.map((channel) => {
-        if (channel.number !== channelNumber) {
-          return channel;
-        }
+  const reconcileRemoteFader = useCallback(
+    (channelNumber: number, remoteLevel: number): void => {
+      const now = Date.now();
+      const faderDb = x32RawToDb(remoteLevel);
 
-        const lastLocalChangeAt = Math.max(
-          channel.lastLocalChangeAt,
-          pendingLocalChangeAtRef.current.get(channelNumber) ?? 0,
-        );
-        const recentlyChanged = now - lastLocalChangeAt < LOCAL_PROTECTION_WINDOW_MS;
+      updateSharedChannels((current) =>
+        current.map((channel) => {
+          if (channel.number !== channelNumber) {
+            return channel;
+          }
 
-        if (recentlyChanged) {
+          const lastLocalChangeAt = Math.max(
+            channel.lastLocalChangeAt,
+            pendingLocalChangeAtRef.current.get(channelNumber) ?? 0,
+          );
+          const recentlyChanged = now - lastLocalChangeAt < LOCAL_PROTECTION_WINDOW_MS;
+
+          if (recentlyChanged) {
+            return {
+              ...channel,
+              faderRaw: channel.localFaderRaw,
+              remoteFaderRaw: remoteLevel,
+            };
+          }
+
           return {
             ...channel,
-            faderRaw: channel.localFaderRaw,
+            faderRaw: remoteLevel,
+            faderDb,
+            localFaderRaw: remoteLevel,
             remoteFaderRaw: remoteLevel,
+            level: remoteLevel,
+            isDirty: false,
           };
-        }
-
-        return {
-          ...channel,
-          faderRaw: remoteLevel,
-          faderDb,
-          localFaderRaw: remoteLevel,
-          remoteFaderRaw: remoteLevel,
-          level: remoteLevel,
-          isDirty: false,
-        };
-      }),
-    );
-  }, []);
+        }),
+      );
+    },
+    [updateSharedChannels],
+  );
 
   const buildPresetChannels = useCallback(
     (sourceChannels: Channel[]): BusMixPresetChannel[] =>
@@ -96,6 +112,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
           sourceNumber: channel.sourceNumber,
           raw: channel.localFaderRaw,
           db: typeof db === 'number' ? db : null,
+          mute: !channel.on,
         };
       }),
     [],
@@ -163,21 +180,18 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     [enqueueFaderSend],
   );
 
-  const syncRemoteFaders = useCallback(
-    async (): Promise<void> => {
-      if (channels.length === 0) {
-        return;
-      }
+  const syncRemoteFaders = useCallback(async (): Promise<void> => {
+    if (channels.length === 0) {
+      return;
+    }
 
-      try {
-        const faders = await service.loadChannelFaders(busNumber, channelsRef.current);
-        faders.forEach(({ channel, level }) => reconcileRemoteFader(channel.number, level));
-      } catch {
-        // Background UDP sync is best-effort; the active control path keeps reporting errors.
-      }
-    },
-    [busNumber, channels.length, reconcileRemoteFader, service],
-  );
+    try {
+      const faders = await service.loadChannelFaders(busNumber, channelsRef.current);
+      faders.forEach(({ channel, level }) => reconcileRemoteFader(channel.number, level));
+    } catch {
+      // Background UDP sync is best-effort; the active control path keeps reporting errors.
+    }
+  }, [busNumber, channels.length, reconcileRemoteFader, service]);
 
   const load = useCallback(
     async (refresh = false): Promise<void> => {
@@ -187,11 +201,16 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
       try {
         await service.connect(consoleIp);
         const [nextChannels, linkMap] = await Promise.all([
-          service.loadChannels(busNumber),
+          busMixChannelStore.loadChannels(
+            consoleIp,
+            busNumber,
+            () => service.loadChannels(busNumber),
+            { force: refresh },
+          ),
           service.fetchChannelLinkMap(),
         ]);
         channelLinkMapRef.current = linkMap;
-        setChannels(nextChannels);
+        channelsRef.current = nextChannels;
       } catch (loadError) {
         setError(getErrorMessage(loadError));
       } finally {
@@ -199,6 +218,14 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
       }
     },
     [busNumber, consoleIp, service],
+  );
+
+  useEffect(
+    () =>
+      busMixChannelStore.subscribe(consoleIp, busNumber, (nextChannels) => {
+        setChannels(nextChannels);
+      }),
+    [busNumber, consoleIp],
   );
 
   useEffect(() => {
@@ -250,7 +277,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
       const now = Date.now();
       const faderDb = x32RawToDb(level);
       pendingLocalChangeAtRef.current.delete(channelNumber);
-      setChannels((current) =>
+      updateSharedChannels((current) =>
         current.map((channel) =>
           channel.number === channelNumber
             ? {
@@ -272,7 +299,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
       sendFaderImmediately(channelNumber, level);
     },
-    [sendFaderImmediately],
+    [sendFaderImmediately, updateSharedChannels],
   );
 
   const setLevel = useCallback(
@@ -282,54 +309,77 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     [applyCommittedLevel],
   );
 
-  const toggleOn = useCallback(async (channelNumber: number): Promise<void> => {
-    const channel = getChannelByNumber(channelNumber);
-    if (!channel) {
-      return;
-    }
+  const applyCommittedOn = useCallback(
+    async (channelNumber: number, nextOn: boolean, markPendingChanges = true): Promise<void> => {
+      const channel = getChannelByNumber(channelNumber);
+      if (!channel) {
+        return;
+      }
 
-    const nextOn = !channel.on;
-    const linkedNumber = channelLinkMapRef.current.get(channelNumber);
-    setChannels((current) =>
-      current.map((item) => {
-        if (item.number === channelNumber) return { ...item, on: nextOn };
-        if (linkedNumber !== undefined && item.number === linkedNumber) return { ...item, on: nextOn };
-        return item;
-      }),
-    );
-    setHasPendingChanges(true);
-
-    try {
-      await service.setChannelOn(channel, busNumber, nextOn);
-    } catch (toggleError) {
-      setChannels((current) =>
+      const linkedNumber = channelLinkMapRef.current.get(channelNumber);
+      updateSharedChannels((current) =>
         current.map((item) => {
-          if (item.number === channelNumber) return { ...item, on: channel.on };
-          if (linkedNumber !== undefined && item.number === linkedNumber) return { ...item, on: channel.on };
+          if (item.number === channelNumber) return { ...item, on: nextOn };
+          if (linkedNumber !== undefined && item.number === linkedNumber)
+            return { ...item, on: nextOn };
           return item;
         }),
       );
-      setError(getErrorMessage(toggleError));
-    }
-  }, [busNumber, getChannelByNumber, service]);
 
-  const setPan = useCallback((channelNumber: number, pan: number): void => {
-    const channel = getChannelByNumber(channelNumber);
-    if (!channel) {
-      return;
-    }
+      if (markPendingChanges) {
+        setHasPendingChanges(true);
+      }
 
-    const nextPan = percentToX32Pan(pan);
-    setChannels((current) =>
-      current.map((channel) =>
-        channel.number === channelNumber ? { ...channel, pan: nextPan } : channel,
-      ),
-    );
-    setHasPendingChanges(true);
-    service.setChannelPan(channel, busNumber, nextPan).catch((sendError) => {
-      setError(getErrorMessage(sendError));
-    });
-  }, [busNumber, getChannelByNumber, service]);
+      try {
+        await service.setChannelOn(channel, busNumber, nextOn);
+      } catch (toggleError) {
+        updateSharedChannels((current) =>
+          current.map((item) => {
+            if (item.number === channelNumber) return { ...item, on: channel.on };
+            if (linkedNumber !== undefined && item.number === linkedNumber)
+              return { ...item, on: channel.on };
+            return item;
+          }),
+        );
+        setError(getErrorMessage(toggleError));
+        throw toggleError;
+      }
+    },
+    [busNumber, getChannelByNumber, service, updateSharedChannels],
+  );
+
+  const toggleOn = useCallback(
+    async (channelNumber: number): Promise<void> => {
+      const channel = getChannelByNumber(channelNumber);
+      if (!channel) {
+        return;
+      }
+
+      await applyCommittedOn(channelNumber, !channel.on, true);
+    },
+    [applyCommittedOn, getChannelByNumber],
+  );
+
+  const setPan = useCallback(
+    (channelNumber: number, pan: number): void => {
+      const channel = getChannelByNumber(channelNumber);
+      if (!channel) {
+        return;
+      }
+
+      const nextPan = percentToX32Pan(pan);
+      updateSharedChannels((current) =>
+        current.map((channel) =>
+          channel.number === channelNumber ? { ...channel, pan: nextPan } : channel,
+        ),
+      );
+      setHasPendingChanges(true);
+      service.setChannelPan(channel, busNumber, nextPan).catch((sendError) => {
+        setError(getErrorMessage(sendError));
+      });
+    },
+    [busNumber, getChannelByNumber, service, updateSharedChannels],
+  );
 
   const save = useCallback(async (): Promise<void> => {
     if (!hasPendingChanges || isSaving) {
@@ -367,6 +417,15 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     [buildPresetChannels, busNumber, consoleIp, presetService],
   );
 
+  const deletePreset = useCallback(
+    async (presetId: string): Promise<BusMixPreset[]> => {
+      const nextPresets = await presetService.deletePreset(consoleIp, busNumber, presetId);
+      setPresets(nextPresets);
+      return nextPresets;
+    },
+    [busNumber, consoleIp, presetService],
+  );
+
   const restorePreset = useCallback(
     async (presetId: string): Promise<void> => {
       const preset = await presetService.loadPreset(consoleIp, busNumber, presetId);
@@ -385,11 +444,14 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
           }
 
           applyCommittedLevel(presetChannel.channelId, presetChannel.raw, false);
+          if (presetChannel.mute !== undefined) {
+            await applyCommittedOn(presetChannel.channelId, !presetChannel.mute, false);
+          }
           await new Promise<void>((resolve) => setTimeout(resolve, 24));
         }
 
         setHasPendingChanges(false);
-        setChannels((current) =>
+        updateSharedChannels((current) =>
           current.map((channel) => ({
             ...channel,
             isDirty: false,
@@ -399,7 +461,14 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
         setIsRestoringPreset(false);
       }
     },
-    [applyCommittedLevel, busNumber, consoleIp, presetService],
+    [
+      applyCommittedLevel,
+      applyCommittedOn,
+      busNumber,
+      consoleIp,
+      presetService,
+      updateSharedChannels,
+    ],
   );
 
   return {
@@ -425,6 +494,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     save,
     createPreset,
     overwritePreset,
+    deletePreset,
     restorePreset,
   };
 };

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   heroBadge: {
     alignSelf: 'flex-start',
-    backgroundColor: colors.surface.glassOverlay,
+    backgroundColor: colors.background.primary,
     borderColor: colors.border.subtle,
     borderRadius: radius.pill,
     borderWidth: 1,
@@ -89,7 +89,7 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   heroCard: {
-    backgroundColor: colors.background.secondary,
+    backgroundColor: colors.background.primary,
     borderColor: colors.border.primary,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -103,7 +103,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   screen: {
-    backgroundColor: colors.background.deep,
+    backgroundColor: colors.background.primary,
   },
   subtitle: {
     color: colors.text.secondary,

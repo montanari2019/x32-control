@@ -50,7 +50,9 @@ export class BusMixPresetService {
 
     const presets = await this.listPresets(consoleId, busId);
     if (presets.length >= MAX_BUS_MIX_PRESETS) {
-      throw new Error(`Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`);
+      throw new Error(
+        `Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`,
+      );
     }
 
     const now = new Date().toISOString();
@@ -94,6 +96,13 @@ export class BusMixPresetService {
     );
 
     return updatedPreset;
+  }
+
+  async deletePreset(consoleId: string, busId: number, presetId: string): Promise<BusMixPreset[]> {
+    const presets = await this.listPresets(consoleId, busId);
+    const nextPresets = presets.filter((preset) => preset.id !== presetId);
+    await this.persistPresets(consoleId, busId, nextPresets);
+    return this.listPresets(consoleId, busId);
   }
 
   private async persistPresets(

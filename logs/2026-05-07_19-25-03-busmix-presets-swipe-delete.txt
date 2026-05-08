@@ -1,0 +1,23 @@
+Contexto:
+- Foi implementada remocao de presets do Personal Mix por gesto horizontal no modal de presets.
+- O gesto e da direita para a esquerda e revela uma acao vermelha de deletar no lado direito do card.
+
+Arquivos alterados:
+- `src/features/busMix/services/BusMixPresetService.ts`
+  - Adicionado `deletePreset(consoleId, busId, presetId)`, removendo o preset do storage local e retornando a lista persistida atualizada.
+- `src/features/busMix/hooks/useBusMix.ts`
+  - Adicionado `deletePreset`, que chama o service, atualiza `presets` no estado do hook e retorna a lista atualizada.
+- `src/features/busMix/screens/BusMixScreen.tsx`
+  - Passa `onDeletePreset` para `BusMixPresetsModal`.
+- `src/features/busMix/components/BusMixPresetsModal.tsx`
+  - Cada linha de preset passou a usar `Swipeable` de `react-native-gesture-handler`.
+  - Swipe para a esquerda revela botao vermelho usando `colors.status.danger`.
+  - Icone de lixeira foi desenhado com `react-native-svg`, sem adicionar dependencia nova.
+  - Ao deletar, a remocao e local apenas; nao envia comandos para a X32 e nao altera fader, mute, pan, meter ou canais.
+  - Apenas um swipe fica aberto por vez.
+- `__tests__/features/busMix/services/BusMixPresetService.test.ts`
+  - Adicionado teste para remocao persistida de preset.
+
+Validacao:
+- `npm run tsc` passou.
+- `npm test -- BusMixPresetService.test.ts --runInBand` passou.

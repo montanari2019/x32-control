@@ -59,20 +59,52 @@ export class OscClient {
   }
 
   async request<T>(address: string, args: OscArg[] = [], timeoutMs = 1500): Promise<T> {
-    await this.send(address, args);
-
     return new Promise<T>((resolve, reject) => {
+      let isSettled = false;
       const pending: PendingRequest<T> = {
         address,
-        resolve,
-        reject,
+        resolve: (value) => {
+          if (isSettled) {
+            return;
+          }
+
+          isSettled = true;
+          resolve(value);
+        },
+        reject: (error) => {
+          if (isSettled) {
+            return;
+          }
+
+          isSettled = true;
+          reject(error);
+        },
         timeout: setTimeout(() => {
+          if (isSettled) {
+            return;
+          }
+
+          isSettled = true;
           this.pending.delete(pending as PendingRequest<unknown>);
           reject(new AppError('UDP_TIMEOUT', `Timeout aguardando resposta de ${address}.`));
         }, timeoutMs),
       };
 
       this.pending.add(pending as PendingRequest<unknown>);
+
+      this.send(address, args).catch((error) => {
+        if (isSettled) {
+          return;
+        }
+
+        clearTimeout(pending.timeout);
+        this.pending.delete(pending as PendingRequest<unknown>);
+        pending.reject(
+          error instanceof AppError
+            ? error
+            : new AppError('UDP_TRANSPORT_ERROR', `Falha ao enviar request ${address}.`, error),
+        );
+      });
     });
   }
 

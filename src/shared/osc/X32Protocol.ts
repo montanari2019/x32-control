@@ -51,6 +51,11 @@ export class X32Protocol {
     return `/bus/${two(bus)}/config/name`;
   }
 
+  static getBusColorPath(bus: number): string {
+    assertRange(bus, 1, 16, 'bus');
+    return `/bus/${two(bus)}/config/color`;
+  }
+
   static getBusStereoLinkPath(leftBus: number, rightBus: number): string {
     assertRange(leftBus, 1, 15, 'leftBus');
     assertRange(rightBus, 2, 16, 'rightBus');

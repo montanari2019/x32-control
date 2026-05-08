@@ -39,7 +39,7 @@ export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element 
 
 const styles = StyleSheet.create({
   card: {
-    backgroundColor: colors.surface.elevated,
+    backgroundColor: colors.background.primary,
     borderColor: colors.border.primary,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   },
   statusPill: {
     alignItems: 'center',
-    backgroundColor: colors.surface.screen,
+    backgroundColor: colors.background.primary,
     borderColor: colors.border.subtle,
     borderRadius: radius.pill,
     borderWidth: 1,

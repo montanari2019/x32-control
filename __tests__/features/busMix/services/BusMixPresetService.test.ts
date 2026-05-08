@@ -14,7 +14,10 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
   },
 }));
 
-import { BusMixPresetService, MAX_BUS_MIX_PRESETS } from '../../../../src/features/busMix/services/BusMixPresetService';
+import {
+  BusMixPresetService,
+  MAX_BUS_MIX_PRESETS,
+} from '../../../../src/features/busMix/services/BusMixPresetService';
 
 const makeChannels = (suffix: number) => [
   {
@@ -25,6 +28,7 @@ const makeChannels = (suffix: number) => [
     sourceNumber: 1,
     raw: 0.75,
     db: 0,
+    mute: suffix % 2 === 0,
   },
 ];
 
@@ -55,6 +59,19 @@ describe('BusMixPresetService', () => {
     const presets = await service.listPresets('10.0.0.1', 1);
     expect(presets).toHaveLength(1);
     expect(presets[0].channels[0].channelName).toBe('Kick 2');
+    expect(presets[0].channels[0].mute).toBe(true);
+  });
+
+  it('deletes a preset from local persistence', async () => {
+    const service = new BusMixPresetService();
+    const first = await service.savePreset('10.0.0.1', 1, 'Preset A', makeChannels(1));
+    const second = await service.savePreset('10.0.0.1', 1, 'Preset B', makeChannels(2));
+
+    await expect(service.deletePreset('10.0.0.1', 1, first.id)).resolves.toHaveLength(1);
+
+    const presets = await service.listPresets('10.0.0.1', 1);
+    expect(presets).toHaveLength(1);
+    expect(presets[0].id).toBe(second.id);
   });
 
   it('enforces the maximum preset limit per console and bus', async () => {
@@ -66,6 +83,8 @@ describe('BusMixPresetService', () => {
 
     await expect(
       service.savePreset('10.0.0.1', 1, 'Preset extra', makeChannels(99)),
-    ).rejects.toThrow(`Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`);
+    ).rejects.toThrow(
+      `Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`,
+    );
   });
 });

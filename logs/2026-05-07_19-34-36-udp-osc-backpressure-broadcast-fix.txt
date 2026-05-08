@@ -1,0 +1,31 @@
+Contexto:
+- Foi investigado o excesso de callbacks pendentes no transporte UDP/OSC, principalmente em `UdpSockets.setBroadcast` e `UdpSockets.send`.
+- O problema provavel era a combinacao de `setBroadcast(true)` em todo bind de controle OSC e polling de meters enviando `/meters/1` a cada 50ms sem aguardar o send anterior.
+
+Arquivos alterados:
+- `src/shared/network/UdpTransport.ts`
+  - `bind` agora tem estado interno para evitar binds concorrentes.
+  - `setBroadcast(true)` deixou de ser padrao e passou a ser opcional via `bind(0, { broadcast: true })`.
+  - O transporte serializa envios em uma fila simples (`sendQueue`) para evitar muitas chamadas nativas simultaneas a `UdpSockets.send`.
+  - Cada envio tem timeout de 1000ms para nao ficar pendente indefinidamente.
+  - `close` ganhou protecao contra fechamento repetido.
+  - Erros de socket limpam o estado interno para evitar reaproveitar socket quebrado.
+- `src/shared/network/NetworkScanner.ts`
+  - Discovery passa a ser o unico fluxo que pede broadcast explicitamente.
+  - `unsubscribe` e `transport.close()` ficam em `finally`, garantindo cleanup mesmo se o envio broadcast falhar.
+- `src/features/busMix/hooks/useMeterSubscription.ts`
+  - Polling de `/meters/1` ganhou backpressure com `isPollingRef`.
+  - Enquanto um `send` de meter estiver em andamento, o proximo tick do intervalo nao dispara outro.
+  - Foi adicionada guarda `isActive` para evitar criar subscription/interval se a tela desmontar enquanto `connect()` ainda esta aguardando.
+
+Impacto esperado:
+- Comunicacao normal com IP direto da X32/M32 nao chama mais `setBroadcast(true)`.
+- Broadcast fica isolado ao scan/discovery.
+- Meters deixam de acumular centenas de sends nativos pendentes.
+- Troca de tela durante conexao de meter nao deixa timer/subscription vivo por acidente.
+
+Validacao:
+- `npm run tsc` passou.
+
+Observacao:
+- Ainda existem instancias separadas de `OscClient` por service/hook, mas o transporte de cada instancia agora evita bind concorrente e rajada nativa de send.

@@ -1,0 +1,78 @@
+Projeto: x32-control
+Data do log: 2026-05-07 18:19:43 America/Cuiaba
+Contexto: centralizacao da busca de canais X32 usada por BusGroups/MCA e Bus Personal Mix.
+
+Problema
+--------
+- A lista de canais da mesa estava sendo buscada em mais de um lugar.
+- BusGroups carregava canais do BusMix para o modal de selecao de MCA.
+- BusMix carregava os mesmos canais novamente ao abrir Personal Mix Channel.
+- Isso podia gerar chamadas redundantes para a X32 e aumentar risco de timeout/loading longo.
+
+Implementacao
+-------------
+1. Fonte compartilhada de canais
+- Criado:
+  - src/features/busMix/services/BusMixChannelStore.ts
+- O store usa chave por:
+  - consoleIp + busNumber
+- Responsabilidades:
+  - manter cache dos canais carregados
+  - compartilhar a mesma promise quando uma busca ja esta em voo
+  - notificar assinantes quando a lista compartilhada muda
+  - permitir update otimista/remote dos canais na mesma fonte
+
+2. BusGroups
+- Arquivo:
+  - src/features/busGroups/hooks/useBusGroups.ts
+- O hook nao chama mais BusMixService.loadChannels diretamente como parte do loading principal.
+- Agora assina BusMixChannelStore para receber canais disponiveis.
+- Ao precisar carregar canais para o modal de MCA, chama busMixChannelStore.loadChannels.
+- Se BusMix ou outra tela ja carregou os canais, usa o cache.
+- Se uma busca ja esta em andamento, reutiliza a mesma promise.
+- A tela de grupos continua carregando master/MCA primeiro e a lista de canais entra sem bloquear a renderizacao principal.
+
+3. BusMix
+- Arquivo:
+  - src/features/busMix/hooks/useBusMix.ts
+- O hook passou a carregar canais via BusMixChannelStore.
+- BusMix continua responsavel por:
+  - conectar ao service OSC
+  - buscar channel link map
+  - subscriptions de level/on
+  - controle de fader/mute/pan
+  - presets
+- Alteracoes em tempo real e alteracoes otimistas agora atualizam o store compartilhado:
+  - reconcileRemoteFader
+  - reconcileRemoteOn
+  - applyCommittedLevel
+  - toggleOn
+  - setPan
+  - restorePreset
+- Com isso, MCAs e BusMix veem a mesma lista em memoria.
+
+4. Teste
+- Criado:
+  - __tests__/features/busMix/services/BusMixChannelStore.test.ts
+- Cobertura:
+  - duas chamadas simultaneas para mesmo console/bus usam uma unica loader call
+  - chamadas posteriores usam cache
+  - subscribers recebem updates do store
+
+Validacao
+---------
+- npm run tsc
+  - sucesso
+- npm test -- BusMixChannelStore.test.ts --runInBand
+  - sucesso
+- npm run lint
+  - nao executou: o Windows nao encontrou o binario eslint no PATH do script.
+- npx eslint nos arquivos alterados
+  - nao validou: npx usou ESLint 9, que exige eslint.config.js; o projeto parece usar configuracao anterior.
+
+Observacoes
+-----------
+- A consulta real a mesa via BusMixService.loadChannels permanece no service, mas os hooks agora acessam essa consulta por meio do store compartilhado.
+- Uma nova busca so ocorre se nao houver cache para consoleIp + busNumber, se nao houver promise em voo, ou se o BusMix fizer refresh explicito com force.
+- Meter continua independente e nao foi alterado.
+- Controle de fader/mute/pan continua usando BusMixService e agora sincroniza o resultado no store compartilhado.

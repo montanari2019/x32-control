@@ -17,6 +17,7 @@ import { spacing } from '@shared/theme/spacing';
 
 export type DialogPropsType = ModalPropsType & {
   modalStyle?: StyleProp<ViewStyle>;
+  backdropStyle?: StyleProp<ViewStyle>;
   containerStyle?: StyleProp<ViewStyle>;
   containerChildren?: React.ReactNode;
   children?: React.ReactNode;
@@ -29,6 +30,7 @@ const DialogBase = ({
   dismissible = true,
   animationDuration = 250,
   modalStyle,
+  backdropStyle,
   containerStyle,
   containerChildren,
   children,
@@ -77,7 +79,10 @@ const DialogBase = ({
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={onDismiss}>
       <Animated.View style={[styles.modal, modalStyle, { opacity: backdropOpacity }]}>
-        <Pressable style={styles.backdrop} onPress={dismissible ? onDismiss : undefined}>
+        <Pressable
+          style={[styles.backdrop, backdropStyle]}
+          onPress={dismissible ? onDismiss : undefined}
+        >
           <Animated.View
             style={[
               styles.container,

@@ -1,0 +1,50 @@
+Contexto:
+- Corrigido ciclo de vida do socket UDP/OSC ao transitar entre Personal Mix e Personal Mix Groups.
+- O problema observado era fechamento/recriacao sucessiva de sockets ao desmontar/montar telas:
+  - socket-0 binding/closed
+  - socket-1 binding/closed
+  - ...
+
+Arquivos alterados:
+- `src/shared/osc/SharedOscClient.ts`
+  - Criado gerenciador compartilhado de `OscClient` por endpoint `ip:port`.
+  - Cada consumidor recebe um lease com `release()`.
+  - O socket so fecha quando nao ha mais consumidores.
+  - A liberacao real e adiada em 5 segundos para cobrir a transicao entre telas sem fechar o socket.
+  - Aquisicoes simultaneas compartilham a mesma promise de `connect`.
+  - Aquisicoes enquanto o timer de release esta pendente cancelam o fechamento.
+- `src/features/busMix/services/BusMixService.ts`
+  - Passou a usar `acquireSharedOscClient(consoleIp)` para conexao real.
+  - `disconnect()` agora libera o lease compartilhado em vez de fechar o socket diretamente.
+  - Adicionada guarda por `connectedConsoleIp` para `refresh/reload` nao incrementar refs repetidamente no mesmo service.
+- `src/features/busGroups/services/X32BusGroupsService.ts`
+  - Passou a usar o mesmo cliente OSC compartilhado por IP.
+  - `disconnect()` para o heartbeat proprio da tela e libera o lease, sem fechar o socket se outra tela ainda estiver usando.
+  - Adicionada guarda por `connectedConsoleIp` para evitar leases duplicados no mesmo service.
+- `src/features/busMix/hooks/useMeterSubscription.ts`
+  - Meter polling passou a adquirir o cliente compartilhado.
+  - Cleanup do hook libera o lease em vez de chamar `client.disconnect()`.
+  - Mantida protecao de backpressure com `isPollingRef`.
+  - Se o hook desmontar antes da conexao terminar, o lease recem-adquirido e liberado imediatamente.
+
+Impacto esperado:
+- Navegar entre Personal Mix e Personal Mix Groups nao deve mais fechar/recriar socket a cada transicao.
+- O socket permanece vivo durante a janela de transicao e e reutilizado pela proxima tela.
+- Discovery/broadcast nao foi alterado; o fluxo de scan continua com ciclo proprio.
+- Mock provider nao foi alterado.
+
+Validacao:
+- `npx prettier --write ...` foi tentado, mas falhou no sandbox com:
+  - `EPERM: operation not permitted, lstat 'C:\Users\ikaro.montanari'`
+- Aprovacao para rodar fora do sandbox foi rejeitada automaticamente porque o token da sessao nao pode ser renovado.
+- `npm run tsc` foi tentado, mas falhou pelo mesmo `EPERM`.
+- `npm run lint -- --quiet` foi tentado, mas falhou pelo mesmo `EPERM`.
+
+Proxima validacao recomendada:
+- Rodar em uma sessao com permissao Node liberada:
+  - `npx prettier --write src/shared/osc/SharedOscClient.ts src/features/busMix/services/BusMixService.ts src/features/busGroups/services/X32BusGroupsService.ts src/features/busMix/hooks/useMeterSubscription.ts`
+  - `npm run tsc`
+  - `npm run lint -- --quiet`
+- No app/dispositivo, navegar repetidamente:
+  - Personal Mix Groups -> Personal Mix -> voltar -> Personal Mix
+  - confirmar que os logs nao mostram `socket closing/closed` a cada transicao.

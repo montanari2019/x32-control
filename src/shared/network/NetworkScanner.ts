@@ -33,7 +33,7 @@ export class NetworkScanner {
     const transport = this.transportFactory();
     const devices = new Map<string, ConsoleDevice>();
 
-    await transport.bind();
+    await transport.bind(0, { broadcast: true });
 
     const unsubscribe = transport.onMessage((message) => {
       try {
@@ -49,17 +49,21 @@ export class NetworkScanner {
       }
     });
 
-    await transport.send(
-      OscEncoder.encode({ address: X32Protocol.getInfoPath(), args: [] }),
-      '255.255.255.255',
-      X32Protocol.defaultPort,
-    );
+    try {
+      await transport.send(
+        OscEncoder.encode({ address: X32Protocol.getInfoPath(), args: [] }),
+        '255.255.255.255',
+        X32Protocol.defaultPort,
+      );
 
-    await new Promise<void>((resolve) => {
-      setTimeout(() => resolve(), 900);
-    });
-    unsubscribe();
-    transport.close();
+      await new Promise<void>((resolve) => {
+        setTimeout(() => resolve(), 900);
+      });
+    } finally {
+      unsubscribe();
+      transport.close();
+    }
+
     return [...devices.values()];
   }
 

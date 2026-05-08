@@ -9,11 +9,11 @@ import { useModal } from '@shared/components/Modal';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
-import { BusGroupsHeader } from './components/BusGroupsHeader';
-import { McaChannelSelectionModal } from './components/McaChannelSelectionModal';
-import { MasterStrip } from './components/MasterStrip';
-import { McaStrip } from './components/McaStrip';
-import { useBusGroups } from './hooks/useBusGroups';
+import { BusGroupsHeader } from '../components/BusGroupsHeader';
+import { McaChannelSelectionModal } from '../components/McaChannelSelectionModal';
+import { MasterStrip } from '../components/MasterStrip';
+import { McaStrip } from '../components/McaStrip';
+import { useBusGroups } from '../hooks/useBusGroups';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusGroups'>;
 
@@ -34,6 +34,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     setMcaFader,
     toggleMcaMute,
     toggleMcaChannelAssignment,
+    clearMcaChannels,
+    renameMca,
   } = useBusGroups(consoleIp, busNumber);
 
   useEffect(() => {
@@ -105,6 +107,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                       accentColor: colors.mca[mca.colorToken],
                       channels: availableChannels,
                       mca,
+                      onClearChannels: () => clearMcaChannels(mca.dcaNumber),
+                      onRename: (name) => renameMca(mca.dcaNumber, name),
                       onToggleChannel: (channel) =>
                         toggleMcaChannelAssignment(mca.dcaNumber, channel),
                     })

@@ -3,6 +3,8 @@ import { clamp } from '@shared/utils/clamp';
 import { x32RawToDb } from '@shared/utils/faderDb';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
+import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
+import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { Channel, ChannelKind } from '../types/Channel';
 
@@ -73,9 +75,14 @@ const SOURCE_DEFINITIONS: SourceDefinition[] = [
 ];
 
 export class BusMixService {
+  private client: OscClient;
+  private connectedConsoleIp?: string;
+  private sharedLease?: SharedOscClientLease;
   private useMockProvider = false;
 
-  constructor(private readonly client = new OscClient()) { }
+  constructor(client = new OscClient()) {
+    this.client = client;
+  }
 
   async connect(consoleIp: string): Promise<void> {
     this.useMockProvider = isMockConsoleIp(consoleIp);
@@ -84,7 +91,16 @@ export class BusMixService {
       return;
     }
 
-    await this.client.connect(consoleIp);
+    if (this.sharedLease && this.connectedConsoleIp === consoleIp) {
+      return;
+    }
+
+    this.sharedLease?.release();
+    this.sharedLease = undefined;
+    this.connectedConsoleIp = undefined;
+    this.sharedLease = await acquireSharedOscClient(consoleIp);
+    this.connectedConsoleIp = consoleIp;
+    this.client = this.sharedLease.client;
     this.client.startXRemoteKeepAlive();
   }
 
@@ -95,7 +111,9 @@ export class BusMixService {
       return;
     }
 
-    this.client.disconnect();
+    this.sharedLease?.release();
+    this.sharedLease = undefined;
+    this.connectedConsoleIp = undefined;
   }
 
   onLevel(channel: Channel, bus: number, listener: (level: number) => void): () => void {

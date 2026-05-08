@@ -20,6 +20,10 @@ type DgramModule = {
   createSocket: (options: { type: 'udp4'; reusePort: boolean }) => UdpSocket;
 };
 
+type BindOptions = {
+  broadcast?: boolean;
+};
+
 export type UdpMessage = {
   data: Buffer;
   remoteAddress: string;
@@ -29,29 +33,45 @@ export type UdpMessage = {
 export type UdpMessageHandler = (message: UdpMessage) => void;
 export type UdpErrorHandler = (error: AppError) => void;
 
+const SEND_TIMEOUT_MS = 1000;
+
 export class UdpTransport {
   private socket?: UdpSocket;
   private messageHandlers = new Set<UdpMessageHandler>();
   private errorHandlers = new Set<UdpErrorHandler>();
   private boundPort = 0;
+  private bindPromise?: Promise<void>;
+  private sendQueue: Promise<void> = Promise.resolve();
+  private broadcastConfigured = false;
+  private isBound = false;
+  private isClosing = false;
 
-  async bind(localPort = 0): Promise<void> {
-    if (this.socket) {
+  async bind(localPort = 0, options: BindOptions = {}): Promise<void> {
+    if (this.socket && this.isBound) {
       return;
     }
 
-    const dgram = require('react-native-udp') as DgramModule;
-    this.socket = dgram.createSocket({ type: 'udp4', reusePort: true });
+    if (this.bindPromise) {
+      return this.bindPromise;
+    }
+
+    this.isClosing = false;
     this.boundPort = localPort;
 
-    await new Promise<void>((resolve, reject) => {
+    const dgram = require('react-native-udp') as DgramModule;
+    this.socket = dgram.createSocket({ type: 'udp4', reusePort: true });
+
+    this.bindPromise = new Promise<void>((resolve, reject) => {
       if (!this.socket) {
-        reject(new AppError('UDP_TRANSPORT_ERROR', 'Socket UDP não inicializado.'));
+        reject(new AppError('UDP_TRANSPORT_ERROR', 'Socket UDP nao inicializado.'));
         return;
       }
 
       this.socket.on('listening', () => {
-        this.socket?.setBroadcast?.(true);
+        this.isBound = true;
+        if (options.broadcast) {
+          this.configureBroadcastOnce();
+        }
         resolve();
       });
 
@@ -67,6 +87,9 @@ export class UdpTransport {
       });
 
       this.socket.on('error', (error) => {
+        this.isBound = false;
+        this.socket?.close();
+        this.socket = undefined;
         const appError = new AppError('UDP_TRANSPORT_ERROR', 'Erro no transporte UDP.', error);
         this.errorHandlers.forEach((handler) => handler(appError));
         reject(appError);
@@ -74,23 +97,29 @@ export class UdpTransport {
 
       this.socket.bind(localPort);
     });
+
+    try {
+      await this.bindPromise;
+    } finally {
+      this.bindPromise = undefined;
+    }
   }
 
   async send(data: Buffer, ip: string, port: number): Promise<void> {
-    if (!this.socket) {
-      await this.bind(this.boundPort);
-    }
+    const sendOperation = this.sendQueue.then(async () => {
+      if (this.isClosing) {
+        throw new AppError('CONNECTION_LOST', 'Transporte UDP esta encerrando.');
+      }
 
-    await new Promise<void>((resolve, reject) => {
-      this.socket?.send(data, 0, data.length, port, ip, (error) => {
-        if (error) {
-          reject(new AppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
-          return;
-        }
+      if (!this.socket || !this.isBound) {
+        await this.bind(this.boundPort);
+      }
 
-        resolve();
-      });
+      await this.sendNow(data, ip, port);
     });
+
+    this.sendQueue = sendOperation.catch(() => undefined);
+    return sendOperation;
   }
 
   onMessage(handler: UdpMessageHandler): () => void {
@@ -104,7 +133,68 @@ export class UdpTransport {
   }
 
   close(): void {
+    if (this.isClosing) {
+      return;
+    }
+
+    this.isClosing = true;
+    this.isBound = false;
+    this.bindPromise = undefined;
+    this.broadcastConfigured = false;
     this.socket?.close();
     this.socket = undefined;
+  }
+
+  private configureBroadcastOnce(): void {
+    if (this.broadcastConfigured || !this.socket?.setBroadcast) {
+      return;
+    }
+
+    this.broadcastConfigured = true;
+    try {
+      this.socket.setBroadcast(true);
+    } catch (error) {
+      const appError = new AppError(
+        'UDP_TRANSPORT_ERROR',
+        'Falha ao habilitar broadcast UDP.',
+        error,
+      );
+      this.errorHandlers.forEach((handler) => handler(appError));
+    }
+  }
+
+  private async sendNow(data: Buffer, ip: string, port: number): Promise<void> {
+    await new Promise<void>((resolve, reject) => {
+      if (!this.socket) {
+        reject(new AppError('CONNECTION_LOST', 'Socket UDP nao inicializado.'));
+        return;
+      }
+
+      let settled = false;
+      const timeout = setTimeout(() => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        reject(new AppError('UDP_TIMEOUT', `Timeout ao enviar pacote UDP para ${ip}:${port}.`));
+      }, SEND_TIMEOUT_MS);
+
+      this.socket.send(data, 0, data.length, port, ip, (error) => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        clearTimeout(timeout);
+
+        if (error) {
+          reject(new AppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
+          return;
+        }
+
+        resolve();
+      });
+    });
   }
 }

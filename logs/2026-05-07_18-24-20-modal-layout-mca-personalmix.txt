@@ -1,0 +1,57 @@
+Projeto: x32-control
+Data do log: 2026-05-07 18:24:20 America/Cuiaba
+Contexto: ajuste visual dos modais de MCA e Personal Mix.
+
+Objetivo
+--------
+- Padronizar fechamento e centralizacao de modais usados em MCA/BusGroups e Personal Mix/BusMix.
+- Melhorar a grade de canais no modal de MCA.
+
+Implementacao
+-------------
+1. Modal MCA
+- Arquivo:
+  - src/features/busGroups/components/McaChannelSelectionModal.tsx
+- Adicionado botao X no canto superior direito, alinhado verticalmente ao titulo do MCA.
+- Card do modal continua centralizado e ganhou maxWidth para nao abrir exageradamente em telas maiores.
+- Grade de canais ajustada:
+  - 3 itens por linha usando width 32%
+  - distribuicao horizontal com justifyContent space-between
+  - espacamento vertical minimo de 4 px
+  - cards mais largos
+  - conteudo centralizado
+  - nome do canal em uma linha com adjustsFontSizeToFit
+  - identificacao CH/AUX/FX na segunda linha
+- Label de FX foi encurtado de "FX Return n" para "FX n" para caber melhor no card.
+
+2. Modal de pan do Personal Mix
+- Arquivo:
+  - src/features/busMix/components/PanControlModal.tsx
+- Adicionado botao X no canto superior direito, alinhado com label/nome do canal.
+- Card ganhou maxWidth para manter leitura melhor e continuar centralizado.
+- Sem alteracao de regra de pan ou envio para a mesa.
+
+3. Modal de presets do Personal Mix
+- Arquivo:
+  - src/features/busMix/components/BusMixPresetsModal.tsx
+- Adicionado botao X no canto superior direito, alinhado ao titulo.
+- Modal passou a ficar centralizado usando backdropStyle local.
+- Botao X fica desabilitado durante restauracao de preset, preservando comportamento existente.
+- Sem alteracao nas regras de criar/sobrescrever/restaurar presets.
+
+4. Dialog compartilhado
+- Arquivo:
+  - src/shared/components/Dialog/index.tsx
+- Adicionada prop opcional backdropStyle.
+- Essa prop permite centralizar apenas o modal de presets sem mudar comportamento dos demais Dialogs.
+
+Validacao
+---------
+- npx prettier --write nos arquivos alterados.
+- npm run tsc
+  - sucesso
+
+Observacao
+----------
+- A lista de canais em formato de retangulos existe no modal de MCA.
+- Nos modais de Personal Mix existentes hoje, ha modal de pan e modal de presets; ambos receberam o padrao de X/centralizacao, mas nao ha uma lista de canais em retangulos nesses modais para aplicar a grade.

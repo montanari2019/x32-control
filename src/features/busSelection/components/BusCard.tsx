@@ -1,6 +1,7 @@
 import React, { useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
 import { colors } from '@shared/theme/colors';
+import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { Bus } from '../types/Bus';
 
 type BusCardProps = {
@@ -10,10 +11,32 @@ type BusCardProps = {
   style?: ViewStyle;
 };
 
+const withAlpha = (hexColor: string, alpha: string): string =>
+  /^#[0-9a-f]{6}$/i.test(hexColor) ? `${hexColor}${alpha}` : hexColor;
+
+const hasConfiguredBusColor = (color: Bus['color']): boolean => {
+  if (color == null) {
+    return false;
+  }
+
+  if (typeof color === 'number') {
+    return color !== 0 && color !== 8;
+  }
+
+  return color !== 'OFF' && color !== 'OFFi';
+};
+
 export const BusCard = ({ bus, onPress, accentColor, style }: BusCardProps): JSX.Element => {
   const scale = useRef(new Animated.Value(1)).current;
 
   const animationConfig = useMemo(() => ({ useNativeDriver: true, speed: 30, bounciness: 0 }), []);
+  const busColor = hasConfiguredBusColor(bus.color)
+    ? mapX32ColorToUiColor(bus.color ?? 'OFF')
+    : undefined;
+  const busTitleColor = busColor?.backgroundColor ?? colors.text.primary;
+  const busBackgroundColor = busColor
+    ? withAlpha(busColor.backgroundColor, busColor.isInverted ? '26' : '33')
+    : colors.surface.elevated;
 
   return (
     <Pressable
@@ -29,12 +52,12 @@ export const BusCard = ({ bus, onPress, accentColor, style }: BusCardProps): JSX
       style={({ pressed }) => [styles.pressable, pressed && styles.pressed, style]}
     >
       <Animated.View
-        style={[styles.card, { borderLeftColor: accentColor }, { transform: [{ scale }] }]}
+        style={[styles.card, { backgroundColor: busBackgroundColor }, { transform: [{ scale }] }]}
       >
         <View pointerEvents="none" style={styles.glassOverlay} />
 
         <View style={styles.topRow}>
-          <Text style={styles.name} numberOfLines={1}>
+          <Text style={[styles.name, { color: busTitleColor }]} numberOfLines={1}>
             {bus.name}
           </Text>
           <View style={styles.rightMeta}>
@@ -63,10 +86,7 @@ const styles = StyleSheet.create({
   },
   card: {
     backgroundColor: colors.surface.elevated,
-    borderColor: colors.border.primary,
-    borderLeftWidth: 4,
     borderRadius: 14,
-    borderWidth: 1,
     gap: 10,
     overflow: 'hidden',
     padding: 14,

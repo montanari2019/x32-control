@@ -106,7 +106,13 @@ export const GroupStrip = ({
               },
             ]}
           >
-            <Text style={styles.labelPlateText}>{dbLabel}</Text>
+            <Text
+              ellipsizeMode="clip"
+              numberOfLines={1}
+              style={[styles.labelPlateText, !isMaster ? styles.mcaLabelPlateText : undefined]}
+            >
+              {dbLabel}
+            </Text>
           </View>
 
           {assignmentCount != null ? (
@@ -174,6 +180,13 @@ const styles = StyleSheet.create({
     color: colors.background.deep,
     fontSize: 13,
     fontWeight: '900',
+    textAlign: 'center',
+  },
+  mcaLabelPlateText: {
+    flexShrink: 0,
+    fontSize: 11,
+    includeFontPadding: false,
+    lineHeight: 13,
     textAlign: 'center',
   },
   masterCard: {
