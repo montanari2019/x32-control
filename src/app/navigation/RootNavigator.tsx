@@ -1,6 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { BusGroupsScreen } from '@features/busGroups/BusGroupsScreen';
+import { BusGroupsScreen } from '@features/busGroups/screens/BusGroupsScreen';
 import { ConsoleDiscoveryScreen } from '@features/consoleDiscovery/screens/ConsoleDiscoveryScreen';
 import { BusSelectionScreen } from '@features/busSelection/screens/BusSelectionScreen';
 import { BusMixScreen } from '@features/busMix/screens/BusMixScreen';

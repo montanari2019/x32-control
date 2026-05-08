@@ -2,6 +2,8 @@ import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixer
 import { useCallback, useEffect, useRef } from 'react';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
+import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
+import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDecoder';
 
@@ -18,46 +20,60 @@ const getBlobArg = (message: OscMessage): Uint8Array | null => {
 export const useMeterSubscription = (consoleIp: string) => {
   const isMock = isMockConsoleIp(consoleIp);
   const clientRef = useRef<OscClient | null>(null);
+  const clientLeaseRef = useRef<SharedOscClientLease | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubscribeOscRef = useRef<(() => void) | null>(null);
   const listenersRef = useRef(new Map<number, Set<MeterListener>>());
+  const isPollingRef = useRef(false);
 
   useEffect(() => {
     if (isMock) {
       return undefined;
     }
 
-    const client = new OscClient();
-    clientRef.current = client;
+    let isActive = true;
 
     const start = async (): Promise<void> => {
       try {
-        await client.connect(consoleIp);
+        const lease = await acquireSharedOscClient(consoleIp);
+        if (!isActive) {
+          lease.release();
+          return;
+        }
+
+        clientLeaseRef.current = lease;
+        const client = lease.client;
+        clientRef.current = client;
         client.startXRemoteKeepAlive();
 
         // Listen for /meters/1 responses
-        unsubscribeOscRef.current = client.subscribe(
-          X32Protocol.getMeters1Path(),
-          (message) => {
-            const blob = getBlobArg(message);
-            if (!blob) {
-              return;
-            }
+        unsubscribeOscRef.current = client.subscribe(X32Protocol.getMeters1Path(), (message) => {
+          const blob = getBlobArg(message);
+          if (!blob) {
+            return;
+          }
 
-            listenersRef.current.forEach((listeners, channelId) => {
-              if (listeners.size === 0) return;
-              const values = decodeMeter1BlobForChannel(blob, channelId);
-              listeners.forEach((listener) => listener(values));
-            });
-          },
-        );
+          listenersRef.current.forEach((listeners, channelId) => {
+            if (listeners.size === 0) return;
+            const values = decodeMeter1BlobForChannel(blob, channelId);
+            listeners.forEach((listener) => listener(values));
+          });
+        });
 
         // Poll: send /meters/1 (no args) at fixed interval.
         // The X32 responds immediately with a blob containing all channel levels.
         // This avoids the 10-second subscription timeout and renewal complexity.
         pollIntervalRef.current = setInterval(() => {
           if (listenersRef.current.size === 0) return;
-          client.send(X32Protocol.getMeters1Path(), []).catch(() => undefined);
+          if (isPollingRef.current) return;
+
+          isPollingRef.current = true;
+          client
+            .send(X32Protocol.getMeters1Path(), [])
+            .catch(() => undefined)
+            .finally(() => {
+              isPollingRef.current = false;
+            });
         }, POLL_INTERVAL_MS);
       } catch {
         // Keep silent; connection errors handled by main flow.
@@ -67,6 +83,7 @@ export const useMeterSubscription = (consoleIp: string) => {
     start().catch(() => undefined);
 
     return () => {
+      isActive = false;
       unsubscribeOscRef.current?.();
       unsubscribeOscRef.current = null;
 
@@ -75,7 +92,9 @@ export const useMeterSubscription = (consoleIp: string) => {
         pollIntervalRef.current = null;
       }
 
-      client.disconnect();
+      isPollingRef.current = false;
+      clientLeaseRef.current?.release();
+      clientLeaseRef.current = null;
       clientRef.current = null;
       listenersRef.current.clear();
     };

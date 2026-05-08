@@ -1,0 +1,23 @@
+Contexto:
+- Foi ajustada a persistencia de presets do Personal Mix para incluir o estado de mute dos canais.
+- O estado de mute no app e representado por `channel.on`; portanto o preset salva `mute: !channel.on`.
+
+Arquivos alterados:
+- `src/features/busMix/types/BusMixPreset.ts`
+  - `BusMixPresetChannel` ganhou `mute?: boolean`.
+  - O campo ficou opcional para manter compatibilidade com presets antigos ja salvos no dispositivo.
+- `src/features/busMix/hooks/useBusMix.ts`
+  - `buildPresetChannels` agora captura `mute: !channel.on`.
+  - Foi criado `applyCommittedOn`, que atualiza o store compartilhado, respeita canal linkado quando existir e envia `setChannelOn` para a mesa X32.
+  - `toggleOn` passou a reutilizar `applyCommittedOn`.
+  - `restorePreset` agora restaura o fader e, quando o preset tiver `mute`, aplica `on = !mute` no app e na mesa.
+- `__tests__/features/busMix/services/BusMixPresetService.test.ts`
+  - O teste de sobrescrita agora tambem verifica que o campo `mute` permanece persistido.
+
+Validacao:
+- `npm run tsc` passou.
+- `npm test -- BusMixPresetService.test.ts --runInBand` passou.
+
+Observacoes:
+- Presets antigos sem `mute` continuam funcionando; nesses casos a restauracao nao altera o mute.
+- A mudanca ficou restrita ao Personal Mix/presets e nao altera layout, modais, MCA ou selecao de buses.

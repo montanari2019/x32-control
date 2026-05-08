@@ -1,0 +1,49 @@
+Contexto:
+- Corrigido crash ao abrir o modal de presets do Personal Mix.
+- Erro observado:
+  - `PanGestureHandler must be used as a descendant of GestureHandlerRootView`
+- Stack relevante:
+  - `PanGestureHandler`
+  - `Swipeable`
+  - `BusMixPresetsModal`
+  - `DialogBase`
+  - `Modal`
+  - `App`
+
+Causa:
+- O modal de presets usa `Swipeable` de `react-native-gesture-handler` para deletar presets.
+- A raiz visual do app ainda nao estava envolvida por `GestureHandlerRootView`.
+- Como os modais globais sao renderizados pelo `ModalProvider` dentro do `App`, envolver o `App` cobre tanto telas quanto modais.
+
+Arquivo alterado:
+- `src/app/App.tsx`
+
+Implementacao:
+- Importado `GestureHandlerRootView` de `react-native-gesture-handler`.
+- Importado `StyleSheet` de `react-native`.
+- O conteudo inteiro do app foi envolvido com:
+  - `<GestureHandlerRootView style={styles.root}>`
+- `styles.root` usa apenas:
+  - `flex: 1`
+
+Escopo preservado:
+- Nao foi alterado `BusMixPresetsModal`.
+- Nao foi alterada logica de presets.
+- Nao foi alterado comportamento de swipe/delete.
+- Nao foi alterada navegacao.
+- Nao foi alterado `ModalProvider`.
+
+Validacao:
+- `npm run tsc` foi tentado, mas falhou no sandbox com:
+  - `EPERM: operation not permitted, lstat 'C:\Users\ikaro.montanari'`
+- `npm run lint -- --quiet` foi tentado, mas falhou pelo mesmo `EPERM`.
+
+Proxima validacao recomendada:
+- Rodar em uma sessao Node liberada:
+  - `npm run tsc`
+  - `npm run lint -- --quiet`
+- No app/dispositivo:
+  - Abrir Personal Mix.
+  - Tocar em `Presets`.
+  - Confirmar que o modal abre sem crash.
+  - Fazer swipe da direita para a esquerda em um preset e confirmar que a acao de deletar aparece.

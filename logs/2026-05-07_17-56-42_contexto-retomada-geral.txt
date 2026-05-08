@@ -1,0 +1,236 @@
+Projeto: x32-control
+Data do log: 2026-05-07 17:56:42 America/Cuiaba
+Tipo: contexto consolidado para retomada futura
+
+Origem deste contexto
+---------------------
+- Leitura da pasta logs inteira ate o arquivo:
+  - logs/2026-05-07_10-28-43-busgroups-mca-fader-gesture-fix.txt
+- Conferencia pontual do estado atual de arquivos-chave:
+  - package.json
+  - src/features/busMix/components/BusMixPresetsModal.tsx
+  - src/features/busMix/hooks/useBusMix.ts
+  - src/features/busGroups/BusGroupsScreen.tsx
+- O workspace estava limpo no git status no momento da leitura.
+
+Resumo do estado atual do app
+-----------------------------
+- App React Native para controlar uma Behringer X32/M32 via OSC/UDP.
+- Stack atual observada no package.json:
+  - React 19.0.0
+  - React Native 0.78.1
+  - TypeScript 5.5.4
+  - @react-native-async-storage/async-storage 2.2.0
+  - react-native-udp para transporte OSC
+- Fluxo principal:
+  1. ConsoleDiscovery
+  2. BusSelection
+  3. BusGroups
+  4. BusMix
+- O app ja tem mock de desenvolvimento para fluxo completo sem mesa fisica.
+
+Historico tecnico consolidado
+-----------------------------
+1. Tooling/build
+- Scripts do package.json foram padronizados.
+- Lint, TypeScript e Jest foram saneados.
+- Yarn 1.22.22 foi instalado globalmente.
+- Build Android no Windows foi corrigido para RN 0.78.1.
+- Dependencias nativas foram ajustadas:
+  - react-native-svg 15.15.4
+  - react-native-safe-area-context 5.7.0
+  - react-native-gesture-handler 2.31.2
+- react-native-reanimated foi removido porque causava falha CMake/path no Windows e era usado apenas em meter simples.
+- Startup crash nativo foi corrigido com SoLoader.init(this, OpenSourceMergedSoMapping).
+- Metro precisou ser reiniciado com reset-cache apos troca de dependencias.
+
+2. Descoberta de console e overlays
+- Tela de descoberta foi alinhada visualmente aos tokens do app.
+- Conexao manual por IP foi removida da UI, deixando o fluxo focado em busca automatica em rede.
+- Foi criado sistema global de Modal/Dialog/AlertDialog/Toast usando ModalProvider e showModal(Component, props).
+- ConsoleDiscovery passou a usar Toast via useModal para feedback de erro.
+
+3. Persistencia local
+- Foi criada base de SecureStoreService sobre AsyncStorage com namespace e JSON tipado.
+- Persistencia passou a suportar escopo por console.
+- DCAs/MCAs de BusGroups e presets de BusMix usam isolamento por console, e presets tambem por bus.
+
+4. BusGroups
+- Nova etapa busSelection -> busGroups -> busMix foi implementada.
+- BusGroups funciona como hub macro do bus selecionado.
+- X32BusGroupsService integra master do bus e DCAs reais.
+- Ha heartbeat /xremote dedicado e subscriptions OSC.
+- Estado local dos MCAs/DCAs e salvo por console e reaplicado ao reconectar na mesma mesa.
+- MCAs foram normalizados visualmente para MCA 1, MCA 2, etc.
+- Cada MCA pode abrir modal de selecao local de canais.
+- O modal lista os canais vindos do BusMix:
+  - CH 01..32
+  - AUX 01..08
+  - FX Return 01..08
+- A composicao dos MCAs e local ao dispositivo e persistida por console.
+- Rodape inferior com Presets/Configuracoes foi removido da BusGroupsScreen.
+- Area dos strips agora usa altura real medida via onLayout.
+- Faders de Bus Master e MCA ocupam melhor a altura disponivel.
+- Gestos do fader de MCA foram corrigidos:
+  - PanResponder captura toque desde o inicio
+  - Pressable deixou de envolver toda a area do card
+  - area central do fader fica livre para arraste
+
+5. BusMix
+- BusMix controla sends por canal para o bus selecionado.
+- Lista atual tem 48 strips:
+  - 32 channels
+  - 8 aux
+  - 8 fxReturn
+- Modelo Channel inclui:
+  - kind
+  - number visual unico
+  - sourceNumber OSC real
+  - backgroundOpacity
+  - meterChannelId opcional
+  - faderRaw/faderDb/localFaderRaw/remoteFaderRaw
+  - isDirty/lastLocalChangeAt
+  - meterDbfs/visualMeterDbfs
+- Paths OSC foram centralizados em X32Protocol para:
+  - /ch
+  - /auxin
+  - /fxrtn
+  - bus
+  - dca
+  - meters
+- Fader e pan agora enviam OSC como float tipado quando necessario.
+- Corrigido caso raw 1.0 ser enviado como inteiro por Number.isInteger(1).
+- Fader vertical do BusMix usa UI otimista, throttle curto durante drag e envio imediato no release.
+- Reconciliacao protege contra eco remoto atrasado por uma janela local curta.
+- Sync em background ocorre a cada 30s para faders remotos.
+- Toggle de mute tambem considera link de canal quando houver channelLinkMap.
+
+6. Meter/VU
+- Meter do BusMix foi separado tecnicamente do fader.
+- Fader usa raw normalizado X32.
+- Meter usa dBFS real.
+- Curva compartilhada atual:
+  - raw 0.25 = -60 dB
+  - raw 0.5 = -30 dB
+  - raw 0.75 = 0 dB
+  - raw 1.0 = +10 dB
+- useMeterSubscription usa um OscClient compartilhado e assina /meters/1 uma vez.
+- Decoder tenta formato X32/M32 com header de 8 bytes e Float32 little-endian.
+- Ha fallback para formato short-based.
+- Meter real esta habilitado apenas nos 32 channels padrao.
+- AUX e FX Return mantem placeholder de meter para evitar sinal falso ate existir mapeamento seguro.
+- Visual do VU foi ajustado no estilo X32, com segmentos verdes/amarelos/vermelhos, peak marker e clip indicator.
+- Performance do ChannelVuMeter foi otimizada para evitar excesso de Animated.timing e warnings de pending callbacks.
+
+7. Presets locais do BusMix
+- Botao Salvar foi substituido por Presets.
+- Criados:
+  - src/features/busMix/types/BusMixPreset.ts
+  - src/features/busMix/services/BusMixPresetService.ts
+  - src/features/busMix/components/BusMixPresetsModal.tsx
+  - src/features/busMix/components/BusMixPresetRestoreOverlay.tsx
+- Presets sao locais no dispositivo, separados por console + bus.
+- Limite atual:
+  - MAX_BUS_MIX_PRESETS = 10
+- O hook useBusMix expoe:
+  - presets
+  - refreshPresets
+  - createPreset
+  - overwritePreset
+  - restorePreset
+  - isRestoringPreset
+  - isLoadingPresets
+- Captura do preset usa channelsRef.current, portanto inclui CH, AUX e FX Return.
+- Restauracao percorre canais salvos e reaplica raw canal por canal, usando o fluxo real de envio para a mesa.
+- O modal mantem lista local porque o sistema de modal congela props no momento da abertura.
+- Overlay de restauracao bloqueia interacao enquanto os faders sao aplicados.
+
+Validacoes registradas nos logs
+-------------------------------
+- npm run tsc passou em varias rodadas recentes.
+- npm run lint passou nas rodadas de saneamento.
+- Jest passou para:
+  - faderDb.test.ts
+  - OscEncoder.test.ts
+  - meterDecoder.test.ts
+  - BusMixPresetService.test.ts
+- BusMixPresetService.test cobre:
+  - isolamento por console + bus
+  - sobrescrita sem duplicidade
+  - limite maximo de 10 presets
+- Uma rodada anterior tentou tsc e falhou por EPERM/sandbox, mas rodadas posteriores registraram tsc com sucesso.
+
+Pontos sensiveis atuais
+-----------------------
+1. Validacao em mesa fisica ainda e a principal pendencia
+- Confirmar paths reais:
+  - /auxin/XX/mix/YY/level
+  - /auxin/XX/mix/YY/on
+  - /auxin/XX/mix/YY/pan
+  - /fxrtn/XX/mix/YY/level
+  - /fxrtn/XX/mix/YY/on
+  - /fxrtn/XX/mix/YY/pan
+- Confirmar se fader visual bate com valor exibido na X32.
+- Confirmar se mute/pan/fader de CH, AUX e FX respondem corretamente.
+- Confirmar se presets restauram CH, AUX e FX de ponta a ponta.
+
+2. Meters de AUX/FX
+- Continuam desabilitados por decisao de seguranca.
+- So habilitar quando houver mapeamento confiavel do blob de meter para essas fontes.
+
+3. Encoding
+- Ha historico de caracteres corrompidos em alguns textos.
+- Conferencia atual mostrou em BusMixPresetsModal.tsx:
+  - iconText de sobrescrever aparece como `â†º`
+  - iconText de restaurar aparece como `â–¶`
+- Esse ponto parece alinhado ao aviso anterior sobre caracteres estranhos em telas.
+
+4. README/documentacao
+- README estava apontado nos logs como desatualizado, citando RN 0.74 enquanto package.json usa RN 0.78.1.
+
+5. Botao/acao save do BusMix
+- useBusMix ainda tem save simbolico:
+  - espera cerca de 300 ms
+  - limpa hasPendingChanges
+- As alteracoes reais ja sao enviadas antes pelo fluxo de fader/mute/pan.
+- Como o header agora abre Presets, avaliar se save deve permanecer, ser removido internamente ou ganhar responsabilidade real.
+
+Proxima retomada recomendada
+----------------------------
+1. Validar no dispositivo e na X32:
+- BusGroups:
+  - arraste do Bus Master
+  - arraste de MCA em toda a altura
+  - abertura do modal ao tocar no MCA
+  - persistencia de canais por MCA
+- BusMix:
+  - abertura do modal de Presets
+  - criar preset
+  - sobrescrever preset
+  - restaurar preset
+  - comportamento com CH, AUX e FX Return
+
+2. Corrigir ou revisar encoding visual
+- Prioridade visivel imediata:
+  - BusMixPresetsModal.tsx nos icones de sobrescrever/restaurar.
+- Procurar outros `â`/caracteres corrompidos no codigo fonte antes de fechar.
+
+3. Atualizar documentacao
+- README deve refletir RN 0.78.1 e o fluxo atual:
+  - descoberta
+  - selecao de bus
+  - BusGroups/MCA
+  - BusMix CH/AUX/FX
+  - presets locais
+  - mock de desenvolvimento
+
+4. Se a mesa real apresentar falso sinal ou ausencia de meter
+- Logar tamanho do blob e primeiros valores de /meters/1.
+- Validar header, endianess e indice real por canal.
+
+Ponto de parada deste log
+-------------------------
+- Contexto historico da pasta logs foi recuperado.
+- Estado atual de BusMixPresetsModal, useBusMix e BusGroupsScreen foi conferido.
+- Nenhum codigo de produto foi alterado nesta rodada.
+- Este arquivo foi criado apenas para facilitar continuidade futura.

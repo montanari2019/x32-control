@@ -35,14 +35,16 @@ export const VerticalGroupFader = ({
   const animatedY = useRef(new Animated.Value(0)).current;
   const currentY = useRef(0);
   const startY = useRef(0);
+  const isDragging = useRef(false);
 
   const updateFromPosition = useCallback(
     (nextY: number): void => {
       const clampedY = clamp(nextY, 0, availableHeight);
       currentY.current = clampedY;
+      animatedY.setValue(clampedY);
       onFaderChange(clampFader(positionToFader(clampedY, availableHeight)));
     },
-    [availableHeight, onFaderChange],
+    [animatedY, availableHeight, onFaderChange],
   );
 
   const responder: PanResponderInstance = useMemo(
@@ -51,15 +53,19 @@ export const VerticalGroupFader = ({
         onStartShouldSetPanResponder: () => true,
         onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: (event) => {
+        onPanResponderGrant: () => {
+          isDragging.current = true;
           startY.current = currentY.current;
-          updateFromPosition(event.nativeEvent.locationY - THUMB_HEIGHT / 2);
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy);
         },
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy);
+          isDragging.current = false;
+        },
+        onPanResponderTerminate: () => {
+          isDragging.current = false;
         },
         onShouldBlockNativeResponder: () => true,
       }),
@@ -67,6 +73,10 @@ export const VerticalGroupFader = ({
   );
 
   useEffect(() => {
+    if (isDragging.current) {
+      return;
+    }
+
     const nextY = faderToPosition(clampFader(value), availableHeight);
     currentY.current = nextY;
     Animated.spring(animatedY, {

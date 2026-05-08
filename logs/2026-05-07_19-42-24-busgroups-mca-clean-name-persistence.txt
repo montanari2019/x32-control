@@ -1,0 +1,28 @@
+Contexto:
+- Ajustado comportamento dos MCAs em `src/features/busGroups`.
+- O objetivo foi impedir selecao inicial indevida de canais, adicionar acao de limpar canais do MCA e permitir editar/persistir nome local do MCA.
+
+Arquivos alterados:
+- `src/features/busGroups/hooks/useBusGroups.ts`
+  - O estado inicial dos MCAs agora zera `assignedChannels` e `assignedChannelIds` vindos da mesa.
+  - Canais selecionados so sao restaurados quando existem no storage local (`BusGroupsSecureStoreService`).
+  - Nome salvo localmente passa a ser restaurado; se estiver vazio/ausente, volta para `MCA N`.
+  - Adicionado `clearMcaChannels(dcaNumber)`, que limpa apenas os canais daquele MCA sem enviar comando para a X32.
+  - Adicionado `renameMca(dcaNumber, name)`, que atualiza o nome local e usa o fluxo existente de persistencia.
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+  - Titulo do MCA virou `TextInput`, editavel no modal.
+  - Nome e salvo ao perder foco, confirmar no teclado ou fechar o modal.
+  - Adicionado botao `Limpar`, desabilitado quando nao ha canais selecionados.
+  - Limpar atualiza a UI imediatamente e chama `onClearChannels`.
+- `src/features/busGroups/screens/BusGroupsScreen.tsx`
+  - Passa `onClearChannels` e `onRename` para o modal.
+
+Observacoes:
+- Bus Master nao foi alterado.
+- Fader, mute, volume e chamadas X32 dos MCAs nao foram alterados.
+- Limpar canais e editar nome sao operacoes locais/persistidas.
+- A leitura das associacoes DCA da mesa ainda existe no service, mas o hook nao usa mais isso como selecao inicial visual.
+
+Validacao:
+- `npm run tsc` foi tentado no sandbox, mas falhou por `EPERM: operation not permitted, lstat 'C:\\Users\\ikaro.montanari'`.
+- A aprovacao para rodar comandos Node fora do sandbox foi bloqueada por limite de uso da aprovacao automatica nesta etapa.

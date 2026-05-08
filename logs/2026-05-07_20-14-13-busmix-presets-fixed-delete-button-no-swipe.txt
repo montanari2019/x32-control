@@ -1,0 +1,57 @@
+Contexto:
+- Ajustada a listagem de presets do Personal Mix para remover completamente delete por gesture/swipe.
+- O objetivo foi deixar o delete sempre visivel como botao fixo no card de cada preset.
+
+Arquivos alterados:
+- `src/features/busMix/components/BusMixPresetsModal.tsx`
+  - Removido import de `Swipeable`.
+  - Removido uso de `useRef` exclusivo para controlar swipeables.
+  - Removidos refs, `renderRightActions`, `onSwipeableWillOpen`, `closeOtherSwipeables` e wrapper `Swipeable`.
+  - Removidos estilos de acao escondida de swipe:
+    - `deleteAction`
+    - `deleteActionPressed`
+    - `deleteActionShell`
+    - constante `DELETE_ACTION_WIDTH`
+  - Mantido `TrashIcon` em `react-native-svg`, seguindo padrao ja usado no proprio projeto sem adicionar biblioteca nova.
+  - Adicionado botao fixo de deletar como primeiro item em `styles.iconActions`.
+  - Botao usa `colors.status.danger` como token vermelho/perigo.
+  - Delete chama `handleDelete`, que reaproveita `onDeletePreset`.
+  - A lista local do modal e atualizada com o retorno persistido de `onDeletePreset`, entao o preset some sem fechar/reabrir modal.
+- `src/app/App.tsx`
+  - Removido `GestureHandlerRootView` que havia sido adicionado apenas por causa do crash do `Swipeable` no modal.
+  - O modal de presets nao depende mais de `GestureHandlerRootView`.
+
+Escopo preservado:
+- `BusMixPresetService.deletePreset` existente foi reaproveitado.
+- Nenhum comando e enviado para a X32 ao deletar.
+- Nao foram alterados faders, mute, pan, meter ou canais.
+- Nao foi criada segunda fonte de verdade para presets.
+- Nao foi alterada persistencia alem de usar a remocao local ja existente.
+- `index.js` continua importando `react-native-gesture-handler`, que e padrao para o ecossistema de navegacao/gesture handler do app.
+
+Verificacoes feitas:
+- Busca textual confirmou ausencia, nos arquivos afetados, de:
+  - `Swipeable`
+  - `PanGestureHandler`
+  - `renderRightActions`
+  - `onSwipeable`
+  - `swipeableRefs`
+  - `deleteAction`
+  - `deleteActionShell`
+  - `GestureHandlerRootView`
+
+Validacao:
+- `npm run tsc` foi tentado, mas falhou no sandbox com:
+  - `EPERM: operation not permitted, lstat 'C:\Users\ikaro.montanari'`
+- `npm run lint -- --quiet` foi tentado, mas falhou pelo mesmo `EPERM`.
+
+Proxima validacao recomendada:
+- Em sessao Node liberada:
+  - `npm run tsc`
+  - `npm run lint -- --quiet`
+- No app:
+  - Abrir Personal Mix.
+  - Abrir Presets.
+  - Confirmar que cada preset mostra o botao vermelho de lixeira como primeira acao.
+  - Tocar na lixeira e confirmar que o preset desaparece imediatamente.
+  - Confirmar que delete nao altera fader, mute, pan, meter ou canais.

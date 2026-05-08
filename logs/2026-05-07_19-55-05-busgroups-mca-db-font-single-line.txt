@@ -1,0 +1,44 @@
+Contexto:
+- Ajustado o texto de valor em dB nos MCAs da tela Personal Mix Groups.
+- O problema era quebra de linha no valor em dB nos MCAs 1 a 5.
+
+Arquivo alterado:
+- `src/features/busGroups/components/GroupStrip.tsx`
+
+Implementacao:
+- O texto do `dbLabel` recebeu:
+  - `numberOfLines={1}`
+  - `ellipsizeMode="clip"`
+- Foi criado estilo especifico para MCA:
+  - `mcaLabelPlateText`
+  - `fontSize: 11`
+  - `lineHeight: 13`
+  - `flexShrink: 0`
+  - `textAlign: 'center'`
+  - `includeFontPadding: false`
+- O estilo antigo `labelPlateText` permanece para o Bus Master.
+- A aplicacao do estilo novo acontece somente quando `!isMaster`.
+
+Escopo preservado:
+- Nao foi alterado tamanho geral dos cards/faders.
+- Nao foi alterada largura, altura, margin, padding ou radius dos MCAs.
+- Nao foi alterado comportamento do fader.
+- Nao foi alterada logica de volume.
+- Nao foram alteradas chamadas para a X32.
+- Nao foram alterados nomes, cores, selecao de canais ou persistencia.
+
+Validacao:
+- `npx prettier --write ...` foi tentado, mas falhou no sandbox com:
+  - `EPERM: operation not permitted, lstat 'C:\Users\ikaro.montanari'`
+- Aprovacao para rodar fora do sandbox foi rejeitada automaticamente porque o token da sessao nao pode ser renovado.
+- `npm run tsc` foi tentado, mas falhou pelo mesmo `EPERM`.
+- `npm run lint -- --quiet` foi tentado, mas falhou pelo mesmo `EPERM`.
+
+Proxima validacao recomendada:
+- Rodar em sessao Node liberada:
+  - `npx prettier --write src/features/busGroups/components/GroupStrip.tsx`
+  - `npm run tsc`
+  - `npm run lint -- --quiet`
+- Validar visualmente na tela Personal Mix Groups:
+  - MCAs 1 a 5 devem mostrar o valor em dB em uma linha unica, menor e centralizada.
+  - Bus Master deve permanecer visualmente igual.

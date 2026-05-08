@@ -2,6 +2,7 @@ import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixer
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
+import { X32ChannelColor } from '@shared/x32/channelColor';
 import {
   fetchBusStereoLinkMap,
   getCachedBusStereoLinkMap,
@@ -11,6 +12,23 @@ import {
 import { Bus } from '../types/Bus';
 
 const defaultBusNames = ['Guitarra', 'Baixo', 'Bateria', 'Vocal', 'Click', 'Playback'];
+const X32_BUS_COLORS = new Set<X32ChannelColor>(['OFF', 'RD', 'GN', 'YE', 'BL', 'MG', 'CY', 'WH']);
+
+const parseBusColor = (message: OscMessage): X32ChannelColor | number | undefined => {
+  const value = message.args[0];
+  if (typeof value === 'number') {
+    return value;
+  }
+
+  if (typeof value === 'string') {
+    const normalized = value.trim().toUpperCase();
+    if (X32_BUS_COLORS.has(normalized as X32ChannelColor)) {
+      return normalized as X32ChannelColor;
+    }
+  }
+
+  return undefined;
+};
 
 export class BusService {
   private useMockProvider = false;
@@ -51,11 +69,10 @@ export class BusService {
         const fallback = defaultBusNames[index] ?? `Bus ${number.toString().padStart(2, '0')}`;
 
         try {
-          const response = await this.client.request<OscMessage>(
-            X32Protocol.getBusNamePath(number),
-            [],
-            1000,
-          );
+          const [response, color] = await Promise.all([
+            this.client.request<OscMessage>(X32Protocol.getBusNamePath(number), [], 1000),
+            this.getBusColor(number),
+          ]);
           const customName = response.args[0];
           const name = typeof customName === 'string' && customName.trim() ? customName : fallback;
 
@@ -63,12 +80,14 @@ export class BusService {
             number,
             label: `Bus ${number.toString().padStart(2, '0')}`,
             name,
+            color,
           });
         } catch {
           byNumber.set(number, {
             number,
             label: `Bus ${number.toString().padStart(2, '0')}`,
             name: fallback,
+            color: await this.getBusColor(number),
           });
         }
       }),
@@ -103,12 +122,14 @@ export class BusService {
       const isLinkedOdd = bus % 2 === 1 && linkedOddBuses.has(bus);
       if (isLinkedOdd && bus < 16) {
         const leftName = current.name;
-        const rightName = byNumber.get(bus + 1)?.name ?? '';
+        const rightBus = byNumber.get(bus + 1);
+        const rightName = rightBus?.name ?? '';
         const { name } = normalizeStereoBusName(leftName, rightName);
 
         result.push({
           ...current,
           name,
+          color: current.color ?? rightBus?.color,
           label: `Bus ${bus.toString().padStart(2, '0')}/${(bus + 1).toString().padStart(2, '0')}`,
           linkedBusNumber: bus + 1,
           isStereoLinked: true,
@@ -124,5 +145,15 @@ export class BusService {
     }
 
     return result;
+  }
+
+  private async getBusColor(bus: number): Promise<X32ChannelColor | number | undefined> {
+    try {
+      return parseBusColor(
+        await this.client.request<OscMessage>(X32Protocol.getBusColorPath(bus), [], 1000),
+      );
+    } catch {
+      return undefined;
+    }
   }
 }

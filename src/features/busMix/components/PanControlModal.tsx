@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Slider from '@react-native-community/slider';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -14,19 +14,64 @@ type PanControlModalProps = ModalRenderProps & {
   onChange: (value: number) => void;
 };
 
+const MODAL_ANIMATION_DURATION_MS = 140;
+
 export const PanControlModal = ({
   visible,
   onDismiss,
+  onDismissEnd,
   channelLabel,
   channelName,
   value,
   onChange,
 }: PanControlModalProps): JSX.Element => {
+  const [isModalVisible, setIsModalVisible] = useState(visible);
+  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const scale = useRef(new Animated.Value(visible ? 1 : 0.98)).current;
   const [localValue, setLocalValue] = useState(value);
 
   useEffect(() => {
     setLocalValue(value);
   }, [value]);
+
+  useEffect(() => {
+    if (visible) {
+      setIsModalVisible(true);
+      Animated.parallel([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: MODAL_ANIMATION_DURATION_MS,
+          useNativeDriver: true,
+        }),
+        Animated.timing(scale, {
+          toValue: 1,
+          duration: MODAL_ANIMATION_DURATION_MS,
+          useNativeDriver: true,
+        }),
+      ]).start();
+      return undefined;
+    }
+
+    Animated.parallel([
+      Animated.timing(opacity, {
+        toValue: 0,
+        duration: MODAL_ANIMATION_DURATION_MS,
+        useNativeDriver: true,
+      }),
+      Animated.timing(scale, {
+        toValue: 0.98,
+        duration: MODAL_ANIMATION_DURATION_MS,
+        useNativeDriver: true,
+      }),
+    ]).start(({ finished }) => {
+      if (finished) {
+        setIsModalVisible(false);
+        onDismissEnd?.();
+      }
+    });
+
+    return undefined;
+  }, [onDismissEnd, opacity, scale, visible]);
 
   const handleValueChange = (nextValue: number): void => {
     setLocalValue(nextValue);
@@ -38,43 +83,62 @@ export const PanControlModal = ({
   };
 
   return (
-    <Modal transparent visible={visible} animationType="fade" onRequestClose={onDismiss}>
-      <Pressable style={styles.backdrop} onPress={onDismiss}>
-        <Pressable style={styles.card} onPress={() => undefined}>
-          <Text style={styles.kicker}>{channelLabel}</Text>
-          <Text style={styles.title}>{channelName}</Text>
+    <Modal transparent visible={isModalVisible} animationType="none" onRequestClose={onDismiss}>
+      <Animated.View style={[styles.modalSurface, { opacity }]}>
+        <Pressable style={styles.backdrop} onPress={onDismiss}>
+          <Animated.View style={{ transform: [{ scale }] }}>
+            <Pressable style={styles.card} onPress={() => undefined}>
+              <View style={styles.headerTopRow}>
+                <View style={styles.titleBlock}>
+                  <Text style={styles.kicker}>{channelLabel}</Text>
+                  <Text style={styles.title}>{channelName}</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Fechar modal do Personal Mix"
+                  onPress={onDismiss}
+                  style={({ pressed }) => [
+                    styles.closeButton,
+                    pressed && styles.closeButtonPressed,
+                  ]}
+                >
+                  <Text style={styles.closeButtonText}>X</Text>
+                </Pressable>
+              </View>
 
-          <View style={styles.panValueRow}>
-            <Text style={styles.panValueLabel}>{formatPanLabel(localValue)}</Text>
-            <Text style={styles.panValueNumber}>{localValue}</Text>
-          </View>
+              <View style={styles.panValueRow}>
+                <Text style={styles.panValueLabel}>{formatPanLabel(localValue)}</Text>
+                <Text style={styles.panValueNumber}>{localValue}</Text>
+              </View>
 
-          <View style={styles.axis}>
-            <View style={styles.axisMarker} />
-            <View style={styles.axisCenter} />
-            <View style={styles.axisMarker} />
-          </View>
+              <View style={styles.axis}>
+                <View style={styles.axisMarker} />
+                <View style={styles.axisCenter} />
+                <View style={styles.axisMarker} />
+              </View>
 
-          <Slider
-            minimumValue={-100}
-            maximumValue={100}
-            step={1}
-            value={localValue}
-            onValueChange={handleValueChange}
-            minimumTrackTintColor={colors.pan.indicator}
-            maximumTrackTintColor={colors.pan.axis}
-            thumbTintColor={colors.pan.knob}
-          />
+              <Slider
+                minimumValue={-100}
+                maximumValue={100}
+                step={1}
+                value={localValue}
+                onValueChange={handleValueChange}
+                minimumTrackTintColor={colors.pan.indicator}
+                maximumTrackTintColor={colors.pan.axis}
+                thumbTintColor={colors.pan.knob}
+              />
 
-          <View style={styles.footerRow}>
-            <Text style={styles.footerLabel}>L</Text>
-            <Pressable style={styles.centerButton} onPress={handleCenterPress}>
-              <Text style={styles.centerLabel}>Center</Text>
+              <View style={styles.footerRow}>
+                <Text style={styles.footerLabel}>L</Text>
+                <Pressable style={styles.centerButton} onPress={handleCenterPress}>
+                  <Text style={styles.centerLabel}>Center</Text>
+                </Pressable>
+                <Text style={styles.footerLabel}>R</Text>
+              </View>
             </Pressable>
-            <Text style={styles.footerLabel}>R</Text>
-          </View>
+          </Animated.View>
         </Pressable>
-      </Pressable>
+      </Animated.View>
     </Modal>
   );
 };
@@ -85,6 +149,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginBottom: spacing.sm,
+  },
+  modalSurface: {
+    flex: 1,
   },
   axisCenter: {
     backgroundColor: colors.pan.indicator,
@@ -111,6 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     gap: spacing.sm,
+    maxWidth: 480,
     padding: spacing.lg,
     width: '100%',
   },
@@ -128,6 +196,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '800',
   },
+  closeButton: {
+    alignItems: 'center',
+    borderColor: colors.border.subtle,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  closeButtonPressed: {
+    opacity: 0.72,
+  },
+  closeButtonText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
   footerLabel: {
     color: colors.text.muted,
     fontSize: 12,
@@ -138,6 +223,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     marginTop: spacing.xs,
+  },
+  headerTopRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    gap: spacing.md,
+    justifyContent: 'space-between',
   },
   kicker: {
     color: colors.text.secondary,
@@ -170,5 +261,9 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 16,
     fontWeight: '900',
+  },
+  titleBlock: {
+    flex: 1,
+    gap: spacing.xxs,
   },
 });

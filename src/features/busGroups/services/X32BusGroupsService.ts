@@ -2,6 +2,8 @@ import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixer
 import { AppError } from '@shared/errors/AppError';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
+import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
+import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { clamp } from '@shared/utils/clamp';
 import { X32HeartbeatService } from '../../../services/x32/X32HeartbeatService';
@@ -41,9 +43,14 @@ const buildAssignedChannelsFromIds = (channelIds: number[]): McaAssignedChannel[
 
 export class X32BusGroupsService {
   private readonly heartbeat = new X32HeartbeatService();
+  private client: OscClient;
+  private connectedConsoleIp?: string;
+  private sharedLease?: SharedOscClientLease;
   private useMockProvider = false;
 
-  constructor(private readonly client = new OscClient()) {}
+  constructor(client = new OscClient()) {
+    this.client = client;
+  }
 
   async connect(consoleIp: string): Promise<void> {
     this.useMockProvider = isMockConsoleIp(consoleIp);
@@ -52,7 +59,16 @@ export class X32BusGroupsService {
       return;
     }
 
-    await this.client.connect(consoleIp);
+    if (this.sharedLease && this.connectedConsoleIp === consoleIp) {
+      return;
+    }
+
+    this.sharedLease?.release();
+    this.sharedLease = undefined;
+    this.connectedConsoleIp = undefined;
+    this.sharedLease = await acquireSharedOscClient(consoleIp);
+    this.connectedConsoleIp = consoleIp;
+    this.client = this.sharedLease.client;
   }
 
   disconnect(): void {
@@ -63,7 +79,9 @@ export class X32BusGroupsService {
     }
 
     this.stopHeartbeat();
-    this.client.disconnect();
+    this.sharedLease?.release();
+    this.sharedLease = undefined;
+    this.connectedConsoleIp = undefined;
   }
 
   startHeartbeat(): void {

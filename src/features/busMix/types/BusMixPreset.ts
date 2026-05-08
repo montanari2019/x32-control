@@ -8,6 +8,7 @@ export type BusMixPresetChannel = {
   sourceNumber: number;
   raw: number;
   db: number | null;
+  mute?: boolean;
 };
 
 export type BusMixPreset = {

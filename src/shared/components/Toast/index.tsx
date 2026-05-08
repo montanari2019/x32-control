@@ -1,13 +1,5 @@
-import React, { useEffect, useRef } from 'react';
-import {
-  Animated,
-  Modal,
-  Pressable,
-  StyleSheet,
-  Text,
-  useWindowDimensions,
-  View,
-} from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ModalPropsType } from '@shared/components/Modal';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -23,6 +15,7 @@ export type ToastPropsType = ModalPropsType & {
 };
 
 const DEFAULT_TIMEOUT = 4000;
+const TOAST_VERTICAL_OFFSET = -32;
 
 const Toast = ({
   visible,
@@ -35,15 +28,17 @@ const Toast = ({
   variant = 'success',
   timeToCloseInMilliseconds = DEFAULT_TIMEOUT,
 }: ToastPropsType): JSX.Element => {
-  const { width } = useWindowDimensions();
-  const translateX = useRef(new Animated.Value(visible ? 0 : width)).current;
-  const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
+  const [isModalVisible, setIsModalVisible] = useState(visible);
+  const translateY = useRef(new Animated.Value(TOAST_VERTICAL_OFFSET)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
   const palette = getToastPalette(variant);
 
   useEffect(() => {
     if (visible) {
+      setIsModalVisible(true);
+
       Animated.parallel([
-        Animated.timing(translateX, {
+        Animated.timing(translateY, {
           toValue: 0,
           duration: animationDuration,
           useNativeDriver: true,
@@ -58,8 +53,8 @@ const Toast = ({
     }
 
     Animated.parallel([
-      Animated.timing(translateX, {
-        toValue: width,
+      Animated.timing(translateY, {
+        toValue: TOAST_VERTICAL_OFFSET,
         duration: animationDuration,
         useNativeDriver: true,
       }),
@@ -70,12 +65,13 @@ const Toast = ({
       }),
     ]).start(({ finished }) => {
       if (finished) {
+        setIsModalVisible(false);
         onDismissEnd?.();
       }
     });
 
     return undefined;
-  }, [animationDuration, onDismissEnd, opacity, translateX, visible, width]);
+  }, [animationDuration, onDismissEnd, opacity, translateY, visible]);
 
   useEffect(() => {
     if (!visible) {
@@ -90,14 +86,14 @@ const Toast = ({
   }, [onDismiss, timeToCloseInMilliseconds, visible]);
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onDismiss}>
+    <Modal transparent visible={isModalVisible} animationType="none" onRequestClose={onDismiss}>
       <View pointerEvents="box-none" style={styles.overlay}>
         <Animated.View
           style={[
             styles.wrapper,
             {
               opacity,
-              transform: [{ translateX }],
+              transform: [{ translateY }],
             },
           ]}
         >

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
 import { clamp } from '@shared/utils/clamp';
 import { BusMixService } from '@features/busMix/services/BusMixService';
+import { busMixChannelStore } from '@features/busMix/services/BusMixChannelStore';
 import { Channel } from '@features/busMix/types/Channel';
 import { useOscSubscription } from './useOscSubscription';
 import { BusGroupsSecureStoreService } from '../services/BusGroupsSecureStoreService';
@@ -20,12 +21,28 @@ const INITIAL_STATE = (busId: number): BusGroupsState => ({
 
 const normalizeMcaName = (dcaNumber: number): string => `MCA ${dcaNumber}`;
 
+const normalizeEditedMcaName = (dcaNumber: number, name: string): string => {
+  const normalizedName = name.trim().replace(/\s+/g, ' ');
+  return normalizedName || normalizeMcaName(dcaNumber);
+};
+
 export const useBusGroups = (consoleIp: string, busId: number) => {
   const service = useMemo(() => new X32BusGroupsService(), []);
   const busMixService = useMemo(() => new BusMixService(), []);
   const secureStoreService = useMemo(() => new BusGroupsSecureStoreService(), []);
   const [state, setState] = useState<BusGroupsState>(() => INITIAL_STATE(busId));
-  const [availableChannels, setAvailableChannels] = useState<Channel[]>([]);
+  const [availableChannels, setAvailableChannels] = useState<Channel[]>(() =>
+    busMixChannelStore.getSnapshot(consoleIp, busId),
+  );
+
+  const loadAvailableChannels = useCallback((): void => {
+    busMixChannelStore
+      .loadChannels(consoleIp, busId, async () => {
+        await busMixService.connect(consoleIp);
+        return busMixService.loadChannels(busId);
+      })
+      .catch(() => undefined);
+  }, [busId, busMixService, consoleIp]);
 
   const load = useCallback(async (): Promise<void> => {
     setState((current) => ({
@@ -38,57 +55,58 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
     try {
       await service.connect(consoleIp);
       service.startHeartbeat();
-      await busMixService.connect(consoleIp);
-      const [nextState, loadedChannels] = await Promise.all([
-        service.fetchInitialState(busId),
-        busMixService.loadChannels(busId),
-      ]);
+      const nextState = await service.fetchInitialState(busId);
       const normalizedState = {
         ...nextState,
         mcas: nextState.mcas.map((mca) => ({
           ...mca,
           name: normalizeMcaName(mca.dcaNumber),
+          assignedChannels: [],
+          assignedChannelIds: [],
         })),
       };
-      setAvailableChannels(loadedChannels);
       const storedState = await secureStoreService.getDcaState(consoleIp);
+      let nextBusGroupsState = normalizedState;
 
-      if (!storedState || storedState.mcas.length === 0) {
-        setState(normalizedState);
-        return;
+      if (storedState && storedState.mcas.length > 0) {
+        const restoredMcas = normalizedState.mcas.map((mca) => {
+          const storedMca = storedState.mcas.find((item) => item.dcaNumber === mca.dcaNumber);
+          if (!storedMca) {
+            return mca;
+          }
+
+          return {
+            ...mca,
+            faderRawValue: storedMca.faderRawValue,
+            isMuted: storedMca.isMuted,
+            name: normalizeEditedMcaName(
+              mca.dcaNumber,
+              typeof storedMca.name === 'string' ? storedMca.name : normalizeMcaName(mca.dcaNumber),
+            ),
+            assignedChannels: storedMca.assignedChannels ?? [],
+            assignedChannelIds: (storedMca.assignedChannels ?? []).map(
+              (channel) => channel.channelId,
+            ),
+          };
+        });
+
+        nextBusGroupsState = {
+          ...normalizedState,
+          mcas: restoredMcas,
+        };
       }
 
-      const restoredMcas = normalizedState.mcas.map((mca) => {
-        const storedMca = storedState.mcas.find((item) => item.dcaNumber === mca.dcaNumber);
-        if (!storedMca) {
-          return mca;
-        }
+      setState(nextBusGroupsState);
+      loadAvailableChannels();
 
-        return {
-          ...mca,
-          faderRawValue: storedMca.faderRawValue,
-          isMuted: storedMca.isMuted,
-          name: normalizeMcaName(mca.dcaNumber),
-          assignedChannels: storedMca.assignedChannels ?? mca.assignedChannels,
-          assignedChannelIds: (storedMca.assignedChannels ?? mca.assignedChannels).map(
-            (channel) => channel.channelId,
-          ),
-        };
-      });
-
-      await Promise.all(
-        restoredMcas.map(async (mca) => {
-          await Promise.all([
+      if (storedState && storedState.mcas.length > 0) {
+        nextBusGroupsState.mcas.forEach((mca) => {
+          Promise.all([
             service.setDcaFader(mca.dcaNumber, mca.faderRawValue),
             service.setDcaOn(mca.dcaNumber, !mca.isMuted),
-          ]);
-        }),
-      );
-
-      setState({
-        ...normalizedState,
-        mcas: restoredMcas,
-      });
+          ]).catch(() => undefined);
+        });
+      }
     } catch (error) {
       setState((current) => ({
         ...current,
@@ -97,7 +115,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
         error: getErrorMessage(error),
       }));
     }
-  }, [busId, busMixService, consoleIp, secureStoreService, service]);
+  }, [busId, consoleIp, loadAvailableChannels, secureStoreService, service]);
 
   useEffect(() => {
     load();
@@ -106,6 +124,14 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
       busMixService.disconnect();
     };
   }, [busMixService, load, service]);
+
+  useEffect(
+    () =>
+      busMixChannelStore.subscribe(consoleIp, busId, (nextChannels) => {
+        setAvailableChannels(nextChannels);
+      }),
+    [busId, consoleIp],
+  );
 
   useEffect(() => {
     if (!state.isConnected || state.isLoading || state.mcas.length === 0) {
@@ -188,39 +214,65 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
     });
   }, [busId, service, state.masterMuted]);
 
-  const toggleMcaChannelAssignment = useCallback(
-    (dcaNumber: number, channel: Channel): void => {
-      const assignedChannel: McaAssignedChannel = {
-        channelId: channel.number,
-        channelName: channel.name,
-        channelLabel: channel.label,
-        channelType: channel.kind,
-      };
+  const toggleMcaChannelAssignment = useCallback((dcaNumber: number, channel: Channel): void => {
+    const assignedChannel: McaAssignedChannel = {
+      channelId: channel.number,
+      channelName: channel.name,
+      channelLabel: channel.label,
+      channelType: channel.kind,
+    };
 
-      setState((current) => ({
-        ...current,
-        mcas: current.mcas.map((mca) => {
-          if (mca.dcaNumber !== dcaNumber) {
-            return mca;
-          }
+    setState((current) => ({
+      ...current,
+      mcas: current.mcas.map((mca) => {
+        if (mca.dcaNumber !== dcaNumber) {
+          return mca;
+        }
 
-          const isAlreadyAssigned = mca.assignedChannels.some(
-            (item) => item.channelId === channel.number,
-          );
-          const nextAssignedChannels = isAlreadyAssigned
-            ? mca.assignedChannels.filter((item) => item.channelId !== channel.number)
-            : [...mca.assignedChannels, assignedChannel];
+        const isAlreadyAssigned = mca.assignedChannels.some(
+          (item) => item.channelId === channel.number,
+        );
+        const nextAssignedChannels = isAlreadyAssigned
+          ? mca.assignedChannels.filter((item) => item.channelId !== channel.number)
+          : [...mca.assignedChannels, assignedChannel];
 
-          return {
-            ...mca,
-            assignedChannels: nextAssignedChannels,
-            assignedChannelIds: nextAssignedChannels.map((item) => item.channelId),
-          };
-        }),
-      }));
-    },
-    [],
-  );
+        return {
+          ...mca,
+          assignedChannels: nextAssignedChannels,
+          assignedChannelIds: nextAssignedChannels.map((item) => item.channelId),
+        };
+      }),
+    }));
+  }, []);
+
+  const clearMcaChannels = useCallback((dcaNumber: number): void => {
+    setState((current) => ({
+      ...current,
+      mcas: current.mcas.map((mca) =>
+        mca.dcaNumber === dcaNumber
+          ? {
+              ...mca,
+              assignedChannels: [],
+              assignedChannelIds: [],
+            }
+          : mca,
+      ),
+    }));
+  }, []);
+
+  const renameMca = useCallback((dcaNumber: number, name: string): void => {
+    setState((current) => ({
+      ...current,
+      mcas: current.mcas.map((mca) =>
+        mca.dcaNumber === dcaNumber
+          ? {
+              ...mca,
+              name: normalizeEditedMcaName(dcaNumber, name),
+            }
+          : mca,
+      ),
+    }));
+  }, []);
 
   useOscSubscription({
     busId,
@@ -257,5 +309,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
     setMasterFader,
     toggleMasterMute,
     toggleMcaChannelAssignment,
+    clearMcaChannels,
+    renameMca,
   };
 };
