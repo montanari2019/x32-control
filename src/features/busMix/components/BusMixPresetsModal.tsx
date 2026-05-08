@@ -1,14 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import Svg, { Path } from 'react-native-svg';
+import { Icons } from '@assets';
 import { Button } from '@shared/components/Button';
+import Dialog from '@shared/components/Dialog';
 import { ModalRenderProps, useModal } from '@shared/components/Modal';
 import Toast from '@shared/components/Toast';
+import { getErrorMessage } from '@shared/errors/AppError';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
-import Dialog from '@shared/components/Dialog';
-import { getErrorMessage } from '@shared/errors/AppError';
 import { BusMixPreset } from '../types/BusMixPreset';
 
 type BusMixPresetsModalProps = ModalRenderProps & {
@@ -21,15 +21,6 @@ type BusMixPresetsModalProps = ModalRenderProps & {
   onDeletePreset: (presetId: string) => Promise<BusMixPreset[]>;
   onRestorePreset: (presetId: string) => Promise<void>;
 };
-
-const TrashIcon = (): JSX.Element => (
-  <Svg width={22} height={22} viewBox="0 0 24 24" fill="none">
-    <Path
-      d="M9 3h6l1 2h4v2H4V5h4l1-2Zm-2 6h10l-.7 11H7.7L7 9Zm3 2v7h2v-7h-2Zm4 0v7h2v-7h-2Z"
-      fill={colors.text.primary}
-    />
-  </Svg>
-);
 
 export const BusMixPresetsModal = ({
   visible,
@@ -117,14 +108,14 @@ export const BusMixPresetsModal = ({
     }
   };
 
-  const handleDelete = async (presetId: string, presetName: string): Promise<void> => {
+  const handleDelete = async (presetId: string, presetNameValue: string): Promise<void> => {
     try {
       setPendingPresetId(`delete:${presetId}`);
       const nextPresets = await onDeletePreset(presetId);
       setPresetList(nextPresets);
       showModal(Toast, {
         title: 'Preset removido',
-        message: `O preset ${presetName} foi removido deste dispositivo.`,
+        message: `O preset ${presetNameValue} foi removido deste dispositivo.`,
         variant: 'success',
       });
     } catch (error) {
@@ -244,69 +235,70 @@ export const BusMixPresetsModal = ({
         {!isLoadingPresets
           ? presetList.map((preset) => (
               <View key={preset.id} style={styles.presetRow}>
-                  <View style={styles.presetInfo}>
-                    <Text style={styles.presetName} numberOfLines={1}>
-                      {preset.name}
-                    </Text>
-                    <Text style={styles.presetMeta}>
-                      Atualizado em {new Date(preset.updatedAt).toLocaleString('pt-BR')}
-                    </Text>
-                  </View>
+                <View style={styles.presetInfo}>
+                  <Text style={styles.presetName} numberOfLines={1}>
+                    {preset.name}
+                  </Text>
+                  <Text style={styles.presetMeta}>
+                    Atualizado em {new Date(preset.updatedAt).toLocaleString('pt-BR')}
+                  </Text>
+                </View>
 
-                  <View style={styles.iconActions}>
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Remover preset ${preset.name}`}
-                      onPress={() => {
-                        handleDelete(preset.id, preset.name).catch(() => undefined);
-                      }}
-                      disabled={pendingPresetId !== null || isRestoringPreset}
-                      style={({ pressed }) => [
-                        styles.iconButton,
-                        styles.deleteButton,
-                        pressed && styles.iconButtonPressed,
-                        (pendingPresetId !== null || isRestoringPreset) &&
-                          styles.iconButtonDisabled,
-                      ]}
-                    >
-                      <TrashIcon />
-                    </Pressable>
+                <View style={styles.iconActions}>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Remover preset ${preset.name}`}
+                    onPress={() => {
+                      handleDelete(preset.id, preset.name).catch(() => undefined);
+                    }}
+                    disabled={pendingPresetId !== null || isRestoringPreset}
+                    style={({ pressed }) => [
+                      styles.iconButton,
+                      styles.deleteButton,
+                      pressed && styles.iconButtonPressed,
+                      (pendingPresetId !== null || isRestoringPreset) &&
+                        styles.iconButtonDisabled,
+                    ]}
+                  >
+                    <Icons.Trash color={colors.status.danger} width={18} height={18} />
+                  </Pressable>
 
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Sobrescrever preset ${preset.name}`}
-                      onPress={() => {
-                        handleOverwrite(preset.id).catch(() => undefined);
-                      }}
-                      disabled={pendingPresetId !== null || isRestoringPreset}
-                      style={({ pressed }) => [
-                        styles.iconButton,
-                        pressed && styles.iconButtonPressed,
-                        (pendingPresetId !== null || isRestoringPreset) &&
-                          styles.iconButtonDisabled,
-                      ]}
-                    >
-                      <Text style={styles.iconText}>↺</Text>
-                    </Pressable>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Sobrescrever preset ${preset.name}`}
+                    onPress={() => {
+                      handleOverwrite(preset.id).catch(() => undefined);
+                    }}
+                    disabled={pendingPresetId !== null || isRestoringPreset}
+                    style={({ pressed }) => [
+                      styles.iconButton,
+                      styles.overwriteButton,
+                      pressed && styles.iconButtonPressed,
+                      (pendingPresetId !== null || isRestoringPreset) &&
+                        styles.iconButtonDisabled,
+                    ]}
+                  >
+                    <Icons.SaveData color={colors.mca.yellow} width={20} height={20} />
+                  </Pressable>
 
-                    <Pressable
-                      accessibilityRole="button"
-                      accessibilityLabel={`Restaurar preset ${preset.name}`}
-                      onPress={() => {
-                        handleRestore(preset.id).catch(() => undefined);
-                      }}
-                      disabled={pendingPresetId !== null || isRestoringPreset}
-                      style={({ pressed }) => [
-                        styles.iconButton,
-                        styles.restoreButton,
-                        pressed && styles.iconButtonPressed,
-                        (pendingPresetId !== null || isRestoringPreset) &&
-                          styles.iconButtonDisabled,
-                      ]}
-                    >
-                      <Text style={styles.iconText}>▶</Text>
-                    </Pressable>
-                  </View>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel={`Restaurar preset ${preset.name}`}
+                    onPress={() => {
+                      handleRestore(preset.id).catch(() => undefined);
+                    }}
+                    disabled={pendingPresetId !== null || isRestoringPreset}
+                    style={({ pressed }) => [
+                      styles.iconButton,
+                      styles.restoreButton,
+                      pressed && styles.iconButtonPressed,
+                      (pendingPresetId !== null || isRestoringPreset) &&
+                        styles.iconButtonDisabled,
+                    ]}
+                  >
+                    <Icons.RecoveryData color={colors.border.blue} width={20} height={20} />
+                  </Pressable>
+                </View>
               </View>
             ))
           : null}
@@ -319,6 +311,26 @@ const styles = StyleSheet.create({
   actionButton: {
     flex: 1,
   },
+  closeButton: {
+    alignItems: 'center',
+    borderColor: colors.border.subtle,
+    borderRadius: radius.pill,
+    borderWidth: 1,
+    height: 32,
+    justifyContent: 'center',
+    width: 32,
+  },
+  closeButtonDisabled: {
+    opacity: 0.45,
+  },
+  closeButtonPressed: {
+    opacity: 0.72,
+  },
+  closeButtonText: {
+    color: colors.text.primary,
+    fontSize: 14,
+    fontWeight: '900',
+  },
   createActions: {
     flexDirection: 'row',
     gap: spacing.sm,
@@ -327,7 +339,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
   },
   deleteButton: {
-    backgroundColor: colors.status.danger,
     borderColor: colors.status.danger,
   },
   dialog: {
@@ -377,32 +388,6 @@ const styles = StyleSheet.create({
   iconButtonPressed: {
     opacity: 0.8,
   },
-  iconText: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: '900',
-    lineHeight: 20,
-  },
-  closeButton: {
-    alignItems: 'center',
-    borderColor: colors.border.subtle,
-    borderRadius: radius.pill,
-    borderWidth: 1,
-    height: 32,
-    justifyContent: 'center',
-    width: 32,
-  },
-  closeButtonDisabled: {
-    opacity: 0.45,
-  },
-  closeButtonPressed: {
-    opacity: 0.72,
-  },
-  closeButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '900',
-  },
   input: {
     backgroundColor: colors.background.secondary,
     borderColor: colors.border.primary,
@@ -422,9 +407,6 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     paddingBottom: spacing.lg,
   },
-  newPresetButton: {
-    width: '100%',
-  },
   modalHeader: {
     alignItems: 'flex-start',
     flexDirection: 'row',
@@ -439,6 +421,12 @@ const styles = StyleSheet.create({
   modalTitleBlock: {
     flex: 1,
     gap: spacing.xs,
+  },
+  newPresetButton: {
+    width: '100%',
+  },
+  overwriteButton: {
+    borderColor: colors.mca.yellow,
   },
   presetInfo: {
     flex: 1,

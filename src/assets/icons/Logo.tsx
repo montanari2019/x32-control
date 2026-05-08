@@ -2,13 +2,13 @@ import React from 'react';
 import Svg, { G, Path } from 'react-native-svg';
 import { colors } from '@shared/theme/colors';
 
-interface LogoProps {
-  size?: number;
-  color?: string;
-}
-
-const Logo: React.FC<LogoProps> = ({ size = 24, color = colors.accent.primary }) => (
-  <Svg viewBox="0 0 24 24" width={size} height={size} fill="none">
+const Logo = ({
+  width = 24,
+  height = 24,
+  color = colors.accent.primary,
+  ...others
+}: IconPropsType): JSX.Element => (
+  <Svg viewBox="0 0 24 24" width={width} height={height} fill="none" {...others}>
     <G>
       <Path
         d="M3 11V13M6 8V16M9 10V14M12 7V17M15 4V20M18 9V15M21 11V13"

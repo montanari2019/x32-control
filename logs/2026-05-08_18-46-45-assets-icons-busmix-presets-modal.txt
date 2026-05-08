@@ -1,0 +1,107 @@
+Contexto:
+- Foi iniciada a padronizacao dos icones SVG do app para seguir a convencao descrita em `docs/skills/18-assets-icons-images-lotties-svg.md`.
+- O foco desta rodada foi:
+  - criar infraestrutura minima de `src/assets/icons`
+  - registrar `Trash`, `SaveData`, `RecoveryData` e `Logo` como icones reutilizaveis
+  - substituir os icones inline/quebrados do modal de presets do Personal Mix
+  - ajustar as cores dos botoes de acao do modal para tokens coerentes com o tema da aplicacao
+
+Arquivos alterados:
+- `src/assets/index.ts`
+  - Criado export raiz `Icons` para o pacote de assets.
+- `src/assets/icons/index.ts`
+  - Criados exports nomeados dos icones:
+    - `Logo`
+    - `RecoveryData`
+    - `SaveData`
+    - `Trash`
+- `src/assets/icons/Trash.tsx`
+  - Criado componente SVG tipado com `IconPropsType`.
+  - Mantido `viewBox` original e suporte a `color`, `width` e `height`.
+- `src/assets/icons/SaveData.tsx`
+  - Criado componente SVG tipado com `IconPropsType`.
+  - Mantido `viewBox` original e suporte a `color`, `width` e `height`.
+- `src/assets/icons/RecoveryData.tsx`
+  - Criado componente SVG tipado com `IconPropsType`.
+  - Mantido `viewBox` original e suporte a `color`, `width` e `height`.
+- `src/assets/icons/Logo.tsx`
+  - O `logo.tsx` antigo da raiz de `src/assets` foi migrado para dentro de `icons`.
+  - O componente passou a seguir o mesmo padrao dos demais icones.
+- `src/assets/logo.tsx`
+  - Removido apos a migracao para `src/assets/icons/Logo.tsx`.
+- `src/types/assets.d.ts`
+  - Criado tipo global `IconPropsType` com base em `SvgProps`.
+- `tsconfig.json`
+  - Adicionado alias `@assets`.
+- `babel.config.js`
+  - Adicionado alias `@assets` no `module-resolver`.
+- `src/features/busMix/components/BusMixPresetsModal.tsx`
+  - Removido `TrashIcon` inline baseado em `react-native-svg`.
+  - O modal passou a importar `Icons` via `@assets`.
+  - Botao de deletar:
+    - trocado para `Icons.Trash`
+    - mantido tamanho pequeno compativel com botao `40x40`
+    - icone em `colors.status.danger`
+    - borda do botao em `colors.status.danger`
+    - removido fundo vermelho chapado para melhorar leitura do icone
+  - Botao de sobrescrever/salvar edicao:
+    - trocado para `Icons.SaveData`
+    - icone em `colors.mca.yellow`
+    - adicionada borda `overwriteButton` em `colors.mca.yellow`
+  - Botao de restaurar/carregar:
+    - trocado para `Icons.RecoveryData`
+    - icone em `colors.border.blue`
+    - mantida borda azul existente em `restoreButton`
+  - Os tamanhos renderizados no modal ficaram explicitos:
+    - `Trash`: `18x18`
+    - `SaveData`: `20x20`
+    - `RecoveryData`: `20x20`
+  - Nao houve alteracao de handlers, callbacks, acessibilidade ou fluxo de persistencia/restauracao.
+
+Escopo preservado:
+- Nenhuma regra de negocio de presets foi alterada.
+- `handleDelete`, `handleOverwrite` e `handleRestore` continuam com o mesmo comportamento funcional.
+- Nao houve alteracao em storage, envio OSC, lista de canais, mute, pan, meter ou sincronizacao com a mesa.
+- A mudanca ficou restrita a padronizacao dos assets SVG e ao visual dos botoes do modal.
+
+Verificacoes feitas:
+- Foi conferido o padrao de logs existente em `logs/` antes de registrar esta rodada.
+- Foi conferido o padrao de importacao de icones no projeto:
+  - o componente passou a usar `import { Icons } from '@assets'`
+- Foi conferido o conjunto de tokens em `src/theme/tokens.colors.ts` para evitar cores hardcoded.
+- Foi confirmada a existencia e uso no modal dos tres icones:
+  - `Icons.Trash`
+  - `Icons.SaveData`
+  - `Icons.RecoveryData`
+
+Validacao:
+- `npm run tsc` foi executado.
+  - Resultado: falha pre-existente fora do escopo desta mudanca em:
+    - `src/features/busGroups/hooks/useBusGroups.ts:95`
+  - Erro:
+    - incompatibilidade de inferencia envolvendo `assignedChannels` / `assignedChannelIds` como `never[]`
+- `npm run lint -- --quiet` foi executado.
+  - Resultado: falha global pre-existente com muitos erros `prettier/prettier`
+  - Foram observados erros em arquivos diversos do projeto, inclusive testes e arquivos nao relacionados ao modal.
+  - Houve tambem apontamento de `prettier` em `src/assets/icons/SaveData.tsx`, dentro do conjunto geral de erros do workspace.
+
+Pendencias:
+- Validar visualmente no app se a percepcao de escala dos tres icones ficou equilibrada dentro do botao `40x40`.
+- Se necessario, fazer ajuste fino de escala visual por icone sem alterar os `viewBox` de origem.
+- Rodar formatter/lint em ambiente ou sessao onde a base esteja saneada, caso se deseje fechar os avisos globais de estilo.
+
+Proxima validacao recomendada:
+- No app:
+  - Abrir `Personal Mix`
+  - Abrir o modal `Presets`
+  - Confirmar que o modal abre normalmente
+  - Confirmar que os tres botoes continuam clicaveis
+  - Confirmar que:
+    - delete aparece em vermelho
+    - sobrescrever aparece em amarelo
+    - restaurar aparece em azul
+  - Confirmar que os tamanhos ficaram visualmente harmonicos
+  - Confirmar que deletar, sobrescrever e restaurar continuam funcionando do inicio ao fim
+- No codigo:
+  - Revisar posteriormente o erro de `useBusGroups.ts`
+  - Revisar o estado global de `prettier/prettier` do workspace antes de considerar a base “verde”
