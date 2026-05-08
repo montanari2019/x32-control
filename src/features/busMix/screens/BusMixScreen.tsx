@@ -1,12 +1,6 @@
 import React, { useCallback, useMemo, useRef } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import {
-  FlatList,
-  ListRenderItemInfo,
-  Platform,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { FlatList, ListRenderItemInfo, Platform, StyleSheet, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -123,7 +117,6 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   const { registerMeterListener } = useMeterSubscription(consoleIp);
   const channelsRef = useRef<Channel[]>(channels);
   channelsRef.current = channels;
-  const channelsData = useMemo(() => channels, [channels]);
 
   const subtitle = useMemo(() => {
     const busLabel = `BUS ${busNumber.toString().padStart(2, '0')}`;
@@ -254,18 +247,18 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       ) : null}
 
       <FlatList
-        data={channelsData}
+        data={channels}
         keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={styles.list}
         renderItem={renderChannel}
         getItemLayout={getChannelItemLayout}
-        initialNumToRender={12}
-        maxToRenderPerBatch={8}
+        initialNumToRender={8}
+        maxToRenderPerBatch={6}
         removeClippedSubviews={Platform.OS === 'android'}
-        updateCellsBatchingPeriod={32}
-        windowSize={5}
+        updateCellsBatchingPeriod={50}
+        windowSize={3}
       />
 
       {isRestoringPreset ? <BusMixPresetRestoreOverlay /> : null}

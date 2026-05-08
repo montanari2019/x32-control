@@ -21,18 +21,21 @@ export const ChannelVuMeter = ({
   width,
   registerMeterListener,
 }: ChannelVuMeterProps): JSX.Element => {
-  const meterHeight = useRef(new Animated.Value(0)).current;
+  const meterScale = useRef(new Animated.Value(0)).current;
   const peakOffset = useRef(new Animated.Value(0)).current;
   const clipOpacity = useRef(new Animated.Value(0.2)).current;
   const peakStateRef = useRef<PeakHoldState>({ peakDb: -60, peakHoldFrames: 0 });
   const currentLevelRef = useRef(0);
   const currentClipOpacityRef = useRef(0.2);
   const currentPeakPxRef = useRef(0);
+  const meterTranslateY = meterScale.interpolate({
+    inputRange: [0, 1],
+    outputRange: [height / 2, 0],
+  });
 
   const updateMeter = useCallback(
     (values: ChannelMeterValues) => {
       const nextLevel = dbfsToMeterHeight(values.preFadeDbfs);
-      const nextLevelPx = nextLevel * height;
       const prevLevel = currentLevelRef.current;
       const delta = Math.abs(nextLevel - currentLevelRef.current);
       const nextPeakState = updatePeakHold(values.preFadeDbfs, peakStateRef.current);
@@ -42,14 +45,14 @@ export const ChannelVuMeter = ({
       const nextClipOpacity = values.preFadeDbfs > 8 ? 1 : 0;
 
       if (delta < 0.015) {
-        meterHeight.setValue(nextLevelPx);
+        meterScale.setValue(nextLevel);
       } else {
-        meterHeight.stopAnimation();
-        Animated.timing(meterHeight, {
-          toValue: nextLevelPx,
+        meterScale.stopAnimation();
+        Animated.timing(meterScale, {
+          toValue: nextLevel,
           duration: isRising ? 5 : 160,
           easing: Easing.out(Easing.ease),
-          useNativeDriver: false,
+          useNativeDriver: true,
         }).start();
       }
 
@@ -70,7 +73,7 @@ export const ChannelVuMeter = ({
 
       currentLevelRef.current = nextLevel;
     },
-    [clipOpacity, height, meterHeight, peakOffset],
+    [clipOpacity, height, meterScale, peakOffset],
   );
 
   useEffect(
@@ -81,7 +84,14 @@ export const ChannelVuMeter = ({
   return (
     <View style={[styles.container, { height, width }]}>
       <MeterSegments height={height} width={width} variant="off" />
-      <Animated.View style={[styles.activeMask, { height: meterHeight }]}>
+      <Animated.View
+        style={[
+          styles.activeMask,
+          {
+            transform: [{ translateY: meterTranslateY }, { scaleY: meterScale }],
+          },
+        ]}
+      >
         <MeterSegments height={height} width={width} variant="active" />
       </Animated.View>
       <Animated.View style={[styles.peakMarker, { bottom: peakOffset }]} />
@@ -94,9 +104,9 @@ const styles = StyleSheet.create({
   activeMask: {
     bottom: 0,
     left: 0,
-    overflow: 'hidden',
     position: 'absolute',
     right: 0,
+    top: 0,
   },
   clip: {
     backgroundColor: colors.meter.clip,

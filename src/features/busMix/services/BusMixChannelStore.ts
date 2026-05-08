@@ -80,10 +80,20 @@ export class BusMixChannelStore {
     };
   }
 
+  clearConsole(consoleIp: string): void {
+    for (const key of [...this.channelsByKey.keys()]) {
+      if (key.startsWith(`${consoleIp}:`)) {
+        this.channelsByKey.delete(key);
+        this.inFlightLoads.delete(key);
+        this.listenersByKey.delete(key);
+      }
+    }
+  }
+
   private setChannelsByKey(key: string, channels: Channel[]): void {
     const nextChannels = cloneChannels(channels);
     this.channelsByKey.set(key, nextChannels);
-    this.listenersByKey.get(key)?.forEach((listener) => listener(cloneChannels(nextChannels)));
+    this.listenersByKey.get(key)?.forEach((listener) => listener(nextChannels));
   }
 }
 

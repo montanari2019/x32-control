@@ -11,6 +11,7 @@ import { BusMixPreset, BusMixPresetChannel } from '../types/BusMixPreset';
 const FADER_SEND_INTERVAL_MS = 30;
 const LOCAL_PROTECTION_WINDOW_MS = 250;
 const BACKGROUND_SYNC_INTERVAL_MS = 30000;
+const BACKGROUND_SYNC_JITTER_MS = 5000;
 
 export const useBusMix = (consoleIp: string, busNumber: number) => {
   const service = useMemo(() => new BusMixService(), []);
@@ -31,6 +32,9 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const faderFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelsRef = useRef<Channel[]>([]);
   const channelLinkMapRef = useRef(new Map<number, number>());
+  const backgroundSyncDelayRef = useRef(
+    BACKGROUND_SYNC_INTERVAL_MS + Math.floor(Math.random() * BACKGROUND_SYNC_JITTER_MS),
+  );
 
   useEffect(() => {
     channelsRef.current = channels;
@@ -229,12 +233,13 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   );
 
   useEffect(() => {
+    const pendingLocalChangeAt = pendingLocalChangeAtRef.current;
     load();
     return () => {
       if (faderFlushTimerRef.current) {
         clearTimeout(faderFlushTimerRef.current);
       }
-      pendingLocalChangeAtRef.current.clear();
+      pendingLocalChangeAt.clear();
       service.disconnect();
     };
   }, [load, service]);
@@ -267,7 +272,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   useEffect(() => {
     const timer = setInterval(() => {
       syncRemoteFaders().catch(() => undefined);
-    }, BACKGROUND_SYNC_INTERVAL_MS);
+    }, backgroundSyncDelayRef.current);
 
     return () => clearInterval(timer);
   }, [syncRemoteFaders]);
@@ -388,7 +393,6 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
     setIsSaving(true);
     try {
-      await new Promise<void>((resolve) => setTimeout(() => resolve(), 300));
       setHasPendingChanges(false);
     } finally {
       setIsSaving(false);
@@ -437,18 +441,21 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
       try {
         const byChannel = new Map(channelsRef.current.map((channel) => [channel.number, channel]));
+        const channelsToRestore = preset.channels.filter((presetChannel) =>
+          byChannel.has(presetChannel.channelId),
+        );
 
-        for (const presetChannel of preset.channels) {
-          if (!byChannel.has(presetChannel.channelId)) {
-            continue;
-          }
-
+        channelsToRestore.forEach((presetChannel) => {
           applyCommittedLevel(presetChannel.channelId, presetChannel.raw, false);
-          if (presetChannel.mute !== undefined) {
-            await applyCommittedOn(presetChannel.channelId, !presetChannel.mute, false);
-          }
-          await new Promise<void>((resolve) => setTimeout(resolve, 24));
-        }
+        });
+
+        await Promise.all(
+          channelsToRestore
+            .filter((presetChannel) => presetChannel.mute !== undefined)
+            .map((presetChannel) =>
+              applyCommittedOn(presetChannel.channelId, !presetChannel.mute!, false),
+            ),
+        );
 
         setHasPendingChanges(false);
         updateSharedChannels((current) =>

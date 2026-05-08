@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useCallback, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -45,11 +45,17 @@ const ChannelStripComponent = ({
   const channelColor = mapX32ColorToUiColor(channel.color ?? 0).backgroundColor;
   const backgroundColor = withAlpha(channelColor, opacityToAlphaHex(channel.backgroundOpacity));
   const [faderHeight, setFaderHeight] = useState(240);
+  const faderHeightRef = useRef(240);
 
-  const handleLayout = (event: LayoutChangeEvent): void => {
+  const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextHeight = Math.max(180, Math.floor(event.nativeEvent.layout.height));
+    if (nextHeight === faderHeightRef.current) {
+      return;
+    }
+
+    faderHeightRef.current = nextHeight;
     setFaderHeight(nextHeight);
-  };
+  }, []);
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -101,7 +107,12 @@ export const ChannelStrip = React.memo(
     prev.channel.color === next.channel.color &&
     prev.channel.number === next.channel.number &&
     prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
-    prev.channel.meterChannelId === next.channel.meterChannelId,
+    prev.channel.meterChannelId === next.channel.meterChannelId &&
+    prev.registerMeterListener === next.registerMeterListener &&
+    prev.onToggleMute === next.onToggleMute &&
+    prev.onFaderChange === next.onFaderChange &&
+    prev.onFaderChangeEnd === next.onFaderChangeEnd &&
+    prev.onPressBadge === next.onPressBadge,
 );
 
 const styles = StyleSheet.create({

@@ -8,6 +8,10 @@ import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { Channel, ChannelKind } from '../types/Channel';
 
+const REQUEST_TIMEOUT_MS = 600;
+const REQUEST_RETRIES = 1;
+const CHANNEL_LINK_MAP_CACHE = new Map<string, Map<number, number>>();
+
 const asString = (message: OscMessage, fallback: string): string => {
   const value = message.args[0];
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
@@ -111,6 +115,7 @@ export class BusMixService {
       return;
     }
 
+    this.client.stopXRemoteKeepAlive();
     this.sharedLease?.release();
     this.sharedLease = undefined;
     this.connectedConsoleIp = undefined;
@@ -129,7 +134,7 @@ export class BusMixService {
 
   onOn(channel: Channel, bus: number, listener: (on: boolean) => void): () => void {
     if (this.useMockProvider) {
-      return () => { };
+      return () => {};
     }
 
     const source = this.getSourceDefinition(channel.kind);
@@ -143,6 +148,12 @@ export class BusMixService {
       return new Map();
     }
 
+    const cacheKey = this.connectedConsoleIp;
+    const cachedMap = cacheKey ? CHANNEL_LINK_MAP_CACHE.get(cacheKey) : undefined;
+    if (cachedMap) {
+      return new Map(cachedMap);
+    }
+
     const pairs = Array.from({ length: 16 }, (_, i) => ({
       left: i * 2 + 1,
       right: i * 2 + 2,
@@ -150,10 +161,10 @@ export class BusMixService {
 
     const results = await Promise.allSettled(
       pairs.map(async ({ left, right }) => {
-        const message = await this.client.request<OscMessage>(
+        const message = await this.requestMessage(
           X32Protocol.getChannelLinkPath(left, right),
-          [],
           800,
+          REQUEST_RETRIES,
         );
         return { left, right, linked: asNumber(message, 0) > 0 };
       }),
@@ -166,6 +177,11 @@ export class BusMixService {
         map.set(result.value.right, result.value.left);
       }
     }
+
+    if (cacheKey) {
+      CHANNEL_LINK_MAP_CACHE.set(cacheKey, new Map(map));
+    }
+
     return map;
   }
 
@@ -288,7 +304,7 @@ export class BusMixService {
 
   private async safeRequestString(path: string, fallback: string): Promise<string> {
     try {
-      return asString(await this.client.request<OscMessage>(path, [], 1000), fallback);
+      return asString(await this.requestMessage(path), fallback);
     } catch {
       return fallback;
     }
@@ -296,7 +312,7 @@ export class BusMixService {
 
   private async safeRequestColor(path: string): Promise<number> {
     try {
-      return asNumber(await this.client.request<OscMessage>(path, [], 1000), 0);
+      return asNumber(await this.requestMessage(path), 0);
     } catch {
       return 0;
     }
@@ -304,7 +320,7 @@ export class BusMixService {
 
   private async safeRequestLevel(path: string): Promise<number> {
     try {
-      return clamp(asNumber(await this.client.request<OscMessage>(path, [], 1000), 0));
+      return clamp(asNumber(await this.requestMessage(path), 0));
     } catch {
       return 0;
     }
@@ -312,7 +328,7 @@ export class BusMixService {
 
   private async safeRequestOn(path: string): Promise<boolean> {
     try {
-      return asNumber(await this.client.request<OscMessage>(path, [], 1000), 1) > 0;
+      return asNumber(await this.requestMessage(path), 1) > 0;
     } catch {
       return true;
     }
@@ -320,9 +336,27 @@ export class BusMixService {
 
   private async safeRequestPan(path: string): Promise<number> {
     try {
-      return clamp(asNumber(await this.client.request<OscMessage>(path, [], 1000), 0.5), 0, 1);
+      return clamp(asNumber(await this.requestMessage(path), 0.5), 0, 1);
     } catch {
       return 0.5;
     }
+  }
+
+  private async requestMessage(
+    path: string,
+    timeoutMs = REQUEST_TIMEOUT_MS,
+    retries = REQUEST_RETRIES,
+  ): Promise<OscMessage> {
+    let lastError: unknown;
+
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      try {
+        return await this.client.request<OscMessage>(path, [], timeoutMs);
+      } catch (error) {
+        lastError = error;
+      }
+    }
+
+    throw lastError instanceof Error ? lastError : new Error(`Request failed for ${path}`);
   }
 }

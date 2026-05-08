@@ -1,0 +1,184 @@
+Contexto:
+- Foi iniciada uma rodada de auditoria e implementacao de melhorias de performance com foco em seguranca operacional.
+- O criterio desta rodada foi:
+  - nao regredir o fluxo atual do app
+  - aplicar apenas melhorias de baixo risco ou com comportamento equivalente
+  - validar com TypeScript, lint dos arquivos tocados e testes automatizados
+- O documento base desta rodada foi a auditoria de performance do app X32/M32, mas nem todos os itens foram aplicados nesta etapa.
+- Itens mais invasivos ou que dependem de validacao direta em mesa fisica ficaram explicitamente adiados.
+
+Arquivos alterados:
+- `src/shared/network/UdpTransport.ts`
+  - Removida a serializacao global via `sendQueue`.
+  - `send()` passou a disparar o envio diretamente depois de garantir `bind()`.
+  - `SEND_TIMEOUT_MS` foi reduzido de `1000` para `200`.
+  - Objetivo:
+    - reduzir latencia acumulada em cargas com muitos pacotes OSC
+    - falhar mais rapido quando o socket nao conseguir aceitar o envio
+
+- `src/shared/osc/OscClient.ts`
+  - `XREMOTE_RENEW_INTERVAL_MS` reduzido de `8000` para `5000`.
+  - Criado `pendingByAddress` para indexar requests pendentes por `address`.
+  - `handlePacket()` deixou de fazer busca linear em `Set` e passou a resolver o primeiro request pendente pelo endereco.
+  - `startXRemoteKeepAlive()` e `stopXRemoteKeepAlive()` agora usam contagem de referencias.
+  - Objetivo:
+    - evitar custo O(n) por pacote OSC recebido
+    - permitir keepalive compartilhado sem uma tela desligar a renovacao da outra
+
+- `src/shared/network/NetworkScanner.ts`
+  - `validateConsole()` passou a validar o console usando apenas `/info`.
+  - O timeout padrao de validacao manual caiu para `1200ms`.
+  - Objetivo:
+    - reduzir o tempo total de validacao manual de IP
+    - evitar request sequencial desnecessario para `/status`
+
+- `src/features/busMix/services/BusMixService.ts`
+  - Criados `REQUEST_TIMEOUT_MS = 600` e `REQUEST_RETRIES = 1` para leituras seguras.
+  - Adicionado `requestMessage()` com retry automatico.
+  - `safeRequestString`, `safeRequestColor`, `safeRequestLevel`, `safeRequestOn` e `safeRequestPan` passaram a usar esse helper.
+  - `fetchChannelLinkMap()` passou a usar o helper com retry e ganhou cache global por `consoleIp`.
+  - `disconnect()` agora libera uma referencia do keepalive via `client.stopXRemoteKeepAlive()` antes de soltar o lease compartilhado.
+  - Objetivo:
+    - reduzir tempos de espera nas leituras de canais
+    - evitar refetch repetido do channel link map na mesma sessao
+
+- `src/features/busMix/hooks/useMeterSubscription.ts`
+  - `POLL_INTERVAL_MS` aumentou de `50` para `100`.
+  - Cleanup agora chama `client.stopXRemoteKeepAlive()` antes de liberar o lease compartilhado.
+  - Ajuste pequeno no cleanup para satisfazer `react-hooks/exhaustive-deps`.
+  - Objetivo:
+    - cortar pela metade o trafego UDP de meters
+    - manter o keepalive ref-counted consistente
+
+- `src/features/busMix/hooks/useBusMix.ts`
+  - Adicionado jitter no sync em background:
+    - base `30000ms`
+    - variacao aleatoria de ate `5000ms`
+  - `save()` deixou de esperar artificialmente `300ms`.
+  - `restorePreset()` foi otimizado:
+    - aplica todos os faders primeiro
+    - envia os mutes em paralelo com `Promise.all`
+    - remove o delay sequencial de `24ms` por canal
+  - Ajuste pequeno no cleanup para satisfazer `react-hooks/exhaustive-deps`.
+  - Objetivo:
+    - reduzir o tempo total de restauracao de preset
+    - evitar pico sincronizado de background sync em todos os dispositivos
+    - remover espera artificial que nao persistia nada
+
+- `src/features/busMix/screens/BusMixScreen.tsx`
+  - Removido `useMemo(() => channels, [channels])` sem efeito real.
+  - `FlatList` horizontal foi ajustada:
+    - `initialNumToRender`: `12 -> 8`
+    - `maxToRenderPerBatch`: `8 -> 6`
+    - `updateCellsBatchingPeriod`: `32 -> 50`
+    - `windowSize`: `5 -> 3`
+  - Objetivo:
+    - reduzir custo do primeiro render e memoria da janela
+
+- `src/features/busMix/components/ChannelStrip.tsx`
+  - `handleLayout()` passou a evitar `setState` redundante quando a altura nao muda.
+  - O `React.memo` ganhou comparacao dos callbacks e do `registerMeterListener`.
+  - Objetivo:
+    - evitar re-render extra no layout inicial
+    - evitar uso de props stale em comparador customizado
+
+- `src/features/busMix/components/VerticalFader.tsx`
+  - `PanResponder` passou a usar refs para `onChange`, `onChangeEnd` e `available`.
+  - `updateFromY()` deixou de depender diretamente das props mutaveis do render atual.
+  - Atualizacao remota do thumb foi ajustada:
+    - `setValue` imediato para diferenca minima
+    - `Animated.timing` curto (`40-80ms`) em vez de `spring` para valores remotos
+  - Objetivo:
+    - manter o gesto estavel em re-renders
+    - reduzir defasagem visual enganosa em update remoto
+
+- `src/features/busMix/components/ChannelVuMeter.tsx`
+  - O medidor ativo deixou de animar `height` no JS thread.
+  - O componente passou a animar `scaleY` + `translateY` com `useNativeDriver: true`.
+  - Mantidos `peak marker` e `clip indicator`.
+  - Objetivo:
+    - tirar a animacao principal do JS thread
+    - reduzir jank quando varios meters estao ativos
+
+- `src/features/busMix/services/BusMixChannelStore.ts`
+  - `setChannelsByKey()` deixou de clonar novamente a lista para cada listener.
+  - Adicionado `clearConsole(consoleIp)`.
+  - Objetivo:
+    - reduzir pressure de clone/GC no store compartilhado
+    - preparar limpeza de estado por console em futuras rodadas
+
+- `src/features/busMix/utils/meterDecoder.ts`
+  - Decoder de `/meters/1` foi reescrito para suportar com mais robustez:
+    - header com count LE
+    - header com count BE
+    - formato com 8 bytes de header e float count separado
+    - fallback raw int16 sem header
+  - `float32` agora aceita:
+    - valor linear `0..1` convertendo com `20*log10`
+    - valor ja em dBFS quando vier fora desse intervalo
+  - Objetivo:
+    - corrigir falhas dos testes existentes
+    - aumentar compatibilidade com blobs diferentes de meter
+
+- `src/features/busGroups/services/X32BusGroupsService.ts`
+  - Removido o uso efetivo do heartbeat dedicado para `xremote`.
+  - `startHeartbeat()` agora delega para `client.startXRemoteKeepAlive()`.
+  - `stopHeartbeat()` agora delega para `client.stopXRemoteKeepAlive()`.
+  - Objetivo:
+    - unificar o keepalive no mesmo mecanismo ref-counted usado pelo restante do app
+
+- `src/features/busGroups/hooks/useBusGroups.ts`
+  - `normalizedState` foi tipado explicitamente como `BusGroupsState`.
+  - Arrays vazios de MCA ganharam cast explicito:
+    - `assignedChannels: [] as McaAssignedChannel[]`
+    - `assignedChannelIds: [] as number[]`
+  - Objetivo:
+    - corrigir erro de inferencia `never[]`
+    - liberar a validacao completa do `tsc`
+
+Escopo preservado:
+- Nenhuma alteracao de regra de negocio de `BusMix`, `BusGroups`, `ConsoleDiscovery` ou presets.
+- Nao foi implementado `/node` batch loading nesta rodada.
+- Nao foi alterado o mapeamento funcional de canais, buses, aux ou fx.
+- Nao foi alterada persistencia dos presets fora da otimizacao da restauracao.
+- Nao foi alterada a navegacao entre telas.
+- Nao foi removida nenhuma feature existente do app.
+
+Itens deliberadamente adiados nesta rodada:
+- Batch loading via `/node` em `BusMixService`
+  - Motivo: depende de validacao de protocolo em mesa real para nao assumir formato incorreto.
+- Timer global unico para todos os meters do `VerticalFader`
+  - Motivo: mudanca maior na arquitetura de atualizacao de meters, melhor fazer em etapa separada.
+- Scan adaptativo de discovery
+  - Motivo: melhoria valida, mas o fluxo atual nao estava quebrado e o foco desta rodada foi hot path de controle ao vivo.
+- Limpeza automatica de `BusMixChannelStore.clearConsole()`
+  - Motivo: o metodo foi preparado, mas o ponto exato de invalicao por UX/conexao deve ser decidido com cuidado.
+
+Validacao:
+- `npx prettier --write` foi executado nos arquivos tocados.
+- `npm run tsc` passou.
+- `npx eslint ... --quiet` passou para todos os arquivos alterados nesta rodada.
+- `npm test -- --runInBand` passou:
+  - 9 suites
+  - 26 testes
+  - 0 falhas
+
+Observacoes:
+- A base global ainda pode ter outros pontos de melhoria nao aplicados nesta etapa, mas os arquivos alterados sairam validados.
+- Nao houve validacao manual em dispositivo/mesa fisica nesta rodada.
+- A mudanca de meters para `useNativeDriver` foi aplicada de forma conservadora sem alterar a API do componente.
+
+Proxima validacao recomendada:
+- Em dispositivo Android/iOS:
+  - abrir `ConsoleDiscovery`
+  - conectar em uma X32/M32 real ou mock
+  - entrar em `BusSelection`
+  - abrir `BusGroups`
+  - abrir `BusMix`
+  - validar arraste de fader local
+  - validar retorno de update remoto
+  - validar meters com varios canais ativos
+  - validar restore de preset com quantidade alta de canais
+- Em mesa real:
+  - confirmar que a renovacao de `xremote` segue estavel ao alternar entre `BusGroups` e `BusMix`
+  - confirmar que o decoder de `/meters/1` continua coerente com o blob real da console

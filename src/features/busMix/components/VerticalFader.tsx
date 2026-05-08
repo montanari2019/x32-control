@@ -60,27 +60,43 @@ export const VerticalFader = ({
   const zeroMarkTop = (1 - rawToPosition(x32DbToRaw(0))) * height;
   const animatedY = useRef(new Animated.Value(0)).current;
   const meterHeight = useRef(new Animated.Value(0)).current;
+  const availableRef = useRef(available);
   const currentY = useRef(0);
   const isDragging = useRef(false);
   const startY = useRef(0);
   const lastMeterUpdateRef = useRef(0);
   const latestMeterDbfsRef = useRef(SILENCE_DBFS);
   const currentMeterPercentRef = useRef(0);
+  const onChangeRef = useRef(onChange);
+  const onChangeEndRef = useRef(onChangeEnd);
+
+  useEffect(() => {
+    availableRef.current = available;
+  }, [available]);
+
+  useEffect(() => {
+    onChangeRef.current = onChange;
+  }, [onChange]);
+
+  useEffect(() => {
+    onChangeEndRef.current = onChangeEnd;
+  }, [onChangeEnd]);
 
   const updateFromY = useCallback(
     (y: number, emitEnd = false): void => {
-      const clampedY = Math.max(0, Math.min(available, y));
-      const position = 1 - clampedY / available;
+      const currentAvailable = availableRef.current;
+      const clampedY = Math.max(0, Math.min(currentAvailable, y));
+      const position = 1 - clampedY / currentAvailable;
       const nextLevel = positionToRaw(position);
       currentY.current = clampedY;
       animatedY.setValue(clampedY);
       if (emitEnd) {
-        onChangeEnd(nextLevel);
+        onChangeEndRef.current(nextLevel);
       } else {
-        onChange(nextLevel);
+        onChangeRef.current(nextLevel);
       }
     },
-    [available, onChange, onChangeEnd],
+    [animatedY],
   );
 
   const panResponder: PanResponderInstance = useMemo(
@@ -112,12 +128,19 @@ export const VerticalFader = ({
 
     const position = rawToPosition(level);
     const nextY = (1 - position) * available;
+    const diff = Math.abs(nextY - currentY.current);
     currentY.current = nextY;
-    Animated.spring(animatedY, {
+
+    animatedY.stopAnimation();
+    if (diff < 1) {
+      animatedY.setValue(nextY);
+      return;
+    }
+
+    Animated.timing(animatedY, {
       toValue: nextY,
+      duration: diff < 8 ? 40 : 80,
       useNativeDriver: true,
-      speed: 20,
-      bounciness: 0,
     }).start();
   }, [animatedY, available, level]);
 
