@@ -12,13 +12,15 @@ type PendingRequest<T> = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
-const XREMOTE_RENEW_INTERVAL_MS = 8000;
+const XREMOTE_RENEW_INTERVAL_MS = 5000;
 
 export class OscClient {
   private ip?: string;
   private port = X32Protocol.defaultPort;
   private keepAlive?: ReturnType<typeof setInterval>;
+  private keepAliveRefCount = 0;
   private pending = new Set<PendingRequest<unknown>>();
+  private pendingByAddress = new Map<string, Set<PendingRequest<unknown>>>();
   private subscriptions = new Map<string, Set<(message: OscMessage) => void>>();
   private unsubscribeTransport?: () => void;
 
@@ -26,7 +28,7 @@ export class OscClient {
 
   async connect(ip: string, port = X32Protocol.defaultPort): Promise<void> {
     if (!this.isValidIp(ip)) {
-      throw new AppError('INVALID_IP', 'IP inválido. Use um endereço IPv4 da rede da mesa.');
+      throw new AppError('INVALID_IP', 'IP invalido. Use um endereco IPv4 da rede da mesa.');
     }
 
     this.ip = ip;
@@ -39,12 +41,13 @@ export class OscClient {
   }
 
   disconnect(): void {
-    this.stopXRemoteKeepAlive();
+    this.clearXRemoteKeepAlive();
     this.pending.forEach((request) => {
       clearTimeout(request.timeout);
-      request.reject(new AppError('CONNECTION_LOST', 'Conexão encerrada.'));
+      request.reject(new AppError('CONNECTION_LOST', 'Conexao encerrada.'));
     });
     this.pending.clear();
+    this.pendingByAddress.clear();
     this.unsubscribeTransport?.();
     this.transport.close();
     this.ip = undefined;
@@ -52,7 +55,7 @@ export class OscClient {
 
   async send(address: string, args: OscArg[] = []): Promise<void> {
     if (!this.ip) {
-      throw new AppError('CONNECTION_LOST', 'Cliente OSC não conectado.');
+      throw new AppError('CONNECTION_LOST', 'Cliente OSC nao conectado.');
     }
 
     await this.transport.send(OscEncoder.encode({ address, args }), this.ip, this.port);
@@ -85,12 +88,12 @@ export class OscClient {
           }
 
           isSettled = true;
-          this.pending.delete(pending as PendingRequest<unknown>);
+          this.removePendingRequest(pending as PendingRequest<unknown>);
           reject(new AppError('UDP_TIMEOUT', `Timeout aguardando resposta de ${address}.`));
         }, timeoutMs),
       };
 
-      this.pending.add(pending as PendingRequest<unknown>);
+      this.addPendingRequest(pending as PendingRequest<unknown>);
 
       this.send(address, args).catch((error) => {
         if (isSettled) {
@@ -98,7 +101,7 @@ export class OscClient {
         }
 
         clearTimeout(pending.timeout);
-        this.pending.delete(pending as PendingRequest<unknown>);
+        this.removePendingRequest(pending as PendingRequest<unknown>);
         pending.reject(
           error instanceof AppError
             ? error
@@ -109,7 +112,11 @@ export class OscClient {
   }
 
   startXRemoteKeepAlive(): void {
-    this.stopXRemoteKeepAlive();
+    this.keepAliveRefCount += 1;
+    if (this.keepAlive) {
+      return;
+    }
+
     this.send(X32Protocol.getXRemotePath()).catch(() => undefined);
     this.keepAlive = setInterval(() => {
       this.send(X32Protocol.getXRemotePath()).catch(() => undefined);
@@ -117,10 +124,12 @@ export class OscClient {
   }
 
   stopXRemoteKeepAlive(): void {
-    if (this.keepAlive) {
-      clearInterval(this.keepAlive);
-      this.keepAlive = undefined;
+    this.keepAliveRefCount = Math.max(0, this.keepAliveRefCount - 1);
+    if (this.keepAliveRefCount > 0) {
+      return;
     }
+
+    this.clearXRemoteKeepAlive();
   }
 
   subscribe(address: string, listener: (message: OscMessage) => void): () => void {
@@ -141,16 +150,46 @@ export class OscClient {
 
     this.subscriptions.get(message.address)?.forEach((listener) => listener(message));
 
-    const matchingRequest = [...this.pending].find(
-      (request) => request.address === message.address,
-    );
+    const byAddress = this.pendingByAddress.get(message.address);
+    const matchingRequest = byAddress?.values().next().value as PendingRequest<unknown> | undefined;
     if (!matchingRequest) {
       return;
     }
 
     clearTimeout(matchingRequest.timeout);
-    this.pending.delete(matchingRequest);
+    this.removePendingRequest(matchingRequest);
     matchingRequest.resolve(message as unknown);
+  }
+
+  private addPendingRequest(request: PendingRequest<unknown>): void {
+    this.pending.add(request);
+    const byAddress =
+      this.pendingByAddress.get(request.address) ?? new Set<PendingRequest<unknown>>();
+    byAddress.add(request);
+    this.pendingByAddress.set(request.address, byAddress);
+  }
+
+  private removePendingRequest(request: PendingRequest<unknown>): void {
+    this.pending.delete(request);
+    const byAddress = this.pendingByAddress.get(request.address);
+    if (!byAddress) {
+      return;
+    }
+
+    byAddress.delete(request);
+    if (byAddress.size === 0) {
+      this.pendingByAddress.delete(request.address);
+    }
+  }
+
+  private clearXRemoteKeepAlive(): void {
+    this.keepAliveRefCount = 0;
+    if (!this.keepAlive) {
+      return;
+    }
+
+    clearInterval(this.keepAlive);
+    this.keepAlive = undefined;
   }
 
   private isValidIp(ip: string): boolean {

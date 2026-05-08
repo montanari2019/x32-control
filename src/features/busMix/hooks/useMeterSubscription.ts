@@ -9,8 +9,8 @@ import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDe
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
-// Poll at ~20fps. The X32 responds immediately to each /meters/1 request.
-const POLL_INTERVAL_MS = 50;
+// Poll at ~10fps. This is enough for readable VU meters and cuts UDP traffic in half.
+const POLL_INTERVAL_MS = 100;
 
 const getBlobArg = (message: OscMessage): Uint8Array | null => {
   const [first] = message.args;
@@ -32,6 +32,7 @@ export const useMeterSubscription = (consoleIp: string) => {
     }
 
     let isActive = true;
+    const listeners = listenersRef.current;
 
     const start = async (): Promise<void> => {
       try {
@@ -93,10 +94,11 @@ export const useMeterSubscription = (consoleIp: string) => {
       }
 
       isPollingRef.current = false;
+      clientRef.current?.stopXRemoteKeepAlive();
       clientLeaseRef.current?.release();
       clientLeaseRef.current = null;
       clientRef.current = null;
-      listenersRef.current.clear();
+      listeners.clear();
     };
   }, [consoleIp, isMock]);
 

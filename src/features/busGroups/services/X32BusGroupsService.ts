@@ -6,8 +6,12 @@ import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
 import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { clamp } from '@shared/utils/clamp';
-import { X32HeartbeatService } from '../../../services/x32/X32HeartbeatService';
-import { BusGroupsState, McaAssignedChannel, McaColorToken, McaGroup } from '../types/busGroups.types';
+import {
+  BusGroupsState,
+  McaAssignedChannel,
+  McaColorToken,
+  McaGroup,
+} from '../types/busGroups.types';
 
 const DCA_NUMBERS = [1, 2, 3, 4, 5] as const;
 const MCA_COLOR_TOKENS: Record<(typeof DCA_NUMBERS)[number], McaColorToken> = {
@@ -42,7 +46,6 @@ const buildAssignedChannelsFromIds = (channelIds: number[]): McaAssignedChannel[
   }));
 
 export class X32BusGroupsService {
-  private readonly heartbeat = new X32HeartbeatService();
   private client: OscClient;
   private connectedConsoleIp?: string;
   private sharedLease?: SharedOscClientLease;
@@ -89,9 +92,7 @@ export class X32BusGroupsService {
       return;
     }
 
-    this.heartbeat.start(() => {
-      this.client.send(X32Protocol.getXRemotePath()).catch(() => undefined);
-    });
+    this.client.startXRemoteKeepAlive();
   }
 
   stopHeartbeat(): void {
@@ -99,7 +100,7 @@ export class X32BusGroupsService {
       return;
     }
 
-    this.heartbeat.stop();
+    this.client.stopXRemoteKeepAlive();
   }
 
   async fetchInitialState(busId: number): Promise<BusGroupsState> {

@@ -1,0 +1,56 @@
+Contexto:
+- Foi criada documentacao consolidada em `docs/global` para espelhar a auditoria original de performance do app.
+- O objetivo desta rodada nao foi alterar comportamento de produto, e sim registrar com clareza:
+  - o que da auditoria original ja foi implementado
+  - o que foi implementado parcialmente
+  - o que ainda nao foi implementado
+  - o motivo tecnico dos itens adiados
+
+Arquivo criado:
+- `docs/global/x32-control-performance-auditoria-status.md`
+  - Documento em formato Markdown seguindo a mesma linha da auditoria original.
+  - Estrutura mantida em 13 secoes:
+    - rede e protocolo OSC
+    - carregamento inicial
+    - fila de envio UDP
+    - meters
+    - renderizacao
+    - fader
+    - busgroups
+    - discovery
+    - presets
+    - background sync
+    - memoria
+    - build
+    - resumo priorizado
+  - Cada item recebeu status explicito:
+    - `IMPLEMENTADO`
+    - `IMPLEMENTADO PARCIALMENTE`
+    - `NAO IMPLEMENTADO`
+    - `NAO ALTERADO DE PROPOSITO`
+    - `JA ESTAVA COBERTO`
+  - O documento tambem registra:
+    - base utilizada para a consolidacao
+    - validacoes executadas na rodada de implementacao
+    - proximo passo recomendado
+
+Base usada para escrever a documentacao:
+- Auditoria original enviada como referencia
+- Log tecnico:
+  - `logs/2026-05-08_19-09-39-performance-hardening-safe-improvements.txt`
+- Estado atual dos arquivos de codigo alterados na rodada de hardening
+
+Escopo preservado:
+- Nenhum arquivo de produto foi alterado nesta rodada de documentacao.
+- Nenhuma regra de negocio foi alterada.
+- Nenhuma mudanca visual ou funcional do app foi feita aqui.
+
+Observacoes:
+- `docs/global` nao existia anteriormente como pasta documentada no repositorio e passou a conter esta consolidacao.
+- O documento foi escrito em ASCII para manter compatibilidade com o padrao de edicao adotado nesta sessao.
+
+Proxima validacao recomendada:
+- Revisar o documento com o time para decidir se ele se torna:
+  - referencia permanente de arquitetura/performance
+  - checklist operacional de futuras rodadas
+  - base para abrir tarefas separadas dos itens ainda nao implementados

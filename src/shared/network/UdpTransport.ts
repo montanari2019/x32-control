@@ -33,7 +33,7 @@ export type UdpMessage = {
 export type UdpMessageHandler = (message: UdpMessage) => void;
 export type UdpErrorHandler = (error: AppError) => void;
 
-const SEND_TIMEOUT_MS = 1000;
+const SEND_TIMEOUT_MS = 200;
 
 export class UdpTransport {
   private socket?: UdpSocket;
@@ -41,7 +41,6 @@ export class UdpTransport {
   private errorHandlers = new Set<UdpErrorHandler>();
   private boundPort = 0;
   private bindPromise?: Promise<void>;
-  private sendQueue: Promise<void> = Promise.resolve();
   private broadcastConfigured = false;
   private isBound = false;
   private isClosing = false;
@@ -106,20 +105,15 @@ export class UdpTransport {
   }
 
   async send(data: Buffer, ip: string, port: number): Promise<void> {
-    const sendOperation = this.sendQueue.then(async () => {
-      if (this.isClosing) {
-        throw new AppError('CONNECTION_LOST', 'Transporte UDP esta encerrando.');
-      }
+    if (this.isClosing) {
+      throw new AppError('CONNECTION_LOST', 'Transporte UDP esta encerrando.');
+    }
 
-      if (!this.socket || !this.isBound) {
-        await this.bind(this.boundPort);
-      }
+    if (!this.socket || !this.isBound) {
+      await this.bind(this.boundPort);
+    }
 
-      await this.sendNow(data, ip, port);
-    });
-
-    this.sendQueue = sendOperation.catch(() => undefined);
-    return sendOperation;
+    await this.sendNow(data, ip, port);
   }
 
   onMessage(handler: UdpMessageHandler): () => void {

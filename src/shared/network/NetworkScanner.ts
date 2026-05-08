@@ -67,13 +67,12 @@ export class NetworkScanner {
     return [...devices.values()];
   }
 
-  async validateConsole(ip: string, timeoutMs = 1500): Promise<ConsoleDevice> {
+  async validateConsole(ip: string, timeoutMs = 1200): Promise<ConsoleDevice> {
     const client = this.clientFactory();
 
     try {
       await client.connect(ip, X32Protocol.defaultPort);
       const info = await client.request<OscMessage>(X32Protocol.getInfoPath(), [], timeoutMs);
-      await client.request<OscMessage>(X32Protocol.getStatusPath(), [], timeoutMs);
       return parseInfo(ip, X32Protocol.defaultPort, info);
     } catch (error) {
       if (error instanceof AppError) {

@@ -56,13 +56,13 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
       await service.connect(consoleIp);
       service.startHeartbeat();
       const nextState = await service.fetchInitialState(busId);
-      const normalizedState = {
+      const normalizedState: BusGroupsState = {
         ...nextState,
         mcas: nextState.mcas.map((mca) => ({
           ...mca,
           name: normalizeMcaName(mca.dcaNumber),
-          assignedChannels: [],
-          assignedChannelIds: [],
+          assignedChannels: [] as McaAssignedChannel[],
+          assignedChannelIds: [] as number[],
         })),
       };
       const storedState = await secureStoreService.getDcaState(consoleIp);
