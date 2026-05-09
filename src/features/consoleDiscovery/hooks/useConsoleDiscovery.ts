@@ -26,7 +26,7 @@ export const useConsoleDiscovery = () => {
 
     try {
       const found = await service.scan();
-      setDevices([DEMO_DEVICE, ...found]);
+      setDevices(found.length > 0 ? [...found, DEMO_DEVICE] : [DEMO_DEVICE]);
       if (found.length === 0) {
         setError('Nenhuma X32/M32 respondeu ao broadcast. Verifique a rede e tente novamente.');
       }

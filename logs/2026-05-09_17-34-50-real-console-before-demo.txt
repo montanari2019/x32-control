@@ -1,0 +1,9 @@
+FIX: REAL CONSOLE BEFORE DEMO
+
+Contexto: Demo aparecia antes de console real na tela descoberta.
+Causa: useConsoleDiscovery sempre montava devices como [DEMO_DEVICE, ...found].
+Acao: alterar setDevices p/ usar [...found, DEMO_DEVICE] quando found.length > 0; manter [DEMO_DEVICE] sem reais.
+Resultado: OK; console real renderiza primeiro e demo fica depois quando disponivel.
+Arquivos: src/features/consoleDiscovery/hooks/useConsoleDiscovery.ts.
+Validacao: npx prettier OK; npm test -- --runInBand OK 11 suites/35 tests; git diff --check OK; npm run tsc falha preexistente KeepAwake App.tsx; npm run lint falha eslint nao reconhecido.
+Pontos atencao: validar visual em device real apos scan de rede.
