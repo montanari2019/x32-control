@@ -57,7 +57,24 @@ export class NetworkScanner {
       );
 
       await new Promise<void>((resolve) => {
-        setTimeout(() => resolve(), 900);
+        // Resolve assim que ao menos 1 console for encontrado E o mínimo de 400ms tiver passado.
+        // Fallback: sempre resolve em 900ms.
+        let minPassed = false;
+        const minTimer = setTimeout(() => {
+          minPassed = true;
+          if (devices.size > 0) resolve();
+        }, 400);
+        const maxTimer = setTimeout(() => {
+          clearTimeout(minTimer);
+          resolve();
+        }, 900);
+        const checkInterval = setInterval(() => {
+          if (minPassed && devices.size > 0) {
+            clearTimeout(maxTimer);
+            clearInterval(checkInterval);
+            resolve();
+          }
+        }, 50);
       });
     } finally {
       unsubscribe();

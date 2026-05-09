@@ -14,7 +14,9 @@ export class BusMixChannelStore {
   private readonly listenersByKey = new Map<string, Set<ChannelListener>>();
 
   getSnapshot(consoleIp: string, busNumber: number): Channel[] {
-    return cloneChannels(this.channelsByKey.get(getStoreKey(consoleIp, busNumber)) ?? []);
+    const stored = this.channelsByKey.get(getStoreKey(consoleIp, busNumber));
+    if (!stored) return [];
+    return stored.map((ch) => ({ ...ch }));
   }
 
   async loadChannels(
@@ -93,6 +95,7 @@ export class BusMixChannelStore {
   private setChannelsByKey(key: string, channels: Channel[]): void {
     const nextChannels = cloneChannels(channels);
     this.channelsByKey.set(key, nextChannels);
+    // Passa referência direta — listeners não devem mutar. getSnapshot() clona na leitura.
     this.listenersByKey.get(key)?.forEach((listener) => listener(nextChannels));
   }
 }

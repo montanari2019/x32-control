@@ -7,7 +7,7 @@ type SignalMeterProps = {
   height: number;
 };
 
-const SEGMENTS = 22;
+const SEGMENTS = 10;
 const RED_SEGMENTS = 3;
 const YELLOW_SEGMENTS = 4;
 
@@ -53,8 +53,8 @@ export const SignalMeter = ({ level, height }: SignalMeterProps): JSX.Element =>
           ? reversedIndex < RED_SEGMENTS
             ? styles.red
             : reversedIndex < RED_SEGMENTS + YELLOW_SEGMENTS
-            ? styles.yellow
-            : styles.green
+              ? styles.yellow
+              : styles.green
           : styles.off;
         return <View key={`seg-${index}`} style={[styles.segment, segmentStyle]} />;
       })}

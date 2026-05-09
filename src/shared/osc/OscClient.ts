@@ -61,7 +61,7 @@ export class OscClient {
     await this.transport.send(OscEncoder.encode({ address, args }), this.ip, this.port);
   }
 
-  async request<T>(address: string, args: OscArg[] = [], timeoutMs = 1500): Promise<T> {
+  async request<T>(address: string, args: OscArg[] = [], timeoutMs = 800): Promise<T> {
     return new Promise<T>((resolve, reject) => {
       let isSettled = false;
       const pending: PendingRequest<T> = {

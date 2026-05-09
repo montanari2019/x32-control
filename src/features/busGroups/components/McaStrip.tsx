@@ -11,6 +11,8 @@ type McaStripProps = {
   stripHeight?: number;
 };
 
+const MCA_FADER_DRAG_SENSITIVITY = 0.45;
+
 export const McaStrip = ({
   mca,
   onFaderChange,
@@ -21,6 +23,7 @@ export const McaStrip = ({
   <GroupStrip
     accentColor={colors.mca[mca.colorToken]}
     assignmentCount={mca.assignedChannels.length}
+    dragSensitivity={MCA_FADER_DRAG_SENSITIVITY}
     isFaderDisabled={mca.assignedChannels.length === 0}
     isMuted={mca.isMuted}
     label="MCA"

@@ -4,7 +4,7 @@ export class X32HeartbeatService {
   start(sendOsc: () => void): void {
     this.stop();
     sendOsc();
-    this.interval = setInterval(() => sendOsc(), 9000);
+    this.interval = setInterval(() => sendOsc(), 5000);
   }
 
   stop(): void {

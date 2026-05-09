@@ -9,15 +9,15 @@ import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDe
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
-// Poll around 15fps. This keeps the meter responsive without flooding OSC.
-const POLL_INTERVAL_MS = 66;
+// Poll around 12.5fps. Perceptually equivalent to 15fps for VU meters, 17% less UDP traffic.
+const POLL_INTERVAL_MS = 80;
 
 const getBlobArg = (message: OscMessage): Uint8Array | null => {
   const [first] = message.args;
   return first instanceof Uint8Array ? first : null;
 };
 
-export const useMeterSubscription = (consoleIp: string) => {
+export const useMeterSubscription = (consoleIp: string, enabled = true) => {
   const isMock = isMockConsoleIp(consoleIp);
   const mockProvider = useMemo(() => getMockProviderForIp(consoleIp), [consoleIp]);
   const clientRef = useRef<OscClient | null>(null);
@@ -28,7 +28,7 @@ export const useMeterSubscription = (consoleIp: string) => {
   const isPollingRef = useRef(false);
 
   useEffect(() => {
-    if (isMock) {
+    if (!enabled || isMock) {
       return undefined;
     }
 
@@ -101,12 +101,16 @@ export const useMeterSubscription = (consoleIp: string) => {
       clientRef.current = null;
       listeners.clear();
     };
-  }, [consoleIp, isMock]);
+  }, [consoleIp, enabled, isMock]);
 
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
       if (isMock) {
         return mockProvider.subscribeMeter(channelId, listener);
+      }
+
+      if (!enabled) {
+        return () => undefined;
       }
 
       const listeners = listenersRef.current.get(channelId) ?? new Set<MeterListener>();
@@ -122,7 +126,7 @@ export const useMeterSubscription = (consoleIp: string) => {
         }
       };
     },
-    [isMock, mockProvider],
+    [enabled, isMock, mockProvider],
   );
 
   return { registerMeterListener };

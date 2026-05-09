@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -14,6 +14,7 @@ import { VerticalFader } from './VerticalFader';
 
 type ChannelStripProps = {
   channel: Channel;
+  faderHeight: number;
   registerMeterListener: (
     channelId: number,
     listener: (values: ChannelMeterValues) => void,
@@ -35,6 +36,7 @@ const opacityToAlphaHex = (opacity: number): string =>
 
 const ChannelStripComponent = ({
   channel,
+  faderHeight,
   registerMeterListener,
   onToggleMute,
   onFaderChange,
@@ -46,8 +48,6 @@ const ChannelStripComponent = ({
   const faderDb = x32RawToDb(displayLevel);
   const channelColor = mapX32ColorToUiColor(channel.color ?? 0).backgroundColor;
   const backgroundColor = withAlpha(channelColor, opacityToAlphaHex(channel.backgroundOpacity));
-  const [faderHeight, setFaderHeight] = useState(240);
-  const faderHeightRef = useRef(240);
 
   useEffect(() => {
     if (isDraggingRef.current) {
@@ -56,16 +56,6 @@ const ChannelStripComponent = ({
 
     setDisplayLevel(channel.localFaderRaw);
   }, [channel.localFaderRaw]);
-
-  const handleLayout = useCallback((event: LayoutChangeEvent): void => {
-    const nextHeight = Math.max(180, Math.floor(event.nativeEvent.layout.height));
-    if (nextHeight === faderHeightRef.current) {
-      return;
-    }
-
-    faderHeightRef.current = nextHeight;
-    setFaderHeight(nextHeight);
-  }, []);
 
   const handleFaderChange = useCallback(
     (value: number): void => {
@@ -94,7 +84,7 @@ const ChannelStripComponent = ({
         onPress={onPressBadge}
       />
 
-      <View style={styles.stripBody} onLayout={handleLayout}>
+      <View style={styles.stripBody}>
         <View style={styles.faderRow}>
           {channel.meterChannelId ? (
             <ChannelVuMeter
@@ -128,6 +118,8 @@ export const ChannelStrip = React.memo(
   (prev, next) =>
     prev.channel.localFaderRaw === next.channel.localFaderRaw &&
     prev.channel.on === next.channel.on &&
+    prev.channel.pan === next.channel.pan &&
+    prev.faderHeight === next.faderHeight &&
     prev.channel.name === next.channel.name &&
     prev.channel.label === next.channel.label &&
     prev.channel.color === next.channel.color &&

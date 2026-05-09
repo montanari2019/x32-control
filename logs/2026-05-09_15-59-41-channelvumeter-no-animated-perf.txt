@@ -1,0 +1,9 @@
+PERF: CHANNEL VU METER SEM ANIMATED
+
+Contexto: Tela BusMix ficou lenta; suspeita era Animated/interpolacao por segmento em muitos meters.
+Causa: ChannelVuMeter usava Animated.Value por zona, interpolate p/ cada segmento e timing em updates frequentes.
+Acao: remover Animated/interpolate/peak/clip animado; usar activeSegmentCount quantizado; setState somente quando count muda.
+Resultado: OK; visual segmentado mantido; sem requestAnimationFrame/setInterval/Animated/interpolate no arquivo.
+Arquivos: src/features/busMix/components/ChannelVuMeter.tsx.
+Validacao: rg sem Animated/requestAnimationFrame/setInterval/interpolate; prettier OK; npm test OK 11 suites/35 tests; git diff --check OK; tsc erro preexistente App.tsx KeepAwake.
+Pontos atencao: validar responsividade pressables/scroll em Android real com 48 canais.

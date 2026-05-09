@@ -165,6 +165,7 @@ const createChannelsForBus = (busId: number): Channel[] => [
       'aux',
       AUX_NAMES[index] ?? `Aux ${sourceNumber}`,
       0.2,
+      32 + sourceNumber,
     );
   }),
   ...Array.from({ length: 8 }, (_, index) => {
@@ -178,6 +179,7 @@ const createChannelsForBus = (busId: number): Channel[] => [
       'fxrtn',
       FX_RETURN_NAMES[index] ?? `FX Return ${sourceNumber}`,
       0.3,
+      40 + sourceNumber,
     );
   }),
 ];
@@ -502,8 +504,7 @@ export class MockMixerProvider implements MixerControlProvider {
         mca.assignedChannelIds.includes(channel.number),
       );
 
-      mca.isMuted =
-        assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
+      mca.isMuted = assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
     });
   }
 

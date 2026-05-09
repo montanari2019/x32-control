@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
@@ -14,8 +14,39 @@ import { McaChannelSelectionModal } from '../components/McaChannelSelectionModal
 import { MasterStrip } from '../components/MasterStrip';
 import { McaStrip } from '../components/McaStrip';
 import { useBusGroups } from '../hooks/useBusGroups';
+import { McaGroup } from '../types/busGroups.types';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusGroups'>;
+
+type McaStripItemProps = {
+  mca: McaGroup;
+  onFaderChange: (value: number) => void;
+  onPress: () => void;
+  onToggleMute: () => void;
+  stripHeight: number;
+};
+
+const McaStripItem = React.memo(
+  ({ mca, onFaderChange, onPress, onToggleMute, stripHeight }: McaStripItemProps) => (
+    <McaStrip
+      mca={mca}
+      onFaderChange={onFaderChange}
+      onPress={onPress}
+      onToggleMute={onToggleMute}
+      stripHeight={stripHeight}
+    />
+  ),
+  (prev, next) =>
+    prev.mca.faderRawValue === next.mca.faderRawValue &&
+    prev.mca.isMuted === next.mca.isMuted &&
+    prev.mca.name === next.mca.name &&
+    prev.mca.colorToken === next.mca.colorToken &&
+    prev.mca.assignedChannels.length === next.mca.assignedChannels.length &&
+    prev.stripHeight === next.stripHeight &&
+    prev.onFaderChange === next.onFaderChange &&
+    prev.onPress === next.onPress &&
+    prev.onToggleMute === next.onToggleMute,
+);
 
 export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { consoleIp, busNumber, busName, linkedBusNumber } = route.params;
@@ -37,6 +68,16 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     clearMcaChannels,
     renameMca,
   } = useBusGroups(consoleIp, busNumber);
+  const mcasRef = useRef(mcas);
+  const availableChannelsRef = useRef(availableChannels);
+
+  useEffect(() => {
+    mcasRef.current = mcas;
+  }, [mcas]);
+
+  useEffect(() => {
+    availableChannelsRef.current = availableChannels;
+  }, [availableChannels]);
 
   useEffect(() => {
     if (!error) {
@@ -50,9 +91,61 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     });
   }, [error, showModal]);
 
-  const handleStripsAreaLayout = (event: LayoutChangeEvent): void => {
-    setStripsHeight(Math.max(320, Math.floor(event.nativeEvent.layout.height)));
-  };
+  const handleStripsAreaLayout = useCallback((event: LayoutChangeEvent): void => {
+    const nextHeight = Math.max(320, Math.floor(event.nativeEvent.layout.height));
+    setStripsHeight((current) => (current === nextHeight ? current : nextHeight));
+  }, []);
+
+  const mcaFaderCallbacks = useMemo(
+    () =>
+      new Map<number, (value: number) => void>(
+        mcas.map<[number, (value: number) => void]>((mca) => [
+          mca.dcaNumber,
+          (value: number) => setMcaFader(mca.dcaNumber, value),
+        ]),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mcas.length, setMcaFader],
+  );
+
+  const mcaMuteCallbacks = useMemo(
+    () =>
+      new Map<number, () => void>(
+        mcas.map<[number, () => void]>((mca) => [
+          mca.dcaNumber,
+          () => toggleMcaMute(mca.dcaNumber),
+        ]),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [mcas.length, toggleMcaMute],
+  );
+
+  const mcaPressCallbacks = useMemo(
+    () =>
+      new Map<number, () => void>(
+        mcas.map<[number, () => void]>((mca) => [
+          mca.dcaNumber,
+          () => {
+            const currentMca = mcasRef.current.find((item) => item.dcaNumber === mca.dcaNumber);
+            if (!currentMca) {
+              return;
+            }
+
+            showModal(McaChannelSelectionModal, {
+              accentColor: colors.mca[currentMca.colorToken],
+              channels: availableChannelsRef.current,
+              mca: currentMca,
+              onClearChannels: () => clearMcaChannels(currentMca.dcaNumber),
+              onRename: (name) => renameMca(currentMca.dcaNumber, name),
+              onToggleChannel: (channel) =>
+                toggleMcaChannelAssignment(currentMca.dcaNumber, channel),
+            });
+          },
+        ]),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [clearMcaChannels, mcas.length, renameMca, showModal, toggleMcaChannelAssignment],
+  );
 
   return (
     <Screen style={styles.screen}>
@@ -84,6 +177,11 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                 styles.strips,
                 stripsHeight > 0 ? { minHeight: stripsHeight } : undefined,
               ]}
+              decelerationRate="fast"
+              overScrollMode="never"
+              pagingEnabled={false}
+              removeClippedSubviews={false}
+              scrollEventThrottle={16}
               showsHorizontalScrollIndicator={false}
               style={styles.stripsScroll}
             >
@@ -98,22 +196,12 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
               />
 
               {mcas.map((mca) => (
-                <McaStrip
+                <McaStripItem
                   key={mca.id}
                   mca={mca}
-                  onFaderChange={(value) => setMcaFader(mca.dcaNumber, value)}
-                  onPress={() =>
-                    showModal(McaChannelSelectionModal, {
-                      accentColor: colors.mca[mca.colorToken],
-                      channels: availableChannels,
-                      mca,
-                      onClearChannels: () => clearMcaChannels(mca.dcaNumber),
-                      onRename: (name) => renameMca(mca.dcaNumber, name),
-                      onToggleChannel: (channel) =>
-                        toggleMcaChannelAssignment(mca.dcaNumber, channel),
-                    })
-                  }
-                  onToggleMute={() => toggleMcaMute(mca.dcaNumber)}
+                  onFaderChange={mcaFaderCallbacks.get(mca.dcaNumber)!}
+                  onPress={mcaPressCallbacks.get(mca.dcaNumber)!}
+                  onToggleMute={mcaMuteCallbacks.get(mca.dcaNumber)!}
                   stripHeight={stripsHeight}
                 />
               ))}

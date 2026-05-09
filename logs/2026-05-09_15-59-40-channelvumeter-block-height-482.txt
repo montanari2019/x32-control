@@ -1,0 +1,9 @@
+UI: CHANNEL VU METER BLOCK HEIGHT 4.82
+
+Contexto: Usuario pediu blocos menores e mais blocos; cada bloco height 4.82.
+Causa: Segmentos fixos em 35 blocos ficavam altos demais no fader.
+Acao: substituir qtd fixa por calculo via altura: floor((height+gap)/(4.82+gap)); segment style height 4.82.
+Resultado: OK; meter alto gera mais blocos; preenchimento baixo->cima e ranges mantidos.
+Arquivos: src/features/busMix/components/ChannelVuMeter.tsx.
+Validacao: prettier OK; npm test OK 11 suites/35 tests; git diff --check OK; tsc erro preexistente App.tsx KeepAwake.
+Pontos atencao: ajustar gap se densidade visual ainda ficar alta/baixa.
