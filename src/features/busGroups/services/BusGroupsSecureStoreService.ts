@@ -3,7 +3,6 @@ import { McaAssignedChannel, McaGroup } from '../types/busGroups.types';
 
 type StoredDcaGroup = Pick<McaGroup, 'colorToken' | 'dcaNumber' | 'isMuted' | 'name'> & {
   assignedChannels: McaAssignedChannel[];
-  faderRawValue: number;
 };
 
 type StoredDcaPayload = {
@@ -18,7 +17,6 @@ const toStoredDcaGroup = (mca: McaGroup): StoredDcaGroup => ({
   assignedChannels: mca.assignedChannels.map((channel) => ({ ...channel })),
   colorToken: mca.colorToken,
   dcaNumber: mca.dcaNumber,
-  faderRawValue: mca.faderRawValue,
   isMuted: mca.isMuted,
   name: mca.name,
 });

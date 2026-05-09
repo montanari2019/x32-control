@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { Animated, StyleSheet, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import {
@@ -41,27 +41,52 @@ const ChannelVuMeterComponent = ({
   const currentFillRatiosRef = useRef({ green: 0, red: 0, yellow: 0 });
   const currentClipOpacityRef = useRef(0);
   const currentPeakPxRef = useRef(0);
-  const segmentLayout = getMeterSegmentLayout(height);
+  const heightRef = useRef(height);
+  useEffect(() => {
+    heightRef.current = height;
+  }, [height]);
+  const segmentLayout = useMemo(() => getMeterSegmentLayout(height), [height]);
   const [greenSegment, yellowSegment, redSegment] = segmentLayout;
-  const greenTranslateY = greenScale.interpolate({
-    inputRange: [0, 1],
-    outputRange: [greenSegment.segmentHeight / 2, 0],
-  });
-  const yellowTranslateY = yellowScale.interpolate({
-    inputRange: [0, 1],
-    outputRange: [yellowSegment.segmentHeight / 2, 0],
-  });
-  const redTranslateY = redScale.interpolate({
-    inputRange: [0, 1],
-    outputRange: [redSegment.segmentHeight / 2, 0],
-  });
+  const greenTranslateY = useMemo(
+    () =>
+      greenScale.interpolate({
+        inputRange: [0, 1],
+        outputRange: [greenSegment.segmentHeight / 2, 0],
+      }),
+    [greenScale, greenSegment.segmentHeight],
+  );
+  const yellowTranslateY = useMemo(
+    () =>
+      yellowScale.interpolate({
+        inputRange: [0, 1],
+        outputRange: [yellowSegment.segmentHeight / 2, 0],
+      }),
+    [yellowScale, yellowSegment.segmentHeight],
+  );
+  const redTranslateY = useMemo(
+    () =>
+      redScale.interpolate({
+        inputRange: [0, 1],
+        outputRange: [redSegment.segmentHeight / 2, 0],
+      }),
+    [redScale, redSegment.segmentHeight],
+  );
 
   const syncFillScale = useCallback(
     (animatedValue: Animated.Value, nextRatio: number, previousRatio: number) => {
-      const delta = Math.abs(nextRatio - previousRatio);
       animatedValue.stopAnimation();
 
+      const delta = previousRatio - nextRatio;
+
+      // Sobe ou delta desprezível: setValue direto, sem nó nativo pendente
       if (nextRatio >= previousRatio || delta < METER_RISE_DELTA_THRESHOLD) {
+        animatedValue.setValue(nextRatio);
+        return;
+      }
+
+      // Queda significativa mas pequena: ainda setValue para evitar sobreposição de
+      // timing a 15fps (frame de 66ms vs duração de 75ms geraria callbacks órfãos)
+      if (delta < 0.04) {
         animatedValue.setValue(nextRatio);
         return;
       }
@@ -86,7 +111,7 @@ const ChannelVuMeterComponent = ({
         PEAK_DECAY_PER_FRAME_DB,
       );
       peakStateRef.current = nextPeakState;
-      const nextPeakPx = dbfsToMeterHeight(nextPeakState.peakDb) * height;
+      const nextPeakPx = dbfsToMeterHeight(nextPeakState.peakDb) * heightRef.current;
       const nextClipOpacity = values.preFadeDbfs > METER_YELLOW_MAX_DB ? 1 : 0;
 
       syncFillScale(greenScale, nextFillRatios.green, previousFillRatios.green);
@@ -114,7 +139,7 @@ const ChannelVuMeterComponent = ({
 
       currentFillRatiosRef.current = nextFillRatios;
     },
-    [clipOpacity, greenScale, height, peakOffset, redScale, syncFillScale, yellowScale],
+    [clipOpacity, greenScale, peakOffset, redScale, syncFillScale, yellowScale],
   );
 
   useEffect(

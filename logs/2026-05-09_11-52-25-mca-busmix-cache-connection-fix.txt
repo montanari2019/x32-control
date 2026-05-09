@@ -1,0 +1,79 @@
+Contexto:
+- Foi investigado o bug critico em que qualquer interacao com MCA passava a disparar erro de OSC na tela, com sensacao de perda de conexao e necessidade de reconectar manualmente.
+- Antes de editar, foram revisitadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/06-services-and-auth.md`
+  - `docs/skills/12-feature-structure.md`
+- Tambem foram consultados os logs mais relevantes da trilha:
+  - `logs/2026-05-07_18-19-43-busmix-shared-channel-store.txt`
+  - `logs/2026-05-07_19-55-05-udp-osc-shared-client-lifecycle.txt`
+  - `logs/2026-05-09_09-43-50-mca-fader-local-protection-fix.txt`
+  - `logs/2026-05-09_09-55-16-mca-channel-composition-recalculation-fix.txt`
+  - `logs/2026-05-09_10-01-29-mca-composition-recalc-resync-guard-fix.txt`
+
+Diagnostico:
+- A causa principal nao estava no mock provider, nem no transporte UDP, nem em um path OSC ficticio de MCA.
+- O problema estava no fluxo de carregamento de canais em `src/features/busGroups/hooks/useBusGroups.ts`.
+- O hook `useBusGroups` depende de `BusMixService` para enviar os comandos reais dos canais vinculados ao MCA:
+  - `setChannelFaderInBus`
+  - `setChannelOnInBus`
+- Porem, a conexao do `BusMixService` era feita apenas dentro do loader passado para `busMixChannelStore.loadChannels(...)`.
+- Como o store compartilhado de canais foi introduzido para reutilizar cache entre telas, havia um caso importante:
+  - se os canais daquele `consoleIp + busId` ja estavam em cache
+  - `busMixChannelStore.loadChannels(...)` retornava imediatamente o snapshot cacheado
+  - o loader nao era executado
+  - `busMixService.connect(consoleIp)` nunca acontecia nessa instancia do hook
+- Resultado:
+  - o modal e a UI dos MCAs tinham canais disponiveis normalmente
+  - mas ao mover fader ou mutar MCA, o `McaChannelFaderService` tentava usar um `BusMixService` ainda nao conectado
+  - isso fazia `OscClient.send(...)` falhar com `Cliente OSC nao conectado.`
+  - o erro era promovido para `state.error` da tela de Bus Groups, parecendo uma queda de conexao OSC causada pela interacao do MCA
+- Esse comportamento afetava tanto fluxo real quanto mock, porque sem `connect(consoleIp)` o `BusMixService` nem chegava a entrar em `useMockProvider` quando o cache era reutilizado.
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Ajuste localizado em `loadAvailableChannels`:
+  - `await busMixService.connect(consoleIp)` agora acontece antes de consultar `busMixChannelStore.loadChannels(...)`
+  - o loader continua responsavel apenas por `busMixService.loadChannels(busId)`
+- Efeito:
+  - mesmo quando os canais ja estao em cache, a instancia atual de `BusMixService` fica conectada ao console real ou mock correto
+  - interacoes de MCA passam a reutilizar o cache sem perder a capacidade de enviar comandos validos
+  - o MCA continua enviando apenas para canais reais vinculados, sem reintroduzir envio direto para um path ficticio de MCA
+
+Teste de regressao adicionado:
+- Arquivo alterado:
+  - `__tests__/features/busGroups/hooks/useBusGroups.test.ts`
+- Nova cobertura:
+  - preenche o `busMixChannelStore` antes de montar o hook
+  - valida que `useBusGroups` ainda chama `connectBusMixMock(TEST_CONSOLE_IP)` mesmo com cache hit
+  - valida que `loadChannelsMock` nao precisa ser chamado quando o cache ja existe
+- Isso blinda exatamente o cenario que fazia a interacao do MCA falhar depois.
+
+Escopo preservado:
+- Nao houve alteracao no transporte UDP/OSC global.
+- Nao houve alteracao no `SharedOscClient`.
+- Nao houve alteracao no `BusMixService` de envio.
+- Nao houve alteracao na selecao multipla, no recalc do MCA, no fader local, no Bus Master ou no tratamento global de erro real de conexao.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 11 suites aprovadas
+  - 34 testes aprovados
+- `npm run typecheck`
+  - nao existe neste projeto
+  - foi usado `npm run tsc` como typecheck
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH desta sessao Windows
+
+Ponto de atencao restante:
+- Ainda falta validacao manual em runtime para confirmar visualmente:
+  - abrir em mock
+  - interagir com fader, mute e composicao de canais do MCA
+  - confirmar ausencia de toast/erro de conexao
+  - confirmar que o estado global nao entra em fluxo de reconexao
+- Em mesa real, a validacao recomendada e repetir o mesmo fluxo com um bus ja cacheado para garantir que o problema nao reaparece ao voltar para `BusGroups`.

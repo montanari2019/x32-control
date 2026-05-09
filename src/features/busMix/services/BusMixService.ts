@@ -253,14 +253,17 @@ export class BusMixService {
   }
 
   async setChannelFader(channel: Channel, bus: number, level: number): Promise<void> {
+    await this.setChannelFaderInBus(channel, bus, level);
+  }
+
+  async setChannelFaderInBus(channel: Channel, busId: number, rawValue: number): Promise<void> {
     if (this.useMockProvider) {
-      await this.mockProvider.setChannelFader(channel.number, bus, level);
+      await this.mockProvider.setChannelFader(channel.number, busId, rawValue);
       return;
     }
 
-    const source = this.getSourceDefinition(channel.kind);
-    await this.client.send(source.getLevelPath(channel.sourceNumber, bus), [
-      { type: 'f', value: clamp(level) },
+    await this.client.send(this.getLevelPath(channel, busId), [
+      { type: 'f', value: clamp(rawValue) },
     ]);
   }
 
@@ -288,13 +291,16 @@ export class BusMixService {
   }
 
   async setChannelOn(channel: Channel, bus: number, on: boolean): Promise<void> {
+    await this.setChannelOnInBus(channel, bus, on);
+  }
+
+  async setChannelOnInBus(channel: Channel, busId: number, isOn: boolean): Promise<void> {
     if (this.useMockProvider) {
-      await this.mockProvider.setChannelOn(channel.number, bus, on);
+      await this.mockProvider.setChannelOn(channel.number, busId, isOn);
       return;
     }
 
-    const source = this.getSourceDefinition(channel.kind);
-    await this.client.send(source.getOnPath(channel.sourceNumber, bus), [on ? 1 : 0]);
+    await this.client.send(this.getOnPath(channel, busId), [isOn ? 1 : 0]);
   }
 
   async setChannelPan(channel: Channel, bus: number, pan: number): Promise<void> {
@@ -316,6 +322,14 @@ export class BusMixService {
     }
 
     return source;
+  }
+
+  private getLevelPath(channel: Channel, busId: number): string {
+    return this.getSourceDefinition(channel.kind).getLevelPath(channel.sourceNumber, busId);
+  }
+
+  private getOnPath(channel: Channel, busId: number): string {
+    return this.getSourceDefinition(channel.kind).getOnPath(channel.sourceNumber, busId);
   }
 
   private async safeRequestString(path: string, fallback: string): Promise<string> {

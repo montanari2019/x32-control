@@ -82,6 +82,8 @@ export const VerticalFader = ({
     () =>
       PanResponder.create({
         onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
+        onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
           startY.current = currentY.current;
@@ -96,6 +98,7 @@ export const VerticalFader = ({
         onPanResponderTerminate: () => {
           isDragging.current = false;
         },
+        onShouldBlockNativeResponder: () => true,
       }),
     [updateFromY],
   );

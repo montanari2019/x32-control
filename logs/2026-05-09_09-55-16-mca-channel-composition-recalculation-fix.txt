@@ -1,0 +1,69 @@
+Contexto:
+- Foi investigado o comportamento em que a composicao do MCA mudava no modal de selecao de canais, mas o valor do grupo e a posicao do fader nao eram recalculados corretamente.
+- Exemplo relatado:
+  - MCA com 1 canal em aproximadamente `-1 dB`
+  - fader do MCA refletia esse valor
+  - novos canais eram adicionados ao grupo
+  - a composicao persistia, mas o MCA continuava visualmente e logicamente como se nada tivesse mudado
+- Antes de editar, foram revisadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/08-components-and-shared.md`
+  - `docs/skills/12-feature-structure.md`
+- Tambem foram consultados os logs recentes da trilha de MCA:
+  - `logs/2026-05-09_09-43-50-mca-fader-local-protection-fix.txt`
+  - `logs/2026-05-09_09-48-56-mca-multi-channel-selection-persistence-fix.txt`
+
+Diagnostico:
+- O hook `useBusGroups` ja tinha a funcao `computeMcaFaderValue`, mas a atualizacao da composicao do MCA ainda dependia demais do ciclo posterior de render/sincronizacao.
+- Em especial, o fluxo de alteracao de canais ainda espalhava responsabilidades entre:
+  - calcular a nova lista
+  - atualizar state
+  - esperar refs/effects sincronizarem depois
+- Isso deixava a composicao do grupo correta no estado persistido, mas o snapshot em memoria usado imediatamente pelo proprio hook podia permanecer defasado por um curto intervalo.
+- Consequencia:
+  - a lista de canais mudava
+  - mas o valor derivado do MCA nem sempre era reposicionado com a nova composicao no mesmo passo logico
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Foi criada a funcao localizada `applyAssignedChannelsToMca`.
+- Essa funcao passou a ser o caminho unico para atualizacao da composicao do MCA quando canais sao adicionados/removidos.
+- O fluxo agora faz no mesmo passo:
+  - cancelar qualquer envio pendente do fader proporcional do MCA
+  - recalcular `faderRawValue` via `computeMcaFaderValue`
+  - atualizar imediatamente `mcasRef.current`
+  - atualizar `mcaFaderValuesRef`
+  - atualizar `state.mcas`
+  - sincronizar provider mock/demo quando existir
+- `toggleMcaChannelAssignment` passou a delegar para `applyAssignedChannelsToMca`.
+- `clearMcaChannels` tambem passou a reutilizar a mesma funcao.
+
+Resultado esperado:
+- Ao adicionar canais ao MCA, o valor derivado do grupo e recalculado imediatamente.
+- O fader do MCA e reposicionado conforme a nova media dos canais vinculados.
+- Ao remover canais, o recalc tambem acontece imediatamente com base apenas nos canais restantes.
+- Movimentos futuros do fader continuam usando a composicao atualizada do grupo.
+
+Escopo preservado:
+- Nao foi alterada a logica do Bus Master.
+- Nao foi alterada a correcao anterior do fader do MCA contra retorno automatico.
+- Nao foi alterada a persistencia multipla dos canais do modal.
+- Nao houve reescrita do modal nem da feature inteira.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 10 suites aprovadas
+  - 30 testes aprovados
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH nesta sessao Windows
+
+Ponto de atencao restante:
+- Ainda falta validacao manual em runtime para confirmar visualmente:
+  - reposicionamento imediato do fader ao adicionar/remover canais
+  - proporcionalidade correta ao mover o MCA apos a nova composicao
+  - ausencia de regressao no bug anterior de selecao multipla e no bug de retorno do fader

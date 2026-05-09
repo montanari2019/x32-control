@@ -1,0 +1,9 @@
+[FIX: ANDROID BUILD RNSCREENS KOTLIN]
+
+Contexto: Build Android falhava em `:react-native-screens:compileDebugKotlin` no fluxo `yarn android`.
+Causa: `react-native 0.78.1` estava c/ `react-native-screens 3.34.0`, combinação incompatível p/ RN 0.78.x e codegen/Kotlin atual.
+Ação: update dep `react-native-screens` de `3.34.0` p/ `4.9.1` via `yarn add`; `gradlew clean`; `gradlew app:assembleDevelopDebug`; `yarn android`.
+Resultado: OK; build `developDebug` montou, APK instalou e app abriu no device.
+Arquivos: package.json; yarn.lock.
+Validação: `yarn android` OK; `android\\gradlew.bat app:assembleDevelopDebug` OK; `yarn test --runInBand` OK; `yarn tsc` Erro; `yarn lint` Erro.
+Pontos atenção: `newArchEnabled=false`; warnings de Manifest/Metro/Kotlin deprecated seguem como ruído e não bloquearam build; `yarn tsc` falha por tipagem antiga de `react-native-keep-awake` em `src/app/App.tsx`; `yarn lint` falha porque `eslint` não está disponível no PATH atual.

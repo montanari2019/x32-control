@@ -1,0 +1,55 @@
+Contexto:
+- Foi investigado o bug em que o fader do MCA respondia minimamente ao arraste e depois voltava para a posicao anterior, impedindo o controle real do grupo.
+- Antes de editar, foram revisadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/08-components-and-shared.md`
+  - `docs/skills/12-feature-structure.md`
+- Tambem foram consultados os logs historicos de `busGroups` e MCA, com atencao especial para:
+  - `logs/2026-05-07_10-28-43-busgroups-mca-fader-gesture-fix.txt`
+  - `logs/2026-05-07_18-19-43-busmix-shared-channel-store.txt`
+  - `logs/2026-05-08_23-40-27-demo-busgroups-stateful-fix.txt`
+
+Diagnostico:
+- A causa principal nao estava no gesto em si, e sim na sincronizacao externa do valor do MCA.
+- Em `src/features/busGroups/hooks/useBusGroups.ts`, o `setMcaFader` atualizava o valor local do MCA corretamente.
+- Porem, a subscription de `busMixChannelStore` recalculava `faderRawValue` do MCA pela media dos canais agrupados logo em seguida.
+- Como o ajuste proporcional dos canais e feito em dB e a exibicao do MCA estava sendo rederivada via media raw, essa sincronizacao externa podia sobrescrever o valor local recem-escolhido pelo usuario durante o arraste.
+- Resultado pratico:
+  - o usuario arrastava
+  - o valor local mudava
+  - a sincronizacao externa recalculava cedo demais
+  - o thumb voltava ou parecia preso perto do valor original
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Foi adicionada protecao local por janela curta para mudancas do MCA:
+  - `MCA_LOCAL_PROTECTION_WINDOW_MS = 250`
+  - `mcaLastLocalChangeAtRef`
+- Sempre que `setMcaFader` recebe um novo valor local:
+  - registra timestamp da ultima interacao manual do MCA
+  - mantem o valor visual escolhido pelo usuario
+- Na subscription de `busMixChannelStore`:
+  - o recalc da media do MCA agora e ignorado temporariamente para MCAs com mudanca local recente
+  - isso impede que a sincronizacao externa sobrescreva o gesto enquanto o usuario arrasta ou logo apos soltar
+
+Resultado esperado:
+- O fader do MCA acompanha o gesto normalmente.
+- O valor nao volta mais imediatamente para a posicao anterior.
+- O volume proporcional dos canais continua sendo atualizado pelo fluxo existente.
+- O Bus Master continua usando o comportamento anterior, sem impacto desta protecao.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 10 suites aprovadas
+  - 30 testes aprovados
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH nesta sessao Windows
+
+Observacao:
+- Esta rodada foi focada em impedir que valores externos sobrescrevam o gesto local do MCA.
+- Nao houve alteracao na logica do Bus Master.

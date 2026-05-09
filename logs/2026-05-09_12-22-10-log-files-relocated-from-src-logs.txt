@@ -1,0 +1,20 @@
+Contexto:
+- Foi solicitada a organizacao dos arquivos que ainda estavam em `src/logs` para o diretorio padrao do projeto:
+  - `C:\\Users\\Montanari\\Desktop\\projects-montanari-soft\\x32-control\\logs`
+- O objetivo foi manter o mesmo padrao ja adotado nos logs existentes:
+  - `YYYY-MM-DD_HH-mm-ss-descricao.txt`
+
+Arquivos movidos:
+- `src/logs/mca-bugfix.log`
+  -> `logs/2026-05-09_11-43-47-mca-fader-and-mute-bugfix.txt`
+
+- `src/logs/mca-proportional-fader.log`
+  -> `logs/2026-05-09_09-31-51-mca-proportional-fader.txt`
+
+Resultado:
+- Os dois arquivos foram realocados para `logs/` com nome padronizado.
+- O diretorio `src/logs` foi removido apos ficar vazio.
+
+Validacao:
+- Confirmado que `src/logs` nao existe mais.
+- Confirmado que os arquivos movidos agora aparecem em `logs/`.

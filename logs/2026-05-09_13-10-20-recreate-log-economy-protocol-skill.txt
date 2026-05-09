@@ -1,0 +1,9 @@
+[RECREATE LOG ECONOMY PROTOCOL SKILL]
+
+Contexto: arquivo da skill `docs/skills/19-logs-create.md` havia sido apagado.
+Causa: índice ainda referenciava skill, mas arquivo local estava ausente.
+Ação: recriado `docs/skills/19-logs-create.md` c/ conteúdo completo Log Economy Protocol; mantido índice existente sem nova alteração.
+Resultado: OK; skill restaurada e novamente disponível em `docs/skills`.
+Arquivos: docs/skills/19-logs-create.md.
+Validação: verificação local existência arquivo OK.
+Pontos atenção: se quiser, posso também renomear skill p/ nome mais explícito mantendo ref do índice alinhada.

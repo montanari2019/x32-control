@@ -1,0 +1,14 @@
+[2026-05-09 17:00:40 UTC]
+Task: fixar versao do Node para o projeto via nvm
+
+Files created:
+- .nvmrc
+
+Decision:
+- Versao definida: 24.15.0
+- Motivo: ambiente atual do projeto ja validado com Node v24.15.0 e esta linha esta em LTS ativo
+
+Usage:
+- nvm install 24.15.0
+- nvm use 24.15.0
+- Em shells com suporte a .nvmrc: nvm use

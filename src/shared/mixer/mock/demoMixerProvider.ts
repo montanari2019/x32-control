@@ -237,6 +237,7 @@ export class DemoMixerProvider implements MixerControlProvider {
   private readonly masterOnListeners = new Map<number, Set<Listener<boolean>>>();
 
   private meterInterval?: ReturnType<typeof setInterval>;
+  private readonly meterStateByChannel = new Map<number, ChannelMeterValues>();
 
   async connect(_consoleIp: string): Promise<void> {
     return Promise.resolve();
@@ -247,6 +248,8 @@ export class DemoMixerProvider implements MixerControlProvider {
       clearInterval(this.meterInterval);
       this.meterInterval = undefined;
     }
+
+    this.meterStateByChannel.clear();
   }
 
   async scanConsoles(): Promise<ConsoleDevice[]> {
@@ -305,6 +308,7 @@ export class DemoMixerProvider implements MixerControlProvider {
     const channel = this.getMutableChannel(busId, channelId);
     if (channel) {
       channel.on = isOn;
+      this.syncMcaMuteStatesForBus(busId);
     }
   }
 
@@ -326,6 +330,24 @@ export class DemoMixerProvider implements MixerControlProvider {
 
     mca.isMuted = !isOn;
     this.dcaOnListeners.get(dcaNumber)?.forEach((listener) => listener(mca.isMuted));
+  }
+
+  setMcaFaderValue(dcaNumber: number, value: number): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.faderRawValue = clamp(value);
+  }
+
+  setMcaMuted(dcaNumber: number, isMuted: boolean): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.isMuted = isMuted;
   }
 
   async setBusMasterFader(busId: number, value: number): Promise<void> {
@@ -465,43 +487,68 @@ export class DemoMixerProvider implements MixerControlProvider {
     const burst = pseudoRandom(channelId * 17 + frameBucket * 13);
     const accent = pseudoRandom(channelId * 31 + frameBucket * 7);
     const drop = pseudoRandom(channelId * 47 + Math.floor(frameBucket / 2) * 5);
+    const previous = this.meterStateByChannel.get(channelId);
 
-    const floorDb = -58 + activity * 10;
-    const rangeDb = 18 + activity * 32;
-    let preFadeDb = floorDb + burst * rangeDb;
-
-    if (accent > 0.86) {
-      preFadeDb += 5 + activity * 4;
-    }
+    const floorDb = -56 + activity * 8;
+    const rangeDb = 12 + activity * 18;
+    let preFadeDbTarget = floorDb + burst * rangeDb + (accent - 0.5) * 3;
 
     if (accent > 0.985) {
-      preFadeDb += 7 + activity * 6;
+      preFadeDbTarget += 4 + activity * 3;
     }
 
-    if (drop < 0.12) {
-      preFadeDb -= 8 + (1 - activity) * 8;
+    if (drop < 0.06) {
+      preFadeDbTarget -= 4 + (1 - activity) * 4;
     }
 
-    preFadeDb = isOn ? clamp(preFadeDb, -60, 10) : -60;
+    preFadeDbTarget = isOn ? clamp(preFadeDbTarget, -60, 8) : -60;
 
     const postFactor = isOn ? Math.max(activity * dcaGain, 0) : 0;
-    const postFadeDb =
+    const postFadeDbTarget =
       postFactor <= 0.001
         ? -60
-        : clamp(preFadeDb + 20 * Math.log10(Math.max(postFactor, 0.08)), -60, 10);
-    const gateGrDb = isOn ? clamp(-2 - pseudoRandom(channelId * 59 + frameBucket) * 6, -10, 0) : 0;
-    const dynGrDb = isOn
-      ? clamp(-1 - pseudoRandom(channelId * 71 + frameBucket * 3) * 5, -9, 0)
+        : clamp(preFadeDbTarget + 20 * Math.log10(Math.max(postFactor, 0.12)), -60, 8);
+    const gateGrDbTarget = isOn
+      ? clamp(-2 - pseudoRandom(channelId * 59 + frameBucket) * 4, -8, 0)
+      : 0;
+    const dynGrDbTarget = isOn
+      ? clamp(-1 - pseudoRandom(channelId * 71 + frameBucket * 3) * 3.5, -7, 0)
       : 0;
 
-    return {
-      preFadeDbfs: preFadeDb,
-      postFadeDbfs: postFadeDb,
-      preFadeDb,
-      postFadeDb,
-      gateGrDb,
-      dynGrDb,
+    const nextValues = {
+      preFadeDbfs: this.smoothMeterValue(
+        previous?.preFadeDbfs ?? preFadeDbTarget,
+        preFadeDbTarget,
+        0.24,
+        0.14,
+      ),
+      postFadeDbfs: this.smoothMeterValue(
+        previous?.postFadeDbfs ?? postFadeDbTarget,
+        postFadeDbTarget,
+        0.28,
+        0.16,
+      ),
+      preFadeDb: 0,
+      postFadeDb: 0,
+      gateGrDb: this.smoothMeterValue(
+        previous?.gateGrDb ?? gateGrDbTarget,
+        gateGrDbTarget,
+        0.22,
+        0.16,
+      ),
+      dynGrDb: this.smoothMeterValue(
+        previous?.dynGrDb ?? dynGrDbTarget,
+        dynGrDbTarget,
+        0.22,
+        0.16,
+      ),
     };
+
+    nextValues.preFadeDb = nextValues.preFadeDbfs;
+    nextValues.postFadeDb = nextValues.postFadeDbfs;
+    this.meterStateByChannel.set(channelId, nextValues);
+
+    return nextValues;
   }
 
   private getDcaGainForChannel(channelId: number): number {
@@ -513,6 +560,27 @@ export class DemoMixerProvider implements MixerControlProvider {
       return 0;
     }
     return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.1), 1);
+  }
+
+  private smoothMeterValue(
+    current: number,
+    target: number,
+    attack: number,
+    release: number,
+  ): number {
+    const ratio = target >= current ? attack : release;
+    return clamp(current + (target - current) * ratio, -60, 10);
+  }
+
+  private syncMcaMuteStatesForBus(busId: number): void {
+    this.mcas.forEach((mca) => {
+      const assignedChannels = (this.busChannels.get(busId) ?? []).filter((channel) =>
+        mca.assignedChannelIds.includes(channel.number),
+      );
+
+      mca.isMuted =
+        assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
+    });
   }
 
   private emitChannelLevel(channelId: number, busId: number, value: number): void {

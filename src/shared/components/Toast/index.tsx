@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { ModalPropsType } from '@shared/components/Modal';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -85,36 +85,40 @@ const Toast = ({
     return () => clearTimeout(timeoutId);
   }, [onDismiss, timeToCloseInMilliseconds, visible]);
 
+  if (!isModalVisible) {
+    return <></>;
+  }
+
   return (
-    <Modal transparent visible={isModalVisible} animationType="none" onRequestClose={onDismiss}>
-      <View pointerEvents="box-none" style={styles.overlay}>
-        <Animated.View
+    <View pointerEvents="box-none" style={styles.overlay}>
+      <Animated.View
+        pointerEvents="box-none"
+        style={[
+          styles.wrapper,
+          {
+            opacity,
+            transform: [{ translateY }],
+          },
+        ]}
+      >
+        <Pressable
+          disabled={!dismissible}
+          onPress={dismissible ? onDismiss : undefined}
+          pointerEvents="auto"
           style={[
-            styles.wrapper,
-            {
-              opacity,
-              transform: [{ translateY }],
-            },
+            styles.card,
+            { backgroundColor: palette.background, borderColor: palette.accent },
           ]}
         >
-          <Pressable
-            disabled={!dismissible}
-            onPress={dismissible ? onDismiss : undefined}
-            style={[
-              styles.card,
-              { backgroundColor: palette.background, borderColor: palette.accent },
-            ]}
-          >
-            <View style={[styles.marker, { backgroundColor: palette.accent }]} />
-            <View style={styles.content}>
-              <Text style={[styles.kicker, { color: palette.accent }]}>{palette.label}</Text>
-              <Text style={styles.title}>{title}</Text>
-              <Text style={styles.message}>{message}</Text>
-            </View>
-          </Pressable>
-        </Animated.View>
-      </View>
-    </Modal>
+          <View style={[styles.marker, { backgroundColor: palette.accent }]} />
+          <View style={styles.content}>
+            <Text style={[styles.kicker, { color: palette.accent }]}>{palette.label}</Text>
+            <Text style={styles.title}>{title}</Text>
+            <Text style={styles.message}>{message}</Text>
+          </View>
+        </Pressable>
+      </Animated.View>
+    </View>
   );
 };
 
@@ -153,11 +157,12 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   overlay: {
+    ...StyleSheet.absoluteFillObject,
     alignItems: 'flex-end',
-    flex: 1,
     justifyContent: 'flex-start',
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+    zIndex: 999,
   },
   title: {
     color: colors.text.primary,
