@@ -9,7 +9,7 @@ const path = require('path');
 const fs = require('fs');
 
 // SVG source: waveform/equalizer icon
-const BACKGROUND_COLOR = '#851fea';
+const BACKGROUND_COLOR = '#35C2FF';
 const ICON_COLOR = '#ffffff';
 const PADDING_RATIO = 0.2; // 20% padding on each side
 const MARK_PATH = 'M3 11V13M6 8V16M9 10V14M12 7V17M15 4V20M18 9V15M21 11V13';

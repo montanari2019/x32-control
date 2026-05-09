@@ -1,0 +1,60 @@
+Contexto:
+- Foi investigado o bug no modal de selecao de canais do MCA em que a UI permitia marcar varios canais, mas ao persistir/restaurar apenas o ultimo canal selecionado permanecia vinculado ao MCA.
+- Antes de editar, foram revisadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/08-components-and-shared.md`
+  - `docs/skills/12-feature-structure.md`
+- Tambem foram consultados os logs historicos da feature, com foco em:
+  - `logs/2026-05-07_09-54-55-busgroups-mca-channel-selection.txt`
+  - `logs/2026-05-07_18-19-43-busmix-shared-channel-store.txt`
+  - `logs/2026-05-08_23-40-27-demo-busgroups-stateful-fix.txt`
+
+Diagnostico:
+- A causa principal nao estava na persistencia em si nem no estado visual local `selectedIds` do modal.
+- O problema estava em `src/features/busGroups/hooks/useBusGroups.ts`, na callback `toggleMcaChannelAssignment`.
+- O modal de MCA e aberto via `showModal`, e os logs anteriores ja registravam que esse sistema trabalha com snapshot de props/callbacks no momento da abertura.
+- A callback `onToggleChannel` chegava ao modal carregando uma closure antiga de `state.mcas`.
+- Resultado:
+  - no primeiro toque, a selecao era aplicada corretamente
+  - nos toques seguintes, a callback recalculava a lista a partir do estado congelado de quando o modal abriu
+  - isso fazia cada nova selecao sobrescrever a anterior, preservando na pratica apenas o ultimo canal
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Foi adicionada uma ref com o estado mais recente dos MCAs:
+  - `mcasRef`
+- A ref agora e sincronizada sempre que `state.mcas` muda.
+- `toggleMcaChannelAssignment` deixou de ler `state.mcas` da closure do callback e passou a resolver o MCA atual usando `mcasRef.current`.
+- Com isso, cada toggle de canal passa a partir da lista mais recente de `assignedChannels`, mesmo com o modal aberto e usando callbacks congeladas pelo provider.
+
+Resultado esperado:
+- Selecionar um canal continua funcionando como antes.
+- Selecionar varios canais no mesmo modal preserva todos os canais ja marcados.
+- Desmarcar um canal remove apenas aquele canal.
+- Ao reabrir o modal, todos os canais persistidos do MCA aparecem selecionados.
+- Cada MCA continua mantendo sua propria lista independente.
+
+Escopo preservado:
+- Nenhuma alteracao foi feita no comportamento visual do modal.
+- Nao foi alterada a logica do fader do MCA.
+- Nao foi alterada a logica do Bus Master.
+- Nao foi alterada a estrutura persistida de `assignedChannels`.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 10 suites aprovadas
+  - 30 testes aprovados
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH nesta sessao Windows
+
+Observacao:
+- Nao foi possivel validar manualmente por runtime nesta sessao.
+- O principal ponto de atencao restante e confirmar no app que:
+  - selecao multipla persiste ao fechar e reabrir o modal
+  - MCAs diferentes mantem listas independentes
+  - nao houve regressao no fader do MCA apos a rodada anterior

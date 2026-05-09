@@ -1,0 +1,26 @@
+[2026-05-09 16:31:33 UTC]
+Correção de bug — ChannelVuMeter: Excessive pending callbacks NativeAnimatedModule
+
+ARQUIVO MODIFICADO: src/features/busMix/components/ChannelVuMeter.tsx
+
+  PROBLEMA A — updateMeter recriava a cada mudança de height:
+    - Adicionado heightRef (useRef + useEffect de sincronização)
+    - updateMeter: substituído `height` por `heightRef.current` em nextPeakPx
+    - updateMeter: removido `height` da lista de dependências do useCallback
+    - Efeito: listener de meter não é re-registrado quando layout muda a altura;
+      animações Animated.timing pendentes do listener anterior não ficam órfãs
+
+  PROBLEMA B — Animated.timing sobrepostos a 15fps:
+    - syncFillScale: adicionado guard `delta < 0.04` que usa setValue
+      em vez de criar timing quando a queda é menor que 4%
+    - Efeito: elimina criação de nós nativos que seriam cancelados no próximo frame
+
+  PROBLEMA C — segmentLayout e interpolações recriados a cada render:
+    - import de react: adicionado useMemo
+    - segmentLayout: envolto em useMemo([height])
+    - greenTranslateY, yellowTranslateY, redTranslateY: cada um envolto
+      em useMemo individual com dependências nas Animated.Values e segmentHeight
+    - Efeito: nós de interpolação nativa criados uma única vez por altura;
+      não acumulam na bridge a cada re-render externo
+
+ARQUIVOS NÃO MODIFICADOS: todos os demais

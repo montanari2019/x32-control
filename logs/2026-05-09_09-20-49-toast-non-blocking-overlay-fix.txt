@@ -1,0 +1,65 @@
+Contexto:
+- Foi investigado o bug em que o Toast global da aplicacao bloqueava completamente a interacao do usuario com a tela enquanto estava visivel.
+- O comportamento percebido batia com um overlay fullscreen interceptando todos os toques.
+- Antes de editar, foram lidas as skills:
+  - `docs/skills/09-modals-dialogs-toast.md`
+  - `docs/skills/17-modal-dialog-toast.md`
+- Tambem foi revisitado o log original da implantacao do sistema:
+  - `logs/2026-05-06_09-32-58-modal-dialog-toast-system.txt`
+
+Diagnostico:
+- O problema estava em `src/shared/components/Toast/index.tsx`.
+- O Toast estava sendo renderizado com `react-native` `Modal`.
+- Mesmo com `pointerEvents="box-none"` no `View` interno, o `Modal` cria uma camada fullscreen propria fora da arvore normal da tela e acaba sequestrando a interacao do restante da UI enquanto fica aberto.
+- Para Dialogs isso faz sentido, porque eles precisam bloquear o fundo.
+- Para Toast isso contraria o comportamento esperado do projeto, porque Toast deve ser apenas um overlay visual temporario.
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/shared/components/Toast/index.tsx`
+- Removido o uso de `Modal` nativo apenas do Toast.
+- O Toast passou a ser renderizado como overlay absoluto dentro da propria arvore do app, aproveitando que o `ModalProvider` ja o monta globalmente no fim da hierarquia.
+- O container externo agora usa:
+  - `pointerEvents="box-none"`
+  - `StyleSheet.absoluteFillObject`
+  - `zIndex` alto
+- O wrapper animado tambem usa:
+  - `pointerEvents="box-none"`
+- Apenas o card real do toast continua capturando toque com:
+  - `pointerEvents="auto"`
+  - `Pressable`
+- O ciclo de vida visual foi preservado:
+  - entrada animada
+  - saida animada
+  - auto-dismiss
+  - dismiss manual ao tocar no proprio toast quando `dismissible`
+- Tambem foi preservada a estrategia de manter o componente montado apenas durante a animacao de saida via `isModalVisible`.
+
+Resultado esperado:
+- O Toast continua aparecendo acima da interface.
+- A area transparente fora do card nao bloqueia mais botao, fader, menu ou qualquer outra interacao da tela.
+- Apenas a area real do Toast continua clicavel.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+- `npx eslint src/shared/components/Toast/index.tsx --ext .ts,.tsx --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `npx` tentou resolver `eslint` externamente e falhou com `EACCES`
+- Tambem foi verificado que neste workspace nao existe `node_modules/.bin/eslint`, entao nao foi possivel rodar o lint segmentado localmente sem depender da rede.
+
+Escopo preservado:
+- Nenhuma alteracao foi feita em `Dialog`, `AlertDialog` ou `ModalProvider`.
+- Nao foi alterado o comportamento de overlays que precisam bloquear o fundo.
+- Nao houve alteracao em navegacao, BusMix, BusGroups, discovery, presets ou OSC.
+
+Pendencia recomendada:
+- Validar manualmente no app:
+  - abrir um toast
+  - clicar em botoes, faders e menus com o toast visivel
+  - confirmar que a interacao segue funcionando normalmente
+  - confirmar que tocar no proprio toast ainda fecha quando aplicavel

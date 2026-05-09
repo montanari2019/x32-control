@@ -1,0 +1,66 @@
+Contexto:
+- Foi revisada a trilha recente de MCA em `logs/` para seguir a implementacao existente sem regressao, com foco em:
+  - `2026-05-09_09-43-50-mca-fader-local-protection-fix.txt`
+  - `2026-05-09_09-48-56-mca-multi-channel-selection-persistence-fix.txt`
+  - `2026-05-09_09-55-16-mca-channel-composition-recalculation-fix.txt`
+- Tambem foram revisitadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/12-feature-structure.md`
+  - `docs/skills/17-modal-dialog-toast.md`
+
+Problema refinado desta rodada:
+- A composicao do MCA ja vinha sendo recalculada quando canais eram adicionados/removidos.
+- Porem, ainda existia um ponto cego entre:
+  - a protecao local contra sobrescrita do fader logo apos um drag do MCA
+  - e a mudanca posterior da composicao do grupo no modal
+- Na pratica, se o usuario movesse o fader do MCA e logo depois alterasse os canais vinculados, a janela de protecao local podia continuar ativa por alguns milissegundos e segurar um recalc legitimo vindo do `busMixChannelStore` ja com a nova composicao.
+
+Diagnostico:
+- O hook `src/features/busGroups/hooks/useBusGroups.ts` usa `mcaLastLocalChangeAtRef` para impedir que sincronizacoes externas sobrescrevam o gesto local do usuario.
+- Isso estava correto para o bug do "fader voltando sozinho".
+- Mas, quando a composicao do MCA mudava, essa mesma marca temporal antiga podia permanecer ativa mesmo depois de `applyAssignedChannelsToMca` recalcular o grupo.
+- Resultado:
+  - a composicao mudava
+  - o valor imediato do MCA era recalculado
+  - mas uma sincronizacao valida do store, logo em seguida, ainda podia ser ignorada por causa da protecao herdada do drag anterior
+
+Correcao aplicada:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Ajuste localizado:
+  - `applyAssignedChannelsToMca` agora limpa `mcaLastLocalChangeAtRef` do MCA antes de aplicar a nova composicao.
+- Efeito pratico:
+  - ao adicionar ou remover canais no modal, o MCA passa a tratar essa composicao como uma nova base valida
+  - recalc posteriores do `busMixChannelStore` deixam de ser bloqueados por uma protecao local antiga
+  - isso preserva a correcao do drag do fader, mas libera a ressincronizacao correta depois da troca de canais
+
+Blindagem de regressao adicionada:
+- Arquivo criado:
+  - `__tests__/features/busGroups/hooks/useBusGroups.test.ts`
+- Coberturas adicionadas:
+  - recalc imediato do fader do MCA ao adicionar novos canais
+  - ressincronizacao correta do MCA com o store mesmo logo apos um drag local
+  - retorno do fader para o valor default quando todos os canais sao removidos
+
+Escopo preservado:
+- Nenhuma alteracao foi feita no Bus Master.
+- Nenhuma alteracao foi feita na selecao multipla do modal.
+- Nenhuma alteracao foi feita na logica proporcional dos canais alem do ajuste de ressincronizacao.
+- Nenhuma alteracao foi feita na persistencia local dos MCAs alem do fluxo ja existente.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 11 suites aprovadas
+  - 33 testes aprovados
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH desta sessao Windows
+
+Resultado esperado apos esta rodada:
+- Ao adicionar canais ao MCA, o fader continua sendo reposicionado imediatamente.
+- Ao remover canais do MCA, o grupo continua recalculando corretamente.
+- Se houver uma sincronizacao do store logo apos a mudanca da composicao, ela passa a ser aceita como valida para o novo grupo.
+- O bug anterior do fader voltar sozinho permanece protegido.

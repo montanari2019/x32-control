@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { LayoutChangeEvent, StyleSheet, Text, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -41,11 +41,21 @@ const ChannelStripComponent = ({
   onFaderChangeEnd,
   onPressBadge,
 }: ChannelStripProps): JSX.Element => {
-  const faderDb = x32RawToDb(channel.localFaderRaw);
+  const [displayLevel, setDisplayLevel] = useState(channel.localFaderRaw);
+  const isDraggingRef = useRef(false);
+  const faderDb = x32RawToDb(displayLevel);
   const channelColor = mapX32ColorToUiColor(channel.color ?? 0).backgroundColor;
   const backgroundColor = withAlpha(channelColor, opacityToAlphaHex(channel.backgroundOpacity));
   const [faderHeight, setFaderHeight] = useState(240);
   const faderHeightRef = useRef(240);
+
+  useEffect(() => {
+    if (isDraggingRef.current) {
+      return;
+    }
+
+    setDisplayLevel(channel.localFaderRaw);
+  }, [channel.localFaderRaw]);
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextHeight = Math.max(180, Math.floor(event.nativeEvent.layout.height));
@@ -56,6 +66,24 @@ const ChannelStripComponent = ({
     faderHeightRef.current = nextHeight;
     setFaderHeight(nextHeight);
   }, []);
+
+  const handleFaderChange = useCallback(
+    (value: number): void => {
+      isDraggingRef.current = true;
+      setDisplayLevel(value);
+      onFaderChange(value);
+    },
+    [onFaderChange],
+  );
+
+  const handleFaderChangeEnd = useCallback(
+    (value: number): void => {
+      setDisplayLevel(value);
+      isDraggingRef.current = false;
+      onFaderChangeEnd(value);
+    },
+    [onFaderChangeEnd],
+  );
 
   return (
     <View style={[styles.container, { backgroundColor }]}>
@@ -79,10 +107,10 @@ const ChannelStripComponent = ({
             <View style={[styles.meterPlaceholder, { height: faderHeight, width: 10 }]} />
           )}
           <VerticalFader
-            level={channel.localFaderRaw}
+            level={displayLevel}
             height={faderHeight}
-            onChange={onFaderChange}
-            onChangeEnd={onFaderChangeEnd}
+            onChange={handleFaderChange}
+            onChangeEnd={handleFaderChangeEnd}
           />
         </View>
       </View>

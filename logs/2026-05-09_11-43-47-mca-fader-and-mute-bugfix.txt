@@ -1,0 +1,15 @@
+[2026-05-09 15:43:39 UTC]
+Correção de bugs — MCA Fader e Mute
+
+ARQUIVO MODIFICADO: src/features/busGroups/components/VerticalGroupFader.tsx
+  - Adicionados refs: onFaderChangeRef, availableHeightRef, disabledRef
+  - updateFromPosition: dependências reduzidas para [animatedY], callbacks lidos via ref
+  - useEffect sincronização: substituído Animated.spring por Animated.timing com stopAnimation()
+
+ARQUIVO MODIFICADO: src/features/busGroups/services/McaChannelFaderService.ts
+  - Adicionada constante KIND_ABSOLUTE_OFFSET
+  - Adicionada função buildFallbackChannel
+  - applyMuteToChannels: substituído getMatchedChannels por leitura direta do store
+    com fallback via buildFallbackChannel para canais ausentes
+
+ARQUIVOS NÃO MODIFICADOS: todos os demais

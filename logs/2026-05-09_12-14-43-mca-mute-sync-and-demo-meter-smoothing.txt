@@ -1,0 +1,104 @@
+Contexto:
+- Foi investigada a combinacao de dois comportamentos:
+  - o Channel Meter do ambiente mockado estava variando de forma agressiva demais para teste visual
+  - o estado de mute do MCA nao acompanhava mudancas de mute feitas diretamente nos canais dentro do Bus Mix
+- Antes de editar, foram revisitadas as skills:
+  - `docs/skills/04-hooks.md`
+  - `docs/skills/06-services-and-auth.md`
+  - `docs/skills/12-feature-structure.md`
+- Tambem foram consultados os logs mais relacionados:
+  - `logs/2026-05-09_00-13-35-busmix-vu-meter-dry-light-response.txt`
+  - `logs/2026-05-09_00-24-20-busmix-vu-meter-color-scale-fix.txt`
+  - `logs/2026-05-09_09-43-50-mca-fader-local-protection-fix.txt`
+  - `logs/2026-05-09_09-55-16-mca-channel-composition-recalculation-fix.txt`
+  - `logs/2026-05-09_10-01-29-mca-composition-recalc-resync-guard-fix.txt`
+  - `logs/2026-05-09_11-52-25-mca-busmix-cache-connection-fix.txt`
+
+Diagnostico 1 - meter mockado muito volatil:
+- A geracao do meter mais critica estava em `src/shared/mixer/mock/demoMixerProvider.ts`.
+- A rodada anterior tinha deixado o Demo deliberadamente mais irregular, mas o alvo ficou agressivo demais para uso de UI:
+  - amplitude alta
+  - bursts e drops mais fortes
+  - novo alvo calculado a cada tick sem referencia suficiente ao valor anterior
+- Resultado:
+  - o meter continuava "vivo", porem visualmente nervoso demais
+  - dificultava avaliar layout, cores e leitura do componente
+
+Correcao 1 - suavizacao do Demo meter:
+- Arquivo alterado:
+  - `src/shared/mixer/mock/demoMixerProvider.ts`
+- Ajustes aplicados:
+  - criado `meterStateByChannel` para guardar o ultimo estado do meter por canal
+  - `computeMeterValues()` passou a calcular um alvo menos agressivo
+  - o valor final agora usa transicao suave via `smoothMeterValue(...)` em vez de saltar diretamente para cada novo alvo
+  - `disconnect()` limpa o cache desses estados
+- Efeito:
+  - o Demo continua animado
+  - a variacao entre frames ficou gradual
+  - continuam existindo picos ocasionais, mas sem o comportamento caotico da rodada anterior
+
+Diagnostico 2 - mute do MCA desatualizado:
+- O `useBusGroups` ja recalculava `faderRawValue` do MCA pela `busMixChannelStore`, mas o booleano `isMuted` continuava sendo tratado como estado antigo do grupo.
+- Assim, quando os canais eram mutados/desmutados diretamente no `Bus Mix`, o estado visual do botao de mute do MCA podia ficar congelado no ultimo valor salvo ou no ultimo toggle do proprio MCA.
+
+Correcao 2 - mute derivado dos canais vinculados:
+- Arquivo alterado:
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+- Foi adicionada a funcao `computeMcaMutedValue(...)`.
+- Regra adotada para a UI atual:
+  - `MCA mutado` somente quando todos os canais vinculados estao mutados
+  - `MCA desmutado` quando existe pelo menos um canal desmutado
+  - como a UI nao suporta estado parcial, o estado misto cai pragmaticamente em `desmutado`
+- Essa derivacao agora e aplicada em tres momentos:
+  - no `load()` inicial apos carregar os canais do bus
+  - ao adicionar/remover canais do MCA em `applyAssignedChannelsToMca`
+  - na subscription de `busMixChannelStore`, junto com o recalc do fader
+- Isso impede que o MCA fique com uma "foto antiga" dos canais.
+
+Ajuste complementar nos providers mock:
+- Arquivo alterado:
+  - `src/shared/mixer/mock/mockMixerProvider.ts`
+- Arquivo alterado:
+  - `src/shared/mixer/mock/demoMixerProvider.ts`
+- Em ambos, `setChannelOn(channelId, busId, isOn)` agora chama `syncMcaMuteStatesForBus(busId)`.
+- Isso mantem o estado interno dos MCAs do provider mock mais coerente quando os canais sao mutados/desmutados individualmente no `Bus Mix`.
+- Esse ajuste preserva o comportamento do mock e evita divergencia local em cenarios de retorno para `BusGroups`.
+
+Teste de regressao adicionado:
+- Arquivo alterado:
+  - `__tests__/features/busGroups/hooks/useBusGroups.test.ts`
+- Nova cobertura:
+  - valida que o `MCA` passa a derivar `isMuted` do estado atual dos canais vinculados
+  - confirma `true` quando todos os canais do grupo estao mutados
+  - confirma `false` quando o grupo entra em estado misto e, portanto, nao deve parecer totalmente mutado
+
+Escopo preservado:
+- Nao houve alteracao na logica do fader do MCA.
+- Nao houve alteracao na selecao multipla.
+- Nao houve alteracao no recalc do fader ao trocar canais.
+- Nao houve alteracao no Bus Master.
+- Nao houve alteracao no fluxo real de OSC/X32 alem das correcoes anteriores.
+- Nao houve alteracao no transporte UDP/OSC global.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 11 suites aprovadas
+  - 35 testes aprovados
+- `npm run typecheck`
+  - nao existe neste projeto
+  - foi usado `npm run tsc` como typecheck
+- `npm run lint -- --quiet`
+  - nao concluiu por limitacao do ambiente
+  - `eslint` nao esta disponivel no PATH desta sessao Windows
+
+Pendencias de validacao manual:
+- Em modo mock/demo:
+  - observar o meter por alguns segundos para confirmar animacao mais suave
+  - mutar/desmutar canais do MCA no Bus Mix
+  - voltar para BusGroups e confirmar coerencia do botao de mute do MCA
+  - testar estado misto para confirmar a regra visual adotada
+- Em mesa real:
+  - validar que a derivacao do mute do MCA continua coerente usando a store compartilhada dos canais do bus

@@ -10,6 +10,7 @@ import { VerticalGroupFader } from './VerticalGroupFader';
 type GroupStripProps = {
   accentColor: string;
   assignmentCount?: number;
+  isFaderDisabled?: boolean;
   isMaster?: boolean;
   isMuted: boolean;
   label: string;
@@ -24,6 +25,7 @@ type GroupStripProps = {
 export const GroupStrip = ({
   accentColor,
   assignmentCount,
+  isFaderDisabled = false,
   isMaster = false,
   isMuted,
   label,
@@ -84,6 +86,7 @@ export const GroupStrip = ({
         <View style={styles.faderSlot} onLayout={handleFaderSlotLayout}>
           <VerticalGroupFader
             accentColor={accentColor}
+            disabled={isFaderDisabled}
             isMaster={isMaster}
             onFaderChange={onFaderChange}
             trackHeight={measuredFaderHeight}

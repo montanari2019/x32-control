@@ -14,6 +14,7 @@ import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
 type VerticalGroupFaderProps = {
   accentColor: string;
+  disabled?: boolean;
   isMaster?: boolean;
   onFaderChange: (value: number) => void;
   trackHeight?: number;
@@ -26,6 +27,7 @@ const THUMB_BOTTOM_GUARD = 8;
 
 export const VerticalGroupFader = ({
   accentColor,
+  disabled = false,
   isMaster = false,
   onFaderChange,
   trackHeight = 300,
@@ -36,16 +38,32 @@ export const VerticalGroupFader = ({
   const currentY = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
+  const onFaderChangeRef = useRef(onFaderChange);
+  useEffect(() => {
+    onFaderChangeRef.current = onFaderChange;
+  }, [onFaderChange]);
 
-  const updateFromPosition = useCallback(
-    (nextY: number): void => {
-      const clampedY = clamp(nextY, 0, availableHeight);
-      currentY.current = clampedY;
-      animatedY.setValue(clampedY);
-      onFaderChange(clampFader(positionToFader(clampedY, availableHeight)));
-    },
-    [animatedY, availableHeight, onFaderChange],
-  );
+  const availableHeightRef = useRef(availableHeight);
+  useEffect(() => {
+    availableHeightRef.current = availableHeight;
+  }, [availableHeight]);
+
+  const disabledRef = useRef(disabled);
+  useEffect(() => {
+    disabledRef.current = disabled;
+  }, [disabled]);
+
+  const updateFromPosition = useCallback((nextY: number): void => {
+    if (disabledRef.current) {
+      return;
+    }
+
+    const currentAvailable = availableHeightRef.current;
+    const clampedY = clamp(nextY, 0, currentAvailable);
+    currentY.current = clampedY;
+    animatedY.setValue(clampedY);
+    onFaderChangeRef.current(clampFader(positionToFader(clampedY, currentAvailable)));
+  }, [animatedY]);
 
   const responder: PanResponderInstance = useMemo(
     () =>
@@ -78,17 +96,28 @@ export const VerticalGroupFader = ({
     }
 
     const nextY = faderToPosition(clampFader(value), availableHeight);
+    const diff = Math.abs(nextY - currentY.current);
     currentY.current = nextY;
-    Animated.spring(animatedY, {
+
+    animatedY.stopAnimation();
+
+    if (diff < 1) {
+      animatedY.setValue(nextY);
+      return;
+    }
+
+    Animated.timing(animatedY, {
       toValue: nextY,
+      duration: diff < 8 ? 40 : 80,
       useNativeDriver: true,
-      bounciness: 0,
-      speed: 20,
     }).start();
   }, [animatedY, availableHeight, value]);
 
   return (
-    <View style={[styles.container, { height: trackHeight }]} {...responder.panHandlers}>
+    <View
+      style={[styles.container, { height: trackHeight }, disabled ? styles.disabled : undefined]}
+      {...(disabled ? {} : responder.panHandlers)}
+    >
       <View
         style={[
           styles.track,
@@ -121,6 +150,9 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     position: 'relative',
     width: '100%',
+  },
+  disabled: {
+    opacity: 0.4,
   },
   masterThumb: {
     left: 10,

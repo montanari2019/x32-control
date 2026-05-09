@@ -1,0 +1,66 @@
+[2026-05-09 16:49:02 UTC]
+Task: TaciMix branding, app naming, splash screen, native launch background
+
+Files created:
+- src/app/components/AppSplashScreen.tsx
+- src/assets/lotties/index.ts
+- src/assets/lotties/soundBarsAnimation.json
+- android/app/src/main/res/values/colors.xml
+
+Files modified:
+- src/app/App.tsx
+  - Added temporary splash overlay lifecycle for ~1.5s
+  - Kept NavigationContainer, ModalProvider, KeepAwake and RootNavigator intact
+
+- src/assets/index.ts
+  - Exported Lotties namespace
+
+- package.json
+- package-lock.json
+  - Added dependency: lottie-react-native@^7.3.6
+
+- app.json
+  - displayName updated to TaciMix
+
+- android/app/src/main/res/values/strings.xml
+  - app_name updated to TaciMix
+
+- android/app/src/main/res/values/styles.xml
+  - Native launch background aligned with app background
+  - status/navigation bar colors aligned with launch background
+
+- ios/X32NativeShell/Info.plist
+  - CFBundleDisplayName updated to TaciMix
+  - CFBundleName updated to TaciMix
+
+- ios/X32NativeShell/LaunchScreen.storyboard
+  - Launch background changed from purple to app background color
+
+- scripts/generate-icons.js
+  - App icon background color changed from purple to #35C2FF
+
+Generated assets updated:
+- android/app/src/main/res/mipmap-*/ic_launcher*.png
+- ios/X32NativeShell/Images.xcassets/AppIcon.appiconset/*.png
+- ios/X32NativeShell/Images.xcassets/LaunchLogo.imageset/*.png
+
+Implementation notes:
+- Splash uses app background token (#040B1A) and accent token (#35C2FF)
+- Splash content is centered with text "TaciMix" above the provided sound-bars Lottie
+- Native first-frame background now matches the React Native app background to avoid flash
+- Existing logo mark was preserved; only branding color/background alignment changed
+
+Validation:
+- npm run tsc: OK
+- npm test -- --runInBand: OK (11 suites, 35 tests)
+- npm run lint: NOT OK
+  - Existing repository-wide Prettier/CRLF issues unrelated to this task still fail lint
+- npm run android: build/install attempted
+  - Resource processing/build pipeline succeeded
+  - Device install blocked by environment/device restriction:
+    INSTALL_FAILED_USER_RESTRICTED: Install canceled by user
+- android/gradlew.bat app:assembleDevelopDebug: OK
+
+Additional log normalization:
+- Moved src/logs/channelvumeter-animleak-fix.log
+  -> logs/2026-05-09_16-31-33-channelvumeter-animleak-fix.txt

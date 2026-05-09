@@ -1,0 +1,9 @@
+[CREATE LOG ECONOMY PROTOCOL SKILL]
+
+Contexto: add nova skill p/ padronizar logs técnicos enxutos p/ IA no projeto.
+Causa: pasta `docs/skills` já tinha `19-logs-create.md` vazio; faltava protocolo objetivo p/ nome, estrutura e compressão de logs.
+Ação: preenchi `docs/skills/19-logs-create.md` c/ frontmatter, summary, regras, checklist e prompt seed; update `docs/skills/00-skill-index.md` p/ incluir skills 13-19 e nova skill de logs.
+Resultado: OK; skill criada e indexada no catálogo local.
+Arquivos: docs/skills/19-logs-create.md; docs/skills/00-skill-index.md.
+Validação: revisão local conteúdo/estrutura OK.
+Pontos atenção: se desejar, próxima etapa pode alinhar logs antigos manualmente ao novo protocolo.

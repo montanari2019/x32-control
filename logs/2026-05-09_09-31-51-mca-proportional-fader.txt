@@ -1,0 +1,54 @@
+[2026-05-09 13:31:32 UTC]
+Feature: MCA Proportional Fader
+
+Arquivos criados:
+- src/features/busGroups/services/McaChannelFaderService.ts
+
+Arquivos modificados:
+- src/features/busMix/services/BusMixService.ts
+  • Adicionado: setChannelFaderInBus(channel, busId, rawValue)
+  • Adicionado: setChannelOnInBus(channel, busId, isOn)
+  • setChannelFader/setChannelOn passaram a reutilizar os novos helpers por bus
+
+- src/features/busGroups/hooks/useBusGroups.ts
+  • setMcaFader: substituido controle DCA por applyProportionalFader proporcional em dB
+  • toggleMcaMute: agora muta/desmuta canais agrupados via applyMuteToChannels
+  • Adicionado: useEffect de reflexo bidirecional (busMixChannelStore -> faderRawValue do MCA)
+  • Adicionado: throttle de 30ms no envio do fader proporcional
+  • load(): faderRawValue inicializado via computeAverageRaw apos carregar canais
+  • Removido restore de fader/mute do MCA via DCA fisico da mesa
+  • Ajustado recalc imediato do fader quando canais sao vinculados ou removidos do MCA
+
+- src/features/busGroups/hooks/useOscSubscription.ts
+  • Subscriptions de DCA deixaram de atualizar MCA
+  • Mantidas apenas subscriptions do bus master
+
+- src/features/busGroups/services/BusGroupsSecureStoreService.ts
+  • faderRawValue removido da persistencia (calculado dinamicamente)
+
+- src/features/busGroups/components/GroupStrip.tsx
+  • Adicionado suporte a desabilitar visualmente o fader do strip
+
+- src/features/busGroups/components/McaStrip.tsx
+  • MCA sem canais vinculados passa a marcar o fader como desabilitado
+
+- src/features/busGroups/components/VerticalGroupFader.tsx
+  • Adicionada prop disabled
+  • Fader desabilitado nao responde a gesto e fica com opacidade reduzida
+
+- src/shared/mixer/mock/mockMixerProvider.ts
+  • Adicionados helpers locais para sincronizar fader/mute de MCA no provider mock
+
+- src/shared/mixer/mock/demoMixerProvider.ts
+  • Adicionados helpers locais para sincronizar fader/mute de MCA no provider demo
+
+Lógica central:
+  • Calculo proporcional em dB: deltaDb = nextDb - prevDb; channelNewRaw = x32DbToRaw(channelDb + deltaDb)
+  • Media do MCA: mean(assignedChannels.faderRaw) via busMixChannelStore snapshot
+  • Mute: BusMixService.setChannelOnInBus para todos os canais atribuidos
+  • MCA sem canais atribuidos: fader fica em 0.75, bloqueado para arraste e com opacidade reduzida para indicar estado desligado
+
+Validacoes executadas:
+  • npm run tsc -> OK
+  • npm test -- --runInBand -> OK (10 suites / 30 testes)
+  • npm run lint -- --quiet -> falhou por ambiente local sem executavel eslint disponivel no PATH

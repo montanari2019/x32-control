@@ -1,0 +1,9 @@
+ALIGN: CHANNELSTRIP MASTERSTRIP FADER
+
+Contexto: Fader do ChannelStrip tinha feedback menos fluido que MasterStrip; dB ficava atrasado durante drag.
+Causa: UI do canal lia label/level do store commitado; gesto atualizava thumb local, mas texto em dB nao era otimista. Responder do VerticalFader tambem estava menos agressivo que padrao do master dentro da FlatList horizontal.
+Acao: add displayLevel local + guard isDraggingRef em src/features/busMix/components/ChannelStrip.tsx; sync externo apenas fora do drag; repasse imediato de onChange/onChangeEnd mantendo sendLevelOnly/setLevel intactos. Alinhado responder de src/features/busMix/components/VerticalFader.tsx c/ MasterStrip: onMoveShouldSetPanResponder, block termination, block native responder.
+Resultado: OK parcial; ChannelStrip passa a usar estado visual otimista durante drag e gesto fica mais protegido contra disputa c/ scroll horizontal. Build Android nao validada aqui por bloqueio rede/sandbox ao baixar Gradle.
+Arquivos: src/features/busMix/components/ChannelStrip.tsx; src/features/busMix/components/VerticalFader.tsx.
+Validacao: yarn test --runInBand OK (11 suites/35 testes); yarn tsc Erro preexistente KeepAwake em src/app/App.tsx; yarn lint Erro env, eslint ausente no PATH; android\\gradlew.bat app:assembleDevelopDebug Pendente, download Gradle bloqueado por sandbox/rede.
+Pontos atencao: validar manualmente drag/toque da barra no BusMix em mock e device real; confirmar sensacao do fader c/ X32 real apos build nativa.

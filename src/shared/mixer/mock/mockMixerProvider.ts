@@ -310,6 +310,7 @@ export class MockMixerProvider implements MixerControlProvider {
     }
 
     channel.on = isOn;
+    this.syncMcaMuteStatesForBus(busId);
   }
 
   async setDcaFader(dcaNumber: number, value: number): Promise<void> {
@@ -330,6 +331,24 @@ export class MockMixerProvider implements MixerControlProvider {
 
     mca.isMuted = !isOn;
     this.dcaOnListeners.get(dcaNumber)?.forEach((listener) => listener(mca.isMuted));
+  }
+
+  setMcaFaderValue(dcaNumber: number, value: number): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.faderRawValue = clamp(value);
+  }
+
+  setMcaMuted(dcaNumber: number, isMuted: boolean): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.isMuted = isMuted;
   }
 
   async setBusMasterFader(busId: number, value: number): Promise<void> {
@@ -475,6 +494,17 @@ export class MockMixerProvider implements MixerControlProvider {
     }
 
     return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.15), 1);
+  }
+
+  private syncMcaMuteStatesForBus(busId: number): void {
+    this.mcas.forEach((mca) => {
+      const assignedChannels = (this.busChannels.get(busId) ?? []).filter((channel) =>
+        mca.assignedChannelIds.includes(channel.number),
+      );
+
+      mca.isMuted =
+        assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
+    });
   }
 
   private emitChannelLevel(channelId: number, busId: number, value: number): void {

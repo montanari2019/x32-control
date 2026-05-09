@@ -21,6 +21,7 @@ export const McaStrip = ({
   <GroupStrip
     accentColor={colors.mca[mca.colorToken]}
     assignmentCount={mca.assignedChannels.length}
+    isFaderDisabled={mca.assignedChannels.length === 0}
     isMuted={mca.isMuted}
     label="MCA"
     name={mca.name}
