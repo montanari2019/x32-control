@@ -1,0 +1,9 @@
+DOC: PERFORMANCE AUDIT DE PARA
+
+Contexto: Usuario pediu nova doc no modelo docs/global/x32-control-performance-auditoria-status.md.
+Causa: Ultima auditoria tinha mudancas aplicadas sem resumo legivel de antes/depois/ganho.
+Acao: criado docs/global/x32-control-performance-auditoria-de-para-2026-05-09.md com tabela e secoes por item.
+Resultado: OK; doc separada criada sem alterar status antigo.
+Arquivos: docs/global/x32-control-performance-auditoria-de-para-2026-05-09.md.
+Validacao: leitura cabecalho OK; arquivo listado em docs/global.
+Pontos atencao: doc registra tsc bloqueado por KeepAwake fora escopo.

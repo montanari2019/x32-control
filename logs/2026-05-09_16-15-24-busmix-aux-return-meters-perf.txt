@@ -1,0 +1,43 @@
+BUSMIX AUX RETURN METERS PERF
+
+Contexto:
+Tela Bus Mix precisava exibir o meter segmentado tambem em AUX e FX Returns.
+Tambem havia preocupacao com carregamento lento e pressables perdendo resposta por causa dos meters.
+
+Causa:
+No mapper real de BusMixService, meterChannelId era preenchido apenas para canais CH.
+AUX e FX Returns ficavam sem identificador de meter, entao ChannelStrip nao renderizava o ChannelVuMeter para esses itens.
+No mock/demo, AUX e FX Returns tambem nao recebiam meterChannelId equivalente.
+Os meters eram conectados durante o loading da tela, competindo com a montagem inicial.
+
+Acao:
+BusMixService agora define meterChannelId pelo numero absoluto do canal exibido.
+Mocks e demo agora atribuem meterChannelId para AUX 33-40 e FX Returns 41-48.
+useMeterSubscription recebeu flag enabled para nao conectar/pollar enquanto a tela ainda carrega.
+BusMixScreen passa enabled como !isLoading, mantendo a primeira renderizacao mais leve.
+ChannelVuMeter recebeu pointerEvents none para nao bloquear toques.
+Memo de item da lista passou a comparar pan tambem, evitando estado visual stale no canal.
+
+Resultado:
+CH, AUX e FX Returns passam pelo mesmo fluxo visual de ChannelVuMeter quando ha meterChannelId.
+Meters deixam de disputar recursos durante o carregamento inicial da BusMixScreen.
+Pressables ficam menos expostos a camadas visuais interceptando toque.
+Nao foi criada implementacao separada para AUX/Returns.
+
+Arquivos:
+src/features/busMix/services/BusMixService.ts
+src/shared/mixer/mock/mockMixerProvider.ts
+src/shared/mixer/mock/demoMixerProvider.ts
+src/features/busMix/hooks/useMeterSubscription.ts
+src/features/busMix/screens/BusMixScreen.tsx
+src/features/busMix/components/ChannelVuMeter.tsx
+
+Validacao:
+npx prettier --write nos arquivos alterados: OK.
+npm test -- --runInBand: OK, 11 suites e 35 testes passando.
+git diff --check nos arquivos alterados: OK, apenas avisos LF/CRLF do Windows.
+npm run tsc: falhou por erro preexistente em src/app/App.tsx sobre KeepAwake como JSX component.
+
+Pontos atencao:
+Validar em X32 real se /meters/1 expõe AUX/FX Returns exatamente nos indices 33-48.
+Corrigir o erro de tipo do KeepAwake em App.tsx em uma rodada separada.

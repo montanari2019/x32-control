@@ -15,6 +15,7 @@ import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 type VerticalGroupFaderProps = {
   accentColor: string;
   disabled?: boolean;
+  dragSensitivity?: number;
   isMaster?: boolean;
   onFaderChange: (value: number) => void;
   trackHeight?: number;
@@ -28,6 +29,7 @@ const THUMB_BOTTOM_GUARD = 8;
 export const VerticalGroupFader = ({
   accentColor,
   disabled = false,
+  dragSensitivity = 1,
   isMaster = false,
   onFaderChange,
   trackHeight = 300,
@@ -53,17 +55,25 @@ export const VerticalGroupFader = ({
     disabledRef.current = disabled;
   }, [disabled]);
 
-  const updateFromPosition = useCallback((nextY: number): void => {
-    if (disabledRef.current) {
-      return;
-    }
+  const dragSensitivityRef = useRef(dragSensitivity);
+  useEffect(() => {
+    dragSensitivityRef.current = dragSensitivity;
+  }, [dragSensitivity]);
 
-    const currentAvailable = availableHeightRef.current;
-    const clampedY = clamp(nextY, 0, currentAvailable);
-    currentY.current = clampedY;
-    animatedY.setValue(clampedY);
-    onFaderChangeRef.current(clampFader(positionToFader(clampedY, currentAvailable)));
-  }, [animatedY]);
+  const updateFromPosition = useCallback(
+    (nextY: number): void => {
+      if (disabledRef.current) {
+        return;
+      }
+
+      const currentAvailable = availableHeightRef.current;
+      const clampedY = clamp(nextY, 0, currentAvailable);
+      currentY.current = clampedY;
+      animatedY.setValue(clampedY);
+      onFaderChangeRef.current(clampFader(positionToFader(clampedY, currentAvailable)));
+    },
+    [animatedY],
+  );
 
   const responder: PanResponderInstance = useMemo(
     () =>
@@ -76,10 +86,10 @@ export const VerticalGroupFader = ({
           startY.current = currentY.current;
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
-          updateFromPosition(startY.current + gestureState.dy);
+          updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
         },
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
-          updateFromPosition(startY.current + gestureState.dy);
+          updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
           isDragging.current = false;
         },
         onPanResponderTerminate: () => {

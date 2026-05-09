@@ -1,0 +1,9 @@
+FIX: BUSGROUPS SYNC FADER MUTE FISICO
+
+Contexto: BusGroups/MCA nao reagia a mudancas fisicas de fader/mute de canais quando BusMixScreen desmontada.
+Causa: listeners onLevel/onOn existiam em useBusMix; BusGroups assinava store, mas nao alimentava store com push OSC de canais.
+Acao: add availableChannelsRef; add availableChannelsSourcesKey; registrar busMixService.onLevel/onOn em useBusGroups; escrever updates no busMixChannelStore.
+Resultado: OK; updates remotos de canal atualizam store e subscriber existente recalcula MCAs.
+Arquivos: src/features/busGroups/hooks/useBusGroups.ts.
+Validacao: prettier OK; npm test OK 11 suites/35 tests; git diff --check OK; tsc erro preexistente App.tsx KeepAwake.
+Pontos atencao: validar c/ X32 real; mocks sem onLevel/onOn recebem guard defensivo.

@@ -1,0 +1,9 @@
+UI: CHANNEL VU METER SEGMENTADO
+
+Contexto: Usuario pediu trocar barra continua do ChannelVuMeter por VU segmentado estilo SignalMeter.
+Causa: Visual anterior usava blocos continuos por zona; amarelo/vermelho podiam parecer presentes fora do range desejado.
+Acao: render segmentado vertical; cores fixas por faixa dB; inativo opacity baixa; ativo opacity 1; manter thresholds meterDecoder.
+Resultado: OK; layout ChannelStrip preservado; green/yellow/red respeitam ranges -60..-2, -2..8, 8..10 dB.
+Arquivos: src/features/busMix/components/ChannelVuMeter.tsx.
+Validacao: prettier OK; npm test OK 11 suites/35 tests; git diff --check OK; tsc erro preexistente App.tsx KeepAwake.
+Pontos atencao: validar visual em Android real c/ meters ativos.

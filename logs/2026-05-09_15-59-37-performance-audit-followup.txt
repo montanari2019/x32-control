@@ -1,0 +1,9 @@
+PERFORMANCE AUDIT FOLLOWUP
+
+Contexto: Prompt auditoria performance pediu 12 ajustes seguros em hot paths BusMix/BusGroups/OSC.
+Causa: Valores e fluxos antigos geravam margem baixa xremote, polling alto, waits fixos, clones e cleanup fragil.
+Acao: aplicar itens 1,2,3,4,5,6,7,9,10,13,15; itens 8,11,12,14 verificados sem mudanca.
+Resultado: OK; testes passam; typecheck bloqueado por err preexistente KeepAwake em App.tsx.
+Arquivos: BusMixChannelStore.ts; X32HeartbeatService.ts; NetworkScanner.ts; useMeterSubscription.ts; ChannelVuMeter.tsx; useBusMix.ts; ChannelStrip.tsx; X32BusGroupsService.ts; BusMixScreen.tsx; OscClient.ts; SharedOscClient.ts.
+Validacao: npm test -- --runInBand OK 11 suites/35 tests; git diff --check OK; npm run tsc erro App.tsx KeepAwake.
+Pontos atencao: validar em X32 real; tsc global depende fix separado em App.tsx.

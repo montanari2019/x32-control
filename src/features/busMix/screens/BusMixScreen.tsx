@@ -1,6 +1,6 @@
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FlatList, ListRenderItemInfo, Platform, StyleSheet, View } from 'react-native';
+import { FlatList, LayoutChangeEvent, ListRenderItemInfo, StyleSheet, View } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -24,9 +24,11 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
 const CHANNEL_STRIP_WIDTH = 86;
 const CHANNEL_STRIP_GAP = 1;
 const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
+const STRIP_FIXED_OVERHEAD = 108;
 
 type BusMixChannelItemProps = {
   channel: Channel;
+  faderHeight: number;
   registerMeterListener: (
     channelId: number,
     listener: (values: ChannelMeterValues) => void,
@@ -39,6 +41,7 @@ type BusMixChannelItemProps = {
 
 const BusMixChannelItemComponent = ({
   channel,
+  faderHeight,
   registerMeterListener,
   onChangeLevel,
   onChangeLevelEnd,
@@ -65,6 +68,7 @@ const BusMixChannelItemComponent = ({
   return (
     <ChannelStrip
       channel={channel}
+      faderHeight={faderHeight}
       registerMeterListener={registerMeterListener}
       onToggleMute={handleToggleMute}
       onFaderChange={handleFaderChange}
@@ -86,6 +90,8 @@ const BusMixChannelItem = React.memo(
     prev.channel.meterChannelId === next.channel.meterChannelId &&
     prev.channel.localFaderRaw === next.channel.localFaderRaw &&
     prev.channel.on === next.channel.on &&
+    prev.channel.pan === next.channel.pan &&
+    prev.faderHeight === next.faderHeight &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onChangeLevel === next.onChangeLevel &&
     prev.onChangeLevelEnd === next.onChangeLevelEnd &&
@@ -114,7 +120,8 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     restorePreset,
   } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
-  const { registerMeterListener } = useMeterSubscription(consoleIp);
+  const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
+  const [faderHeight, setFaderHeight] = useState(240);
   const channelsRef = useRef<Channel[]>(channels);
   channelsRef.current = channels;
 
@@ -193,10 +200,19 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [],
   );
 
+  const handleListLayout = useCallback((event: LayoutChangeEvent): void => {
+    const nextHeight = Math.max(
+      180,
+      Math.floor(event.nativeEvent.layout.height) - STRIP_FIXED_OVERHEAD,
+    );
+    setFaderHeight((current) => (current === nextHeight ? current : nextHeight));
+  }, []);
+
   const renderChannel = useCallback(
     ({ item }: ListRenderItemInfo<Channel>) => (
       <BusMixChannelItem
         channel={item}
+        faderHeight={faderHeight}
         registerMeterListener={registerMeterListener}
         onToggleMute={handleToggleMute}
         onChangeLevel={handleFaderChange}
@@ -208,6 +224,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       handleFaderChange,
       handleFaderChangeEnd,
       handleToggleMute,
+      faderHeight,
       openPanModal,
       registerMeterListener,
     ],
@@ -254,11 +271,14 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         contentContainerStyle={styles.list}
         renderItem={renderChannel}
         getItemLayout={getChannelItemLayout}
-        initialNumToRender={8}
-        maxToRenderPerBatch={6}
-        removeClippedSubviews={Platform.OS === 'android'}
-        updateCellsBatchingPeriod={50}
-        windowSize={3}
+        onLayout={handleListLayout}
+        initialNumToRender={10}
+        maxToRenderPerBatch={8}
+        removeClippedSubviews
+        updateCellsBatchingPeriod={16}
+        windowSize={5}
+        decelerationRate="fast"
+        disableIntervalMomentum={false}
       />
 
       {isRestoringPreset ? <BusMixPresetRestoreOverlay /> : null}

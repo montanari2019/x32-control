@@ -159,6 +159,7 @@ const createDemoChannelsForBus = (busId: number): Channel[] => [
       'aux',
       `Aux ${sourceNumber}`,
       0.15,
+      32 + sourceNumber,
     );
   }),
   ...Array.from({ length: 4 }, (_, index) => {
@@ -172,6 +173,7 @@ const createDemoChannelsForBus = (busId: number): Channel[] => [
       'fxrtn',
       `FX ${sourceNumber} ${index % 2 === 0 ? 'L' : 'R'}`,
       0.3,
+      40 + sourceNumber,
     );
   }),
 ];
@@ -536,12 +538,7 @@ export class DemoMixerProvider implements MixerControlProvider {
         0.22,
         0.16,
       ),
-      dynGrDb: this.smoothMeterValue(
-        previous?.dynGrDb ?? dynGrDbTarget,
-        dynGrDbTarget,
-        0.22,
-        0.16,
-      ),
+      dynGrDb: this.smoothMeterValue(previous?.dynGrDb ?? dynGrDbTarget, dynGrDbTarget, 0.22, 0.16),
     };
 
     nextValues.preFadeDb = nextValues.preFadeDbfs;
@@ -578,8 +575,7 @@ export class DemoMixerProvider implements MixerControlProvider {
         mca.assignedChannelIds.includes(channel.number),
       );
 
-      mca.isMuted =
-        assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
+      mca.isMuted = assignedChannels.length > 0 && assignedChannels.every((channel) => !channel.on);
     });
   }
 

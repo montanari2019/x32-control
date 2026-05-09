@@ -5,6 +5,7 @@ import { percentToX32Pan, x32PanToPercent } from '@shared/x32/pan';
 import { busMixChannelStore } from '../services/BusMixChannelStore';
 import { BusMixPresetService } from '../services/BusMixPresetService';
 import { BusMixService } from '../services/BusMixService';
+import { channelStructureCache } from '../services/ChannelStructureCache';
 import { Channel } from '../types/Channel';
 import { BusMixPreset, BusMixPresetChannel } from '../types/BusMixPreset';
 
@@ -204,15 +205,17 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
       try {
         await service.connect(consoleIp);
-        const [nextChannels, linkMap] = await Promise.all([
-          busMixChannelStore.loadChannels(
-            consoleIp,
-            busNumber,
-            () => service.loadChannels(busNumber),
-            { force: refresh },
-          ),
-          service.fetchChannelLinkMap(),
-        ]);
+        // Fetch link map first (cached after first call) to avoid competing with channel load.
+        const linkMap = await service.fetchChannelLinkMap();
+        if (refresh) {
+          await channelStructureCache.invalidate(consoleIp);
+        }
+        const nextChannels = await busMixChannelStore.loadChannels(
+          consoleIp,
+          busNumber,
+          () => service.loadChannelsWithCache(consoleIp, busNumber),
+          { force: refresh },
+        );
         channelLinkMapRef.current = linkMap;
         channelsRef.current = nextChannels;
       } catch (loadError) {

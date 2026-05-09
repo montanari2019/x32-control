@@ -178,7 +178,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.lg,
     borderWidth: 1,
     gap: spacing.sm,
-    maxWidth: 480,
+    minWidth: 300,
     padding: spacing.lg,
     width: '100%',
   },

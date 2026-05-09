@@ -88,8 +88,13 @@ const releaseSharedOscClient = (key: string): void => {
       return;
     }
 
-    current.client.disconnect();
-    current.isConnected = false;
-    clientsByEndpoint.delete(key);
+    try {
+      current.client.disconnect();
+    } catch {
+      // Ignore disconnect errors during cleanup
+    } finally {
+      current.isConnected = false;
+      clientsByEndpoint.delete(key);
+    }
   }, RELEASE_DELAY_MS);
 };

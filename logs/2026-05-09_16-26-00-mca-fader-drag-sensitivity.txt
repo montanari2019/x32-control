@@ -1,0 +1,37 @@
+MCA FADER DRAG SENSITIVITY
+
+Contexto:
+Os faders MCA em BusGroups estavam sensiveis demais ao arrasto.
+Pequenos movimentos do dedo geravam mudancas grandes de volume.
+
+Causa:
+VerticalGroupFader convertia gestureState.dy diretamente em posicao do fader.
+Master e MCA usam o mesmo GroupStrip, entao era necessario configurar a sensibilidade sem mudar o padrao global.
+
+Acao:
+Adicionada prop opcional dragSensitivity em VerticalGroupFader com padrao 1.
+GroupStrip repassa dragSensitivity para o fader vertical.
+McaStrip define MCA_FADER_DRAG_SENSITIVITY = 0.45 e aplica apenas aos MCAs.
+MasterStrip nao foi alterado e continua usando o comportamento padrao.
+BusMix nao foi tocado.
+
+Resultado:
+Fader MCA continua responsivo e sem delay.
+O valor ainda atualiza durante o gesto.
+Cada pixel arrastado agora gera menos variacao no valor MCA.
+Master fader e faders do BusMix permanecem com a sensibilidade original.
+
+Arquivos:
+src/features/busGroups/components/VerticalGroupFader.tsx
+src/features/busGroups/components/GroupStrip.tsx
+src/features/busGroups/components/McaStrip.tsx
+
+Validacao:
+npx prettier --write nos arquivos alterados: OK, executado com permissao elevada por EPERM do sandbox.
+npm test -- --runInBand: OK, 11 suites e 35 testes passando.
+git diff --check nos arquivos alterados: OK, apenas avisos LF/CRLF do Windows.
+npm run tsc: falhou por erro preexistente em src/app/App.tsx sobre KeepAwake como JSX component.
+
+Pontos atencao:
+Se o MCA ainda parecer arisco no device real, ajustar MCA_FADER_DRAG_SENSITIVITY entre 0.35 e 0.55.
+O alcance minimo/maximo continua possivel porque o PanResponder continua recebendo o arrasto fora do trilho.

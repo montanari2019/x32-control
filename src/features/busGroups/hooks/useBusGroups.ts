@@ -6,14 +6,12 @@ import {
   isMockConsoleIp,
 } from '@shared/mixer/mock/mockMixerProvider';
 import { clamp } from '@shared/utils/clamp';
+import { x32RawToDb } from '@shared/utils/faderDb';
 import { BusMixService } from '@features/busMix/services/BusMixService';
 import { busMixChannelStore } from '@features/busMix/services/BusMixChannelStore';
 import { Channel } from '@features/busMix/types/Channel';
 import { useOscSubscription } from './useOscSubscription';
-import {
-  MCA_DEFAULT_RAW_VALUE,
-  McaChannelFaderService,
-} from '../services/McaChannelFaderService';
+import { MCA_DEFAULT_RAW_VALUE, McaChannelFaderService } from '../services/McaChannelFaderService';
 import { BusGroupsSecureStoreService } from '../services/BusGroupsSecureStoreService';
 import { X32BusGroupsService } from '../services/X32BusGroupsService';
 import { BusGroupsState, McaAssignedChannel, McaGroup } from '../types/busGroups.types';
@@ -57,10 +55,7 @@ const normalizeStoredMcaName = (
   }
 
   const normalizedName = normalizeEditedMcaName(dcaNumber, storedName);
-  if (
-    isDemoConsoleIp(consoleIp) &&
-    normalizedName === LEGACY_DEMO_MCA_NAMES[dcaNumber]
-  ) {
+  if (isDemoConsoleIp(consoleIp) && normalizedName === LEGACY_DEMO_MCA_NAMES[dcaNumber]) {
     return normalizeMcaName(dcaNumber);
   }
 
@@ -89,6 +84,11 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
   const [availableChannels, setAvailableChannels] = useState<Channel[]>(() =>
     busMixChannelStore.getSnapshot(consoleIp, busId),
   );
+  const availableChannelsSourcesKey = useMemo(
+    () => availableChannels.map((ch) => ch.id).join(','),
+    [availableChannels],
+  );
+  const availableChannelsRef = useRef<Channel[]>([]);
   const persistTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const persistableMcasRef = useRef<McaGroup[]>([]);
   const mcasRef = useRef<McaGroup[]>([]);
@@ -212,10 +212,8 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
   const loadAvailableChannels = useCallback(async (): Promise<Channel[]> => {
     try {
       await busMixService.connect(consoleIp);
-      const nextChannels = await busMixChannelStore.loadChannels(
-        consoleIp,
-        busId,
-        () => busMixService.loadChannels(busId),
+      const nextChannels = await busMixChannelStore.loadChannels(consoleIp, busId, () =>
+        busMixService.loadChannels(busId),
       );
       setAvailableChannels(nextChannels);
       return nextChannels;
@@ -323,6 +321,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
   useEffect(
     () =>
       busMixChannelStore.subscribe(consoleIp, busId, (nextChannels) => {
+        availableChannelsRef.current = nextChannels;
         setAvailableChannels(nextChannels);
         setState((current) => {
           const now = Date.now();
@@ -355,6 +354,46 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
       }),
     [busId, computeMcaFaderValue, computeMcaMutedValue, consoleIp],
   );
+
+  useEffect(() => {
+    const channels = availableChannelsRef.current;
+    if (channels.length === 0) {
+      return;
+    }
+
+    if (typeof busMixService.onLevel !== 'function' || typeof busMixService.onOn !== 'function') {
+      return;
+    }
+
+    const unsubscribers = channels.flatMap((channel) => [
+      busMixService.onLevel(channel, busId, (remoteLevel) => {
+        const level = clamp(remoteLevel);
+        const faderDb = x32RawToDb(level);
+        busMixChannelStore.updateChannels(consoleIp, busId, (current) =>
+          current.map((ch) =>
+            ch.number === channel.number
+              ? {
+                  ...ch,
+                  faderRaw: level,
+                  faderDb,
+                  localFaderRaw: level,
+                  remoteFaderRaw: level,
+                  level,
+                  isDirty: false,
+                }
+              : ch,
+          ),
+        );
+      }),
+      busMixService.onOn(channel, busId, (remoteOn) => {
+        busMixChannelStore.updateChannels(consoleIp, busId, (current) =>
+          current.map((ch) => (ch.number === channel.number ? { ...ch, on: remoteOn } : ch)),
+        );
+      }),
+    ]);
+
+    return () => unsubscribers.forEach((unsub) => unsub());
+  }, [availableChannelsSourcesKey, busId, busMixService, consoleIp]);
 
   useEffect(() => {
     canPersistRef.current = state.isConnected && !state.isLoading && state.mcas.length > 0;
@@ -393,8 +432,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
         return;
       }
 
-      const previousValue =
-        mcaFaderValuesRef.current.get(dcaNumber) ?? currentMca.faderRawValue;
+      const previousValue = mcaFaderValuesRef.current.get(dcaNumber) ?? currentMca.faderRawValue;
       if (previousValue === nextValue) {
         return;
       }
@@ -426,8 +464,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
 
       const timerId = setTimeout(() => {
         mcaFaderTimerRef.current.delete(dcaNumber);
-        const baseValue =
-          pendingMcaBaseRawRef.current.get(dcaNumber) ?? currentMca.faderRawValue;
+        const baseValue = pendingMcaBaseRawRef.current.get(dcaNumber) ?? currentMca.faderRawValue;
         const targetValue = mcaFaderValuesRef.current.get(dcaNumber) ?? nextValue;
         pendingMcaBaseRawRef.current.delete(dcaNumber);
 
@@ -510,46 +547,55 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
     });
   }, [busId, service, state.masterMuted]);
 
-  const toggleMcaChannelAssignment = useCallback((dcaNumber: number, channel: Channel): void => {
-    const currentMca = mcasRef.current.find((mca) => mca.dcaNumber === dcaNumber);
-    if (!currentMca) {
-      return;
-    }
+  const toggleMcaChannelAssignment = useCallback(
+    (dcaNumber: number, channel: Channel): void => {
+      const currentMca = mcasRef.current.find((mca) => mca.dcaNumber === dcaNumber);
+      if (!currentMca) {
+        return;
+      }
 
-    const assignedChannel: McaAssignedChannel = {
-      channelId: channel.number,
-      channelName: channel.name,
-      channelLabel: channel.label,
-      channelType: channel.kind,
-    };
-    const isAlreadyAssigned = currentMca.assignedChannels.some(
-      (item) => item.channelId === channel.number,
-    );
-    const nextAssignedChannels = isAlreadyAssigned
-      ? currentMca.assignedChannels.filter((item) => item.channelId !== channel.number)
-      : [...currentMca.assignedChannels, assignedChannel];
-    applyAssignedChannelsToMca(dcaNumber, nextAssignedChannels);
-  }, [applyAssignedChannelsToMca]);
+      const assignedChannel: McaAssignedChannel = {
+        channelId: channel.number,
+        channelName: channel.name,
+        channelLabel: channel.label,
+        channelType: channel.kind,
+      };
+      const isAlreadyAssigned = currentMca.assignedChannels.some(
+        (item) => item.channelId === channel.number,
+      );
+      const nextAssignedChannels = isAlreadyAssigned
+        ? currentMca.assignedChannels.filter((item) => item.channelId !== channel.number)
+        : [...currentMca.assignedChannels, assignedChannel];
+      applyAssignedChannelsToMca(dcaNumber, nextAssignedChannels);
+    },
+    [applyAssignedChannelsToMca],
+  );
 
-  const clearMcaChannels = useCallback((dcaNumber: number): void => {
-    applyAssignedChannelsToMca(dcaNumber, []);
-  }, [applyAssignedChannelsToMca]);
+  const clearMcaChannels = useCallback(
+    (dcaNumber: number): void => {
+      applyAssignedChannelsToMca(dcaNumber, []);
+    },
+    [applyAssignedChannelsToMca],
+  );
 
-  const renameMca = useCallback((dcaNumber: number, name: string): void => {
-    const nextName = normalizeEditedMcaName(dcaNumber, name);
-    setState((current) => ({
-      ...current,
-      mcas: current.mcas.map((mca) =>
-        mca.dcaNumber === dcaNumber
-          ? {
-              ...mca,
-              name: nextName,
-            }
-          : mca,
-      ),
-    }));
-    demoProvider?.renameMca?.(dcaNumber, nextName);
-  }, [demoProvider]);
+  const renameMca = useCallback(
+    (dcaNumber: number, name: string): void => {
+      const nextName = normalizeEditedMcaName(dcaNumber, name);
+      setState((current) => ({
+        ...current,
+        mcas: current.mcas.map((mca) =>
+          mca.dcaNumber === dcaNumber
+            ? {
+                ...mca,
+                name: nextName,
+              }
+            : mca,
+        ),
+      }));
+      demoProvider?.renameMca?.(dcaNumber, nextName);
+    },
+    [demoProvider],
+  );
 
   const handleRemoteMasterFader = useCallback((value: number): void => {
     setState((current) =>

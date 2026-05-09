@@ -127,12 +127,13 @@ export class X32BusGroupsService {
     await this.client.send(X32Protocol.getXRemotePath());
 
     const dcaStates = await Promise.all(
-      DCA_NUMBERS.map(async (dcaNumber) => ({
-        dcaNumber,
-        faderRawValue: await this.safeRequestFloat(X32Protocol.getDcaFaderPath(dcaNumber), 0),
-        isOn: await this.safeRequestInt(X32Protocol.getDcaOnPath(dcaNumber), 1),
-        name: `MCA ${dcaNumber}`,
-      })),
+      DCA_NUMBERS.map(async (dcaNumber) => {
+        const [faderRawValue, isOn] = await Promise.all([
+          this.safeRequestFloat(X32Protocol.getDcaFaderPath(dcaNumber), 0),
+          this.safeRequestInt(X32Protocol.getDcaOnPath(dcaNumber), 1),
+        ]);
+        return { dcaNumber, faderRawValue, isOn, name: `MCA ${dcaNumber}` };
+      }),
     );
 
     const [masterFaderRaw, masterOn, channelAssignments] = await Promise.all([
