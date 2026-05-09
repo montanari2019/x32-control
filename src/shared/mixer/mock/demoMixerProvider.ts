@@ -10,97 +10,91 @@ import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
 import { MixerControlProvider } from '@shared/mixer/MixerControlProvider';
 import { clamp } from '@shared/utils/clamp';
 import { x32RawToDb } from '@shared/utils/faderDb';
+import { DEMO_CONSOLE_ID, DEMO_CONSOLE_IP } from './mockMixerProvider';
 
-export const DEV_MOCK_CONSOLE_IP = '10.254.254.10';
-export const DEMO_CONSOLE_IP = '0.0.0.0';
-export const DEMO_CONSOLE_ID = 'demo-console';
-const DEV_MOCK_CONSOLE_ID = 'dev-mock-console';
-
-const BUS_NAMES = [
-  'Voz Principal',
-  'Backing',
-  'Guitarra',
-  'Baixo',
-  'Bateria',
-  'Keys',
+const DEMO_BUS_NAMES = [
+  'In-Ear Vocal',
+  'In-Ear Banda',
+  'Retorno Palco',
+  'Monitor Bateria',
+  'Monitor Baixo',
+  'Frente de Casa',
   'Click',
-  'Playback',
-  'Talkback',
-  'FX 1',
-  'FX 2',
-  'Percussao',
-  'Horns',
-  'Strings',
-  'MD',
-  'Ambiencia',
+  'Gravacao',
 ];
 
-const MCA_DEFINITIONS = [
-  { dcaNumber: 1, colorToken: 'blue' as const, name: 'Bateria', channels: [1, 2, 3, 4, 5, 6] },
-  { dcaNumber: 2, colorToken: 'green' as const, name: 'Baixo', channels: [7, 8] },
-  { dcaNumber: 3, colorToken: 'yellow' as const, name: 'Guitarras', channels: [9, 10, 11, 12] },
-  { dcaNumber: 4, colorToken: 'pink' as const, name: 'Vocais', channels: [13, 14, 15, 16, 17] },
-  { dcaNumber: 5, colorToken: 'purple' as const, name: 'Playback', channels: [18, 19, 20, 21] },
-];
-
-const CHANNEL_NAMES = [
+const DEMO_CHANNEL_NAMES = [
   'Kick',
   'Snare',
   'Hi-Hat',
-  'Tom 1',
-  'Tom 2',
-  'Overheads',
+  'Overhead',
   'Bass DI',
-  'Bass Mic',
-  'Gtr L',
-  'Gtr R',
-  'Aco 1',
-  'Aco 2',
+  'Guitarra',
   'Lead Vox',
   'Bgv 1',
-  'Bgv 2',
-  'Bgv 3',
-  'Bgv 4',
-  'Tracks L',
-  'Tracks R',
-  'Click',
-  'Guide',
   'Keys L',
   'Keys R',
-  'Pad',
-  'Perc 1',
-  'Perc 2',
+  'Playback L',
+  'Playback R',
   'FX Return 1',
   'FX Return 2',
   'Talkback',
-  'Amb L',
-  'Amb R',
   'Spare',
 ];
 
-const AUX_NAMES = ['Aux 1', 'Aux 2', 'Aux 3', 'Aux 4', 'Aux 5', 'Aux 6', 'USB L', 'USB R'];
+type DemoMcaDefinition = {
+  channels: number[];
+  colorToken: McaGroup['colorToken'];
+  dcaNumber: number;
+  name: string;
+};
 
-const FX_RETURN_NAMES = [
-  'FX 1 L',
-  'FX 1 R',
-  'FX 2 L',
-  'FX 2 R',
-  'FX 3 L',
-  'FX 3 R',
-  'FX 4 L',
-  'FX 4 R',
+const DEMO_MCA_DEFINITIONS: DemoMcaDefinition[] = [
+  {
+    dcaNumber: 1,
+    colorToken: 'blue' as const,
+    name: 'MCA 1',
+    channels: [],
+  },
+  {
+    dcaNumber: 2,
+    colorToken: 'green' as const,
+    name: 'MCA 2',
+    channels: [],
+  },
+  {
+    dcaNumber: 3,
+    colorToken: 'pink' as const,
+    name: 'MCA 3',
+    channels: [],
+  },
+  {
+    dcaNumber: 4,
+    colorToken: 'yellow' as const,
+    name: 'MCA 4',
+    channels: [],
+  },
+  {
+    dcaNumber: 5,
+    colorToken: 'purple' as const,
+    name: 'MCA 5',
+    channels: [],
+  },
 ];
 
-type Listener<T> = (value: T) => void;
+const normalizeDemoMcaName = (dcaNumber: number, name: string): string => {
+  const normalizedName = name.trim().replace(/\s+/g, ' ');
+  return normalizedName || `MCA ${dcaNumber}`;
+};
 
-const createBusList = (): Bus[] =>
-  BUS_NAMES.map((name, index) => ({
+const createDemoBusList = (): Bus[] =>
+  DEMO_BUS_NAMES.map((name, index) => ({
     number: index + 1,
     label: `Bus ${(index + 1).toString().padStart(2, '0')}`,
     name,
   }));
 
-const createChannelForBus = (
+const createDemoChannel = (
   busId: number,
   number: number,
   sourceNumber: number,
@@ -111,17 +105,17 @@ const createChannelForBus = (
   backgroundOpacity: number,
   meterChannelId?: number,
 ): Channel => {
-  const baseLevel = 0.18 + ((number * 7 + busId * 5) % 50) / 100;
-  const basePan = number % 2 === 0 ? 0.6 : 0.4;
+  const baseLevel = 0.55 + ((number * 13 + busId * 7) % 30) / 100;
+  const basePan = number % 3 === 0 ? 0.65 : number % 3 === 1 ? 0.35 : 0.5;
 
   return {
-    id: `bus-${busId}-${idPrefix}-${sourceNumber}`,
+    id: `demo-bus-${busId}-${idPrefix}-${sourceNumber}`,
     kind,
     number,
     sourceNumber,
     label: `${labelPrefix} ${sourceNumber.toString().padStart(2, '0')}`,
     name,
-    color: (number % 15) + 1,
+    color: (number % 8) + 1,
     backgroundOpacity,
     meterChannelId,
     faderRaw: clamp(baseLevel),
@@ -135,99 +129,105 @@ const createChannelForBus = (
     level: clamp(baseLevel),
     signalLevel: 0,
     pan: clamp(basePan),
-    on: number % 9 !== 0,
+    on: number % 7 !== 0,
   };
 };
 
-const createChannelsForBus = (busId: number): Channel[] => [
-  ...Array.from({ length: 32 }, (_, index) => {
+const createDemoChannelsForBus = (busId: number): Channel[] => [
+  ...Array.from({ length: 16 }, (_, index) => {
     const sourceNumber = index + 1;
-    return createChannelForBus(
+    return createDemoChannel(
       busId,
       sourceNumber,
       sourceNumber,
       'channel',
       'CH',
       'ch',
-      CHANNEL_NAMES[index] ?? `Channel ${sourceNumber}`,
+      DEMO_CHANNEL_NAMES[index] ?? `Canal ${sourceNumber}`,
       0.2,
       sourceNumber,
     );
   }),
-  ...Array.from({ length: 8 }, (_, index) => {
+  ...Array.from({ length: 4 }, (_, index) => {
     const sourceNumber = index + 1;
-    return createChannelForBus(
+    return createDemoChannel(
       busId,
       32 + sourceNumber,
       sourceNumber,
       'aux',
       'AUX',
       'aux',
-      AUX_NAMES[index] ?? `Aux ${sourceNumber}`,
-      0.2,
+      `Aux ${sourceNumber}`,
+      0.15,
     );
   }),
-  ...Array.from({ length: 8 }, (_, index) => {
+  ...Array.from({ length: 4 }, (_, index) => {
     const sourceNumber = index + 1;
-    return createChannelForBus(
+    return createDemoChannel(
       busId,
       40 + sourceNumber,
       sourceNumber,
       'fxReturn',
       'FX',
       'fxrtn',
-      FX_RETURN_NAMES[index] ?? `FX Return ${sourceNumber}`,
+      `FX ${sourceNumber} ${index % 2 === 0 ? 'L' : 'R'}`,
       0.3,
     );
   }),
 ];
 
-const createDcaGroups = (): McaGroup[] =>
-  MCA_DEFINITIONS.map((definition, index) => {
+const createDemoMcaGroups = (): McaGroup[] =>
+  DEMO_MCA_DEFINITIONS.map((definition, index) => {
     const assignedChannels: McaAssignedChannel[] = definition.channels.map((channelId) => ({
       channelId,
       channelLabel: `CH ${channelId.toString().padStart(2, '0')}`,
-      channelName: CHANNEL_NAMES[channelId - 1] ?? `Channel ${channelId}`,
+      channelName: DEMO_CHANNEL_NAMES[channelId - 1] ?? `Canal ${channelId}`,
       channelType: 'channel',
     }));
 
     return {
-      id: `mca-${definition.dcaNumber}`,
+      id: `demo-mca-${definition.dcaNumber}`,
       dcaNumber: definition.dcaNumber,
-      name: `MCA ${definition.dcaNumber}`,
+      name: definition.name,
       colorToken: definition.colorToken,
-      faderRawValue: clamp(0.45 + index * 0.08),
+      faderRawValue: clamp(0.6 + index * 0.04),
       isMuted: false,
       assignedChannels,
       assignedChannelIds: [...definition.channels],
     };
   });
 
-export class MockMixerProvider implements MixerControlProvider {
-  private readonly console: ConsoleDevice = {
-    id: DEV_MOCK_CONSOLE_ID,
-    ip: DEV_MOCK_CONSOLE_IP,
+type Listener<T> = (value: T) => void;
+
+const DEMO_METER_INTERVAL_MS = 66;
+
+const pseudoRandom = (seed: number): number => {
+  const value = Math.sin(seed * 12.9898) * 43758.5453;
+  return value - Math.floor(value);
+};
+
+export class DemoMixerProvider implements MixerControlProvider {
+  private readonly consoleDevice: ConsoleDevice = {
+    id: DEMO_CONSOLE_ID,
+    ip: DEMO_CONSOLE_IP,
     port: 10023,
-    name: 'X32 Dev Mock',
-    model: 'X32 Development Console',
+    name: 'Demo - X32 Control',
+    model: 'Console de Demonstracao',
     status: 'connected',
-    firmware: 'mock-1.0.0',
+    firmware: 'demo-1.0',
   };
 
-  private readonly buses = createBusList();
+  private readonly buses = createDemoBusList();
   private readonly busChannels = new Map<number, Channel[]>(
-    this.buses.map((bus) => [bus.number, createChannelsForBus(bus.number)]),
+    this.buses.map((bus) => [bus.number, createDemoChannelsForBus(bus.number)]),
   );
-  private readonly busMaster = new Map<number, { faderRawValue: number; isMuted: boolean }>(
+  private readonly busMasters = new Map<number, { faderRawValue: number; isMuted: boolean }>(
     this.buses.map((bus, index) => [
       bus.number,
-      {
-        faderRawValue: clamp(0.62 - index * 0.015),
-        isMuted: false,
-      },
+      { faderRawValue: clamp(0.7 - index * 0.02), isMuted: false },
     ]),
   );
-  private readonly mcas = createDcaGroups();
+  private mcas = createDemoMcaGroups();
 
   private readonly channelLevelListeners = new Map<string, Set<Listener<number>>>();
   private readonly meterListeners = new Map<number, Set<Listener<ChannelMeterValues>>>();
@@ -250,7 +250,7 @@ export class MockMixerProvider implements MixerControlProvider {
   }
 
   async scanConsoles(): Promise<ConsoleDevice[]> {
-    return [this.cloneConsole(this.console)];
+    return [{ ...this.consoleDevice }];
   }
 
   async getBuses(): Promise<Bus[]> {
@@ -258,8 +258,7 @@ export class MockMixerProvider implements MixerControlProvider {
   }
 
   async getBusGroupsState(busId: number): Promise<BusGroupsState> {
-    const master = this.busMaster.get(busId) ?? { faderRawValue: 0.6, isMuted: false };
-
+    const master = this.busMasters.get(busId) ?? { faderRawValue: 0.65, isMuted: false };
     return {
       busId,
       masterFaderRaw: master.faderRawValue,
@@ -285,31 +284,28 @@ export class MockMixerProvider implements MixerControlProvider {
       return;
     }
 
-    channel.faderRaw = clamp(value);
-    channel.faderDb = x32RawToDb(channel.faderRaw);
-    channel.localFaderRaw = channel.faderRaw;
-    channel.remoteFaderRaw = channel.faderRaw;
+    const clamped = clamp(value);
+    channel.faderRaw = clamped;
+    channel.faderDb = x32RawToDb(clamped);
+    channel.localFaderRaw = clamped;
+    channel.remoteFaderRaw = clamped;
+    channel.level = clamped;
     channel.isDirty = false;
-    channel.level = channel.faderRaw;
-    this.emitChannelLevel(channelId, busId, channel.faderRaw);
+    this.emitChannelLevel(channelId, busId, clamped);
   }
 
   async setChannelPan(channelId: number, busId: number, value: number): Promise<void> {
     const channel = this.getMutableChannel(busId, channelId);
-    if (!channel) {
-      return;
+    if (channel) {
+      channel.pan = clamp(value, 0, 1);
     }
-
-    channel.pan = clamp(value);
   }
 
   async setChannelOn(channelId: number, busId: number, isOn: boolean): Promise<void> {
     const channel = this.getMutableChannel(busId, channelId);
-    if (!channel) {
-      return;
+    if (channel) {
+      channel.on = isOn;
     }
-
-    channel.on = isOn;
   }
 
   async setDcaFader(dcaNumber: number, value: number): Promise<void> {
@@ -333,7 +329,7 @@ export class MockMixerProvider implements MixerControlProvider {
   }
 
   async setBusMasterFader(busId: number, value: number): Promise<void> {
-    const master = this.busMaster.get(busId);
+    const master = this.busMasters.get(busId);
     if (!master) {
       return;
     }
@@ -343,7 +339,7 @@ export class MockMixerProvider implements MixerControlProvider {
   }
 
   async setBusMasterOn(busId: number, isOn: boolean): Promise<void> {
-    const master = this.busMaster.get(busId);
+    const master = this.busMasters.get(busId);
     if (!master) {
       return;
     }
@@ -353,32 +349,33 @@ export class MockMixerProvider implements MixerControlProvider {
   }
 
   subscribeChannelLevel(channelId: number, busId: number, listener: Listener<number>): () => void {
-    const key = this.getChannelBusKey(channelId, busId);
-    const listeners = this.channelLevelListeners.get(key) ?? new Set<Listener<number>>();
-    listeners.add(listener);
-    this.channelLevelListeners.set(key, listeners);
+    const key = this.channelBusKey(channelId, busId);
+    const set = this.channelLevelListeners.get(key) ?? new Set<Listener<number>>();
+    set.add(listener);
+    this.channelLevelListeners.set(key, set);
 
     const channel = this.getMutableChannel(busId, channelId);
     if (channel) {
       listener(channel.faderRaw);
     }
 
-    return () => listeners.delete(listener);
+    return () => {
+      set.delete(listener);
+    };
   }
 
   subscribeMeter(channelId: number, listener: Listener<ChannelMeterValues>): () => void {
-    const listeners = this.meterListeners.get(channelId) ?? new Set<Listener<ChannelMeterValues>>();
-    listeners.add(listener);
-    this.meterListeners.set(channelId, listeners);
-    listener(this.getMeterValues(channelId));
+    const set = this.meterListeners.get(channelId) ?? new Set<Listener<ChannelMeterValues>>();
+    set.add(listener);
+    this.meterListeners.set(channelId, set);
+    listener(this.computeMeterValues(channelId));
     this.ensureMeterLoop();
 
     return () => {
-      listeners.delete(listener);
-      if (listeners.size === 0) {
+      set.delete(listener);
+      if (set.size === 0) {
         this.meterListeners.delete(channelId);
       }
-
       if (this.meterListeners.size === 0 && this.meterInterval) {
         clearInterval(this.meterInterval);
         this.meterInterval = undefined;
@@ -388,42 +385,60 @@ export class MockMixerProvider implements MixerControlProvider {
 
   subscribeDcaFader(dcaNumber: number, listener: Listener<number>): () => void {
     return this.addListener(this.dcaFaderListeners, dcaNumber, listener, () => {
-      const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
-      return mca?.faderRawValue ?? 0;
+      return this.mcas.find((mca) => mca.dcaNumber === dcaNumber)?.faderRawValue ?? 0;
     });
   }
 
   subscribeDcaOn(dcaNumber: number, listener: Listener<boolean>): () => void {
     return this.addListener(this.dcaOnListeners, dcaNumber, listener, () => {
-      const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
-      return mca?.isMuted ?? false;
+      return this.mcas.find((mca) => mca.dcaNumber === dcaNumber)?.isMuted ?? false;
     });
   }
 
   subscribeBusMasterFader(busId: number, listener: Listener<number>): () => void {
     return this.addListener(this.masterFaderListeners, busId, listener, () => {
-      return this.busMaster.get(busId)?.faderRawValue ?? 0;
+      return this.busMasters.get(busId)?.faderRawValue ?? 0;
     });
   }
 
   subscribeBusMasterOn(busId: number, listener: Listener<boolean>): () => void {
     return this.addListener(this.masterOnListeners, busId, listener, () => {
-      return this.busMaster.get(busId)?.isMuted ?? false;
+      return this.busMasters.get(busId)?.isMuted ?? false;
     });
+  }
+
+  renameMca(dcaNumber: number, name: string): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.name = normalizeDemoMcaName(dcaNumber, name);
+  }
+
+  setMcaAssignedChannels(dcaNumber: number, assignedChannels: McaAssignedChannel[]): void {
+    const mca = this.mcas.find((item) => item.dcaNumber === dcaNumber);
+    if (!mca) {
+      return;
+    }
+
+    mca.assignedChannels = assignedChannels.map((channel) => ({ ...channel }));
+    mca.assignedChannelIds = assignedChannels.map((channel) => channel.channelId);
   }
 
   private addListener<T>(
     map: Map<number, Set<Listener<T>>>,
     key: number,
     listener: Listener<T>,
-    getInitialValue: () => T,
+    getInitial: () => T,
   ): () => void {
-    const listeners = map.get(key) ?? new Set<Listener<T>>();
-    listeners.add(listener);
-    map.set(key, listeners);
-    listener(getInitialValue());
-
-    return () => listeners.delete(listener);
+    const set = map.get(key) ?? new Set<Listener<T>>();
+    set.add(listener);
+    map.set(key, set);
+    listener(getInitial());
+    return () => {
+      set.delete(listener);
+    };
   }
 
   private ensureMeterLoop(): void {
@@ -433,34 +448,59 @@ export class MockMixerProvider implements MixerControlProvider {
 
     this.meterInterval = setInterval(() => {
       this.meterListeners.forEach((listeners, channelId) => {
-        const values = this.getMeterValues(channelId);
+        const values = this.computeMeterValues(channelId);
         listeners.forEach((listener) => listener(values));
       });
-    }, 120);
+    }, DEMO_METER_INTERVAL_MS);
   }
 
-  private getMeterValues(channelId: number): ChannelMeterValues {
-    const now = Date.now() / 1000;
+  private computeMeterValues(channelId: number): ChannelMeterValues {
+    const now = Date.now();
     const channel = this.findChannelAcrossBuses(channelId);
     const baseLevel = channel?.faderRaw ?? 0.5;
     const isOn = channel?.on ?? true;
     const dcaGain = this.getDcaGainForChannel(channelId);
-    const phase = channelId * 0.37;
-    const wobble = (Math.sin(now * 2.4 + phase) + 1) / 2;
+    const activity = Math.max(baseLevel, 0.16);
+    const frameBucket = Math.floor(now / DEMO_METER_INTERVAL_MS);
+    const burst = pseudoRandom(channelId * 17 + frameBucket * 13);
+    const accent = pseudoRandom(channelId * 31 + frameBucket * 7);
+    const drop = pseudoRandom(channelId * 47 + Math.floor(frameBucket / 2) * 5);
 
-    const preFadeDb = -58 + wobble * 52 * Math.max(baseLevel, 0.15);
-    const postFactor = isOn ? baseLevel * dcaGain : 0;
-    const postFadeDb = postFactor <= 0.001 ? -60 : -55 + wobble * 58 * postFactor;
-    const preFadeDbfs = clamp(preFadeDb, -60, 2);
-    const postFadeDbfs = clamp(postFadeDb, -60, 2);
+    const floorDb = -58 + activity * 10;
+    const rangeDb = 18 + activity * 32;
+    let preFadeDb = floorDb + burst * rangeDb;
+
+    if (accent > 0.86) {
+      preFadeDb += 5 + activity * 4;
+    }
+
+    if (accent > 0.985) {
+      preFadeDb += 7 + activity * 6;
+    }
+
+    if (drop < 0.12) {
+      preFadeDb -= 8 + (1 - activity) * 8;
+    }
+
+    preFadeDb = isOn ? clamp(preFadeDb, -60, 10) : -60;
+
+    const postFactor = isOn ? Math.max(activity * dcaGain, 0) : 0;
+    const postFadeDb =
+      postFactor <= 0.001
+        ? -60
+        : clamp(preFadeDb + 20 * Math.log10(Math.max(postFactor, 0.08)), -60, 10);
+    const gateGrDb = isOn ? clamp(-2 - pseudoRandom(channelId * 59 + frameBucket) * 6, -10, 0) : 0;
+    const dynGrDb = isOn
+      ? clamp(-1 - pseudoRandom(channelId * 71 + frameBucket * 3) * 5, -9, 0)
+      : 0;
 
     return {
-      preFadeDbfs,
-      postFadeDbfs,
-      preFadeDb: preFadeDbfs,
-      postFadeDb: postFadeDbfs,
-      gateGrDb: clamp(-12 + Math.sin(now * 1.6 + phase) * 6, -24, 0),
-      dynGrDb: clamp(-7 + Math.cos(now * 1.2 + phase) * 5, -18, 0),
+      preFadeDbfs: preFadeDb,
+      postFadeDbfs: postFadeDb,
+      preFadeDb,
+      postFadeDb,
+      gateGrDb,
+      dynGrDb,
     };
   }
 
@@ -469,17 +509,15 @@ export class MockMixerProvider implements MixerControlProvider {
     if (matching.length === 0) {
       return 1;
     }
-
     if (matching.some((mca) => mca.isMuted)) {
       return 0;
     }
-
-    return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.15), 1);
+    return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.1), 1);
   }
 
   private emitChannelLevel(channelId: number, busId: number, value: number): void {
     this.channelLevelListeners
-      .get(this.getChannelBusKey(channelId, busId))
+      .get(this.channelBusKey(channelId, busId))
       ?.forEach((listener) => listener(value));
   }
 
@@ -494,47 +532,12 @@ export class MockMixerProvider implements MixerControlProvider {
         return found;
       }
     }
-
     return undefined;
   }
 
-  private getChannelBusKey(channelId: number, busId: number): string {
+  private channelBusKey(channelId: number, busId: number): string {
     return `${busId}:${channelId}`;
-  }
-
-  private cloneConsole(consoleDevice: ConsoleDevice): ConsoleDevice {
-    return { ...consoleDevice };
   }
 }
 
-export const mockMixerProvider = new MockMixerProvider();
-
-export const isDemoConsoleIp = (consoleIp: string): boolean => consoleIp === DEMO_CONSOLE_IP;
-
-export const isMockConsoleIp = (consoleIp: string): boolean =>
-  consoleIp === DEV_MOCK_CONSOLE_IP || isDemoConsoleIp(consoleIp);
-
-/**
- * Retorna o provider mock correto baseado no IP.
- * O `require` lazy evita dependencia circular entre os providers mock e demo.
- */
-export const getMockProviderForIp = (consoleIp: string): MixerControlProvider => {
-  if (isDemoConsoleIp(consoleIp)) {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    const { demoMixerProvider } =
-      require('./demoMixerProvider') as typeof import('./demoMixerProvider');
-    return demoMixerProvider;
-  }
-
-  return mockMixerProvider;
-};
-
-export const getMockConsoleDevice = (): ConsoleDevice => ({
-  id: DEV_MOCK_CONSOLE_ID,
-  ip: DEV_MOCK_CONSOLE_IP,
-  port: 10023,
-  name: 'X32 Dev Mock',
-  model: 'X32 Development Console',
-  status: 'connected',
-  firmware: 'mock-1.0.0',
-});
+export const demoMixerProvider = new DemoMixerProvider();

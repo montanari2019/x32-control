@@ -1,0 +1,105 @@
+Contexto:
+- O comportamento visual dos VU meters em `BusMix` estava pesado, suave demais e com aparencia de onda/agua.
+- Os logs anteriores mostravam dois pontos importantes:
+  - ja existia polling centralizado com backpressure em `useMeterSubscription`
+  - o Demo ainda gerava meter com oscilacao senoidal suave
+- Tambem havia duplicacao de trabalho por canal:
+  - `ChannelVuMeter` assinava e animava o meter principal
+  - `VerticalFader` tambem assinava meter e rodava loop proprio para preencher o track
+
+Objetivo:
+- deixar o meter mais seco, mais rapido e mais leve
+- remover trabalho duplicado
+- manter o fluxo real da X32 intacto
+
+Arquivos alterados:
+- `src/features/busMix/components/VerticalFader.tsx`
+  - removida a dependencia de meter interno
+  - removidos:
+    - `meterChannelId`
+    - `registerMeterListener`
+    - loop interno de `setInterval`
+    - suavizacao por `smoothMeterValue`
+    - preenchimento verde do track
+  - o `VerticalFader` voltou a cuidar apenas do fader
+  - isso elimina um listener e um loop por canal
+
+- `src/features/busMix/components/ChannelStrip.tsx`
+  - `VerticalFader` deixou de receber props de meter
+  - o meter ficou isolado em `ChannelVuMeter`
+
+- `src/features/busMix/components/ChannelVuMeter.tsx`
+  - removido easing suave
+  - subida agora fica imediata
+  - descida ficou curta e seca (`75ms`)
+  - `clip` acende imediatamente e apaga rapido (`100ms`)
+  - `peak hold` ficou mais curto e com queda mais rapida
+  - componente passou a usar `React.memo`
+  - objetivo:
+    - reduzir re-render por updates do pai
+    - eliminar a aparencia de onda
+
+- `src/features/busMix/hooks/useMeterSubscription.ts`
+  - polling central passou de `100ms` para `66ms`
+  - alvo aproximado: ~15 fps
+  - mantido:
+    - backpressure com `isPollingRef`
+    - distribuicao central de `/meters/1`
+  - objetivo:
+    - aumentar responsividade sem criar flood por componente
+
+- `src/shared/mixer/mock/demoMixerProvider.ts`
+  - o gerador de meter do Demo deixou de usar senoides suaves
+  - passou a usar variacao pseudoaleatoria por degraus/rajadas
+  - interval da Demo ajustado para `66ms`
+  - resultado esperado:
+    - meter mock mais irregular
+    - menos “bonito”, mais parecido com sinal
+    - sem sacrificio de performance por animacao decorativa
+
+Escopo preservado:
+- nao foi alterada a logica real de:
+  - faders
+  - mute
+  - master
+  - pan
+  - presets
+  - OSC real
+  - navegacao
+- o polling de meter continua centralizado
+- nao foi criada nova fonte de flood OSC por componente
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+- `yarn android`
+  - falhou por ambiente local:
+    - sem emulador configurado
+    - `EPERM` no install Android
+- `..\\android\\gradlew.bat app:createBundleDevelopDebugJsAndAssets`
+  - sucesso
+  - bundle Android gerado corretamente
+
+Validacao que nao concluiu:
+- `npx eslint src/features/busMix/components/ChannelVuMeter.tsx src/features/busMix/components/VerticalFader.tsx src/features/busMix/hooks/useMeterSubscription.ts src/shared/mixer/mock/demoMixerProvider.ts --ext .ts,.tsx --quiet`
+  - falhou por `npx` tentar resolver `eslint` externamente e bater em `EACCES`
+  - nao houve confirmacao de lint nesta rodada por limitacao do ambiente
+
+Resultado esperado em runtime:
+- meters mais secos
+- subida praticamente imediata
+- queda curta
+- menos aparencia de onda
+- menos custo por canal
+- faders seguem responsivos mesmo com varios meters ativos
+
+Pendencias de validacao manual:
+- abrir `BusMix` com varios canais por pelo menos 30 segundos
+- testar no Demo
+- mover faders enquanto os meters animam
+- sair e voltar da tela para confirmar que listeners nao duplicam
+- validar, se possivel, em mesa real

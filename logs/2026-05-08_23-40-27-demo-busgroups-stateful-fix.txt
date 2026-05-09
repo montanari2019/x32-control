@@ -1,0 +1,103 @@
+Contexto:
+- O console Demo ja existia e aparecia na descoberta, mas o fluxo de `BusGroups` estava com regressoes praticas:
+  - sensacao de tela congelada ao entrar em Personal Mix Group
+  - dificuldade para abrir o modal dos MCAs
+  - dificuldade para navegar para `Channels`
+  - interacoes de fader e mute do grupo ficando pouco confiaveis no Demo
+  - nomes de MCA podiam continuar vindos de estados antigos da primeira versao do Demo
+- A diretriz desta rodada foi corrigir o Demo como uma camada paralela e isolada, sem alterar o fluxo real de OSC da mesa fisica.
+
+Diagnostico principal:
+- O maior problema estava na combinacao de:
+  - subscriptions de `BusGroups` sendo recriadas em todo render por dependerem de `mcas` e callbacks instaveis
+  - provider Demo emitindo o valor inicial imediatamente ao assinar listeners
+  - persistencia em storage disparando a cada mudanca de `state.mcas`, inclusive durante arraste de fader
+- Esse conjunto gerava churn de render/subscription suficiente para deixar a tela ruim ou aparentando freeze.
+
+Arquivos alterados:
+- `src/features/busGroups/hooks/useBusGroups.ts`
+  - estabilizado o fluxo de estado de `BusGroups`
+  - adicionada sincronizacao explicita do estado local dos MCAs com o provider Demo
+  - preservadas atribuicoes reais/mockadas vindas do service em vez de zerar tudo no carregamento
+  - restauracao de storage passou a respeitar:
+    - nome salvo localmente
+    - fallback `MCA X`
+  - nomes antigos legados do Demo (`Bateria`, `Vocais` etc.) agora sao normalizados de volta para `MCA X` quando vierem de storage antigo
+  - persistencia em storage passou a ser debounceada para reduzir travamento durante interacoes
+  - ao desmontar a tela, o ultimo estado persistivel eh salvo para nao perder a ultima edicao
+  - callbacks de atualizacao remota (`onDcaFader`, `onDcaMute`, `onMasterFader`, `onMasterMute`) foram estabilizados e passaram a evitar `setState` desnecessario
+- `src/features/busGroups/hooks/useOscSubscription.ts`
+  - subscriptions agora dependem apenas da assinatura estrutural dos DCAs (`dcaNumbers`)
+  - deixou de ressuscrever em toda mudanca de nome, atribuicao, fader ou mute
+  - isso eliminou o loop de resubscribe/re-render que estava especialmente agressivo no Demo
+- `src/features/busGroups/components/GroupStrip.tsx`
+  - removido o card inteiro como `Pressable`
+  - o fader voltou a ficar isolado da area de abertura de modal
+  - mantidos `Pressable`s apenas nas areas de cabecalho e rodape do MCA
+  - adicionado `hitSlop` para melhorar a tocabilidade sem competir com drag do fader
+- `src/shared/mixer/mock/demoMixerProvider.ts`
+  - mantido o provider stateful isolado do Demo
+  - adicionados metodos locais para:
+    - renomear MCA
+    - atualizar canais atribuidos ao MCA
+  - isso permite que o Demo retenha melhor o proprio estado local sem tocar no caminho real da mesa
+
+Comportamento final esperado apos esta rodada:
+- O Demo continua isolado do fluxo OSC real.
+- `BusGroups` deixa de entrar em churn continuo de subscriptions/renders.
+- O usuario consegue:
+  - abrir o Demo
+  - entrar em `BusSelection`
+  - entrar em `Personal Mix Group / BusGroups`
+  - tocar nos MCAs para abrir o modal
+  - abrir `Channels`
+  - usar fader e mute de grupos de forma fluida
+  - editar nomes de MCA
+  - selecionar/remover canais de MCA
+- Os nomes default dos MCAs do Demo continuam sendo:
+  - `MCA 1`
+  - `MCA 2`
+  - `MCA 3`
+  - `MCA 4`
+  - `MCA 5`
+- Se houver nome salvo localmente, ele continua prevalecendo.
+
+Escopo preservado:
+- Nenhuma alteracao foi feita no fluxo real de rede/OSC para consoles fisicos.
+- Nenhuma alteracao foi feita em sockets, protocolo ou subscriptions reais do X32 por causa do Demo.
+- Nenhuma regra de negocio de `BusMix`, presets, descoberta real ou navegacao global foi removida.
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+- `yarn android`
+  - falhou por ambiente local:
+    - sem emulador configurado
+    - `gradlew.bat app:installDevelopDebug` com `EPERM`
+  - nao foi falha de codigo React Native/TypeScript
+- `android\\gradlew.bat app:createBundleDevelopDebugJsAndAssets`
+  - sucesso
+  - bundle Android gerado corretamente apos a correcao final
+
+Validacao que nao concluiu:
+- `npm run lint`
+  - falhou porque `eslint` nao estava disponivel como executavel no ambiente atual
+  - nao foi identificado erro confirmado desta rodada a partir desse comando, apenas indisponibilidade do binario
+
+Pendencias de validacao manual:
+- abrir o app em dispositivo/emulador e confirmar:
+  - Demo abre normalmente
+  - `BusGroups` nao fica congelado
+  - botao de voltar funciona
+  - `Channels` abre
+  - modal dos MCAs abre em todos os cards
+  - fader e mute do grupo respondem no Demo
+  - nome editado de MCA permanece apos fechar e abrir o app
+  - selecao/remocao de canais do MCA continua funcionando
+
+Observacao:
+- O bundle Android continuou emitindo warnings padrao do Metro sobre globais de runtime (`fetch`, `Headers`, `MessageChannel`, etc.), mas o build foi concluido com sucesso e esses avisos nao foram introduzidos por esta rodada.

@@ -1,0 +1,34 @@
+Contexto:
+- Mesmo apos a rodada anterior, o modal de MCA no Android ainda podia entrar em tremor vertical ao salvar/confirmar o nome pelo teclado.
+- A suspeita principal passou a ser correta: a altura do modal estava sendo recalculada em funcao do viewport afetado pelo teclado.
+
+Arquivo alterado:
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+
+Correcao aplicada:
+- Removido o uso de `useWindowDimensions()` para calcular `modalMaxHeight`
+- O modal agora usa uma altura-base estavel com `Dimensions.get('screen').height`, guardada em `ref`
+- Isso impede que o `maxHeight` do card acompanhe as mudancas de viewport causadas pela abertura/fechamento do teclado no Android
+- Tambem aumentei o fallback de fechamento do modo de edicao apos `blur()` para 420ms, dando mais margem para o teclado terminar a animacao antes da troca estrutural do conteudo
+
+Objetivo:
+- evitar que o card do modal fique alternando rapidamente entre alturas/posicoes enquanto o teclado recolhe
+
+Escopo preservado:
+- nenhuma alteracao na persistencia
+- nenhuma alteracao em fader, mute, master, canais, navegacao ou OSC
+- nome continua atualizando imediatamente no proprio modal
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+
+Pendencia:
+- validar manualmente no Android se o tremor desapareceu ao:
+  - tocar no titulo
+  - editar o nome
+  - apertar salvar ou a tecla confirmar do teclado

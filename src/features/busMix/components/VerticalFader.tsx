@@ -9,21 +9,10 @@ import {
 } from 'react-native';
 import { colors } from '@shared/theme/colors';
 import { x32DbToRaw } from '@shared/utils/faderDb';
-import {
-  ChannelMeterValues,
-  meterValueToPercent,
-  SILENCE_DBFS,
-  smoothMeterValue,
-} from '../utils/meterDecoder';
 
 type VerticalFaderProps = {
   level: number;
   height: number;
-  meterChannelId?: number;
-  registerMeterListener?: (
-    channelId: number,
-    listener: (values: ChannelMeterValues) => void,
-  ) => () => void;
   onChange: (level: number) => void;
   onChangeEnd: (level: number) => void;
 };
@@ -33,10 +22,6 @@ const FADER_MAX_DB = 10;
 const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
 const THUMB_HEIGHT = 36;
-const METER_FRAME_MS = 33;
-const METER_STALE_TIMEOUT_MS = 600;
-const METER_ATTACK = 0.6;
-const METER_RELEASE = 0.2;
 
 const positionToRaw = (position: number): number => {
   const clamped = Math.max(0, Math.min(1, position));
@@ -51,22 +36,16 @@ const rawToPosition = (raw: number): number => {
 export const VerticalFader = ({
   level,
   height,
-  meterChannelId,
-  registerMeterListener,
   onChange,
   onChangeEnd,
 }: VerticalFaderProps): JSX.Element => {
   const available = Math.max(1, height - THUMB_HEIGHT);
   const zeroMarkTop = (1 - rawToPosition(x32DbToRaw(0))) * height;
   const animatedY = useRef(new Animated.Value(0)).current;
-  const meterHeight = useRef(new Animated.Value(0)).current;
   const availableRef = useRef(available);
   const currentY = useRef(0);
   const isDragging = useRef(false);
   const startY = useRef(0);
-  const lastMeterUpdateRef = useRef(0);
-  const latestMeterDbfsRef = useRef(SILENCE_DBFS);
-  const currentMeterPercentRef = useRef(0);
   const onChangeRef = useRef(onChange);
   const onChangeEndRef = useRef(onChangeEnd);
 
@@ -144,46 +123,9 @@ export const VerticalFader = ({
     }).start();
   }, [animatedY, available, level]);
 
-  useEffect(() => {
-    if (!meterChannelId || !registerMeterListener) {
-      meterHeight.setValue(0);
-      return undefined;
-    }
-
-    // Previously we rendered on every OSC packet. A paced loop keeps the meter stable and avoids
-    // stale values hanging on screen when packets drop.
-    const unsubscribe = registerMeterListener(meterChannelId, (values) => {
-      latestMeterDbfsRef.current = values.preFadeDbfs;
-      lastMeterUpdateRef.current = Date.now();
-    });
-
-    const interval = setInterval(() => {
-      const now = Date.now();
-      const isStale = now - lastMeterUpdateRef.current > METER_STALE_TIMEOUT_MS;
-      const targetDbfs = isStale ? SILENCE_DBFS : latestMeterDbfsRef.current;
-      const targetPercent = meterValueToPercent(targetDbfs);
-      const nextPercent = smoothMeterValue(
-        currentMeterPercentRef.current,
-        targetPercent,
-        METER_ATTACK,
-        METER_RELEASE,
-      );
-
-      currentMeterPercentRef.current = nextPercent;
-      meterHeight.setValue(nextPercent * height);
-    }, METER_FRAME_MS);
-
-    return () => {
-      unsubscribe();
-      clearInterval(interval);
-    };
-  }, [height, meterChannelId, meterHeight, registerMeterListener]);
-
   return (
     <View style={[styles.container, { height }]} {...panResponder.panHandlers}>
-      <View style={styles.track}>
-        <Animated.View style={[styles.inputMeter, { height: meterHeight }]} />
-      </View>
+      <View style={styles.track} />
       <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
       <Animated.View style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}>
         <View style={styles.thumbHighlight} />
@@ -204,16 +146,7 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fader.track,
     borderRadius: 6,
     flex: 1,
-    overflow: 'hidden',
-    position: 'relative',
     width: 8,
-  },
-  inputMeter: {
-    backgroundColor: colors.meter.green,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-    right: 0,
   },
   thumb: {
     backgroundColor: colors.fader.thumb,

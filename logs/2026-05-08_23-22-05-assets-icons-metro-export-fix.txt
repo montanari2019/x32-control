@@ -1,0 +1,44 @@
+Contexto:
+- O bundle Android estava falhando no Metro/Babel ao processar `src/assets/index.ts`.
+- A causa era o uso de `export * as Icons from './icons';`, que exige transformacao adicional do Babel (`@babel/plugin-transform-export-namespace-from`).
+- A decisao desta rodada foi corrigir o export sem adicionar plugin novo nem alterar os componentes de icone.
+
+Arquivo alterado:
+- `src/assets/index.ts`
+  - antes:
+    - `export * as Icons from './icons';`
+  - depois:
+    - `import * as Icons from './icons';`
+    - `export { Icons };`
+
+Compatibilidade preservada:
+- Os imports existentes com `import { Icons } from '@assets'` continuam funcionando.
+- Nao foi necessario alterar:
+  - `src/features/busMix/components/BusMixPresetsModal.tsx`
+  - `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+
+Escopo preservado:
+- Nenhum componente SVG foi alterado.
+- Nenhuma logica de negocio foi alterada.
+- Nenhuma dependencia ou plugin Babel novo foi adicionado.
+
+Validacoes executadas:
+- `npx prettier --write src/assets/index.ts`
+  - sucesso
+- `npm run tsc`
+  - sucesso
+- `yarn android`
+  - iniciou o fluxo, mas falhou ao instalar/rodar por ausencia de emulador e `EPERM` no spawn do Gradle
+- `gradlew.bat app:createBundleDevelopDebugJsAndAssets`
+  - executado com permissao ampliada para validar apenas o bundle Android
+  - sucesso
+  - o Metro concluiu o bundle normalmente
+  - o erro em `src/assets/index.ts` nao voltou a aparecer
+
+Resultado confirmado:
+- O arquivo `src/assets/index.ts` ficou compativel com Metro/Babel do React Native.
+- A API publica atual foi mantida:
+  - `import { Icons } from '@assets'`
+
+Observacoes:
+- Nao foi necessario rodar `yarn start --reset-cache`, porque a tarefa de bundle ja concluiu com sucesso apos a correcao.

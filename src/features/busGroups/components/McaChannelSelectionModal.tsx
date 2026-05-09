@@ -1,14 +1,18 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
+  Dimensions,
+  Keyboard,
+  KeyboardAvoidingView,
   Modal,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
-  useWindowDimensions,
   View,
 } from 'react-native';
+import { Icons } from '@assets';
 import { Channel } from '@features/busMix/types/Channel';
 import { ModalRenderProps } from '@shared/components/Modal';
 import { colors } from '@shared/theme/colors';
@@ -18,6 +22,11 @@ import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { McaGroup } from '../types/busGroups.types';
 
 const CHANNEL_CARD_GAP = spacing.xxs;
+
+const normalizeMcaName = (dcaNumber: number, name: string): string => {
+  const normalizedName = name.trim().replace(/\s+/g, ' ');
+  return normalizedName || `MCA ${dcaNumber}`;
+};
 
 type McaChannelSelectionModalProps = ModalRenderProps & {
   accentColor: string;
@@ -50,141 +59,275 @@ export const McaChannelSelectionModal = ({
   onRename,
   onToggleChannel,
 }: McaChannelSelectionModalProps): JSX.Element => {
-  const { height } = useWindowDimensions();
+  const inputRef = useRef<TextInput>(null);
+  const closeAfterKeyboardHideRef = useRef(false);
+  const closeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const modalBaseHeightRef = useRef(Dimensions.get('screen').height);
+  const [displayName, setDisplayName] = useState(mca.name);
   const [draftName, setDraftName] = useState(mca.name);
+  const [isEditingName, setIsEditingName] = useState(false);
   const [selectedIds, setSelectedIds] = useState<number[]>(
     mca.assignedChannels.map((channel) => channel.channelId),
   );
-  const modalMaxHeight = Math.max(360, height - spacing.xxl * 2);
+  const modalMaxHeight = Math.max(360, modalBaseHeightRef.current - spacing.xxl * 2);
 
   useEffect(() => {
+    setDisplayName(mca.name);
     setDraftName(mca.name);
   }, [mca.name]);
+
+  useEffect(() => {
+    if (!visible) {
+      setIsEditingName(false);
+      Keyboard.dismiss();
+      return;
+    }
+
+    setDisplayName(mca.name);
+    setDraftName(mca.name);
+  }, [mca.name, visible]);
 
   useEffect(() => {
     setSelectedIds(mca.assignedChannels.map((channel) => channel.channelId));
   }, [mca.assignedChannels]);
 
-  const commitName = (): void => {
-    onRename(draftName);
+  useEffect(() => {
+    if (!visible) {
+      return;
+    }
+
+    const hideSubscription = Keyboard.addListener('keyboardDidHide', () => {
+      if (!closeAfterKeyboardHideRef.current) {
+        return;
+      }
+
+      closeAfterKeyboardHideRef.current = false;
+      if (closeFallbackTimerRef.current) {
+        clearTimeout(closeFallbackTimerRef.current);
+        closeFallbackTimerRef.current = null;
+      }
+      setIsEditingName(false);
+    });
+
+    return () => {
+      hideSubscription.remove();
+      if (closeFallbackTimerRef.current) {
+        clearTimeout(closeFallbackTimerRef.current);
+        closeFallbackTimerRef.current = null;
+      }
+      closeAfterKeyboardHideRef.current = false;
+    };
+  }, [visible]);
+
+  const handleStartNameEdit = (): void => {
+    setDraftName(displayName);
+    setIsEditingName(true);
+  };
+
+  const finishEditingName = (): void => {
+    if (Platform.OS !== 'android') {
+      setIsEditingName(false);
+      Keyboard.dismiss();
+      return;
+    }
+
+    closeAfterKeyboardHideRef.current = true;
+    inputRef.current?.blur();
+
+    if (closeFallbackTimerRef.current) {
+      clearTimeout(closeFallbackTimerRef.current);
+    }
+
+    closeFallbackTimerRef.current = setTimeout(() => {
+      if (!closeAfterKeyboardHideRef.current) {
+        return;
+      }
+
+      closeAfterKeyboardHideRef.current = false;
+      closeFallbackTimerRef.current = null;
+      setIsEditingName(false);
+    }, 420);
+  };
+
+  const handleSaveName = (): void => {
+    const nextName = normalizeMcaName(mca.dcaNumber, draftName);
+    setDisplayName(nextName);
+    setDraftName(nextName);
+    onRename(nextName);
+    finishEditingName();
   };
 
   const handleDismiss = (): void => {
-    commitName();
+    closeAfterKeyboardHideRef.current = false;
+    if (closeFallbackTimerRef.current) {
+      clearTimeout(closeFallbackTimerRef.current);
+      closeFallbackTimerRef.current = null;
+    }
+    setDraftName(displayName);
+    setIsEditingName(false);
+    Keyboard.dismiss();
     onDismiss?.();
   };
 
   return (
     <Modal transparent visible={visible} animationType="none" onRequestClose={handleDismiss}>
-      <Pressable style={styles.backdrop} onPress={handleDismiss}>
-        <Pressable style={[styles.card, { maxHeight: modalMaxHeight }]} onPress={() => undefined}>
-          <View style={[styles.header, { borderColor: accentColor }]}>
-            <View style={styles.headerTopRow}>
-              <TextInput
-                value={draftName}
-                onBlur={commitName}
-                onChangeText={setDraftName}
-                onSubmitEditing={commitName}
-                placeholder="Nome do MCA"
-                placeholderTextColor={colors.text.tertiary}
-                returnKeyType="done"
-                selectTextOnFocus
-                style={[styles.titleInput, { color: accentColor }]}
-              />
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Fechar modal de MCA"
-                onPress={handleDismiss}
-                style={({ pressed }) => [styles.closeButton, pressed && styles.closeButtonPressed]}
-              >
-                <Text style={styles.closeButtonText}>X</Text>
-              </Pressable>
-            </View>
-            <View style={styles.headerBottomRow}>
-              <Text style={styles.subtitle}>
-                {selectedIds.length}{' '}
-                {selectedIds.length === 1 ? 'canal vinculado' : 'canais vinculados'}
-              </Text>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Limpar canais do MCA"
-                disabled={selectedIds.length === 0}
-                onPress={() => {
-                  setSelectedIds([]);
-                  onClearChannels();
-                }}
-                style={({ pressed }) => [
-                  styles.clearButton,
-                  pressed && styles.clearButtonPressed,
-                  selectedIds.length === 0 && styles.clearButtonDisabled,
-                ]}
-              >
-                <Text style={styles.clearButtonText}>Limpar</Text>
-              </Pressable>
-            </View>
-          </View>
+      <View style={styles.modalRoot}>
+        <Pressable style={styles.dismissBackdrop} onPress={handleDismiss} />
 
+        <KeyboardAvoidingView keyboardVerticalOffset={spacing.md} style={styles.keyboardLayer}>
           <ScrollView
-            contentContainerStyle={styles.grid}
+            bounces={false}
+            contentContainerStyle={styles.keyboardScrollContent}
+            keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator
-            style={styles.channelList}
+            showsVerticalScrollIndicator={false}
+            style={styles.keyboardScroll}
           >
-            {channels.map((channel) => {
-              const uiColor = mapX32ColorToUiColor(channel.color ?? 0);
-              const isSelected = selectedIds.includes(channel.number);
+            <Pressable
+              style={[styles.card, { maxHeight: modalMaxHeight }]}
+              onPress={() => undefined}
+            >
+              <View style={[styles.header, { borderColor: accentColor }]}>
+                <View style={styles.headerTopRow}>
+                  {isEditingName ? (
+                    <View style={styles.nameEditor}>
+                      <TextInput
+                        accessibilityLabel="Editar nome do MCA"
+                        autoFocus
+                        blurOnSubmit
+                        ref={inputRef}
+                        onChangeText={setDraftName}
+                        onSubmitEditing={handleSaveName}
+                        placeholder="Nome do MCA"
+                        placeholderTextColor={colors.text.tertiary}
+                        returnKeyType="done"
+                        selectTextOnFocus
+                        style={[styles.titleInput, { color: accentColor }]}
+                        value={draftName}
+                      />
+                      <Pressable
+                        accessibilityLabel="Salvar nome do MCA"
+                        accessibilityRole="button"
+                        onPress={handleSaveName}
+                        style={({ pressed }) => [
+                          styles.saveNameButton,
+                          pressed && styles.saveNameButtonPressed,
+                        ]}
+                      >
+                        <Icons.SaveData color={colors.button.presets.text} width={18} height={18} />
+                      </Pressable>
+                    </View>
+                  ) : (
+                    <Pressable
+                      accessibilityLabel={`Editar nome ${displayName}`}
+                      accessibilityRole="button"
+                      onPress={handleStartNameEdit}
+                      style={({ pressed }) => [
+                        styles.titleButton,
+                        pressed && styles.titleButtonPressed,
+                      ]}
+                    >
+                      <Text style={[styles.titleText, { color: accentColor }]} numberOfLines={1}>
+                        {displayName}
+                      </Text>
+                    </Pressable>
+                  )}
 
-              return (
-                <Pressable
-                  key={channel.id}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${isSelected ? 'Remover' : 'Adicionar'} ${channel.name}`}
-                  onPress={() => {
-                    setSelectedIds((current) =>
-                      current.includes(channel.number)
-                        ? current.filter((item) => item !== channel.number)
-                        : [...current, channel.number],
-                    );
-                    onToggleChannel(channel);
-                  }}
-                  style={({ pressed }) => [
-                    styles.channelCard,
-                    {
-                      backgroundColor: uiColor.backgroundColor,
-                      opacity: isSelected ? 1 : 0.3,
-                    },
-                    pressed && styles.channelCardPressed,
-                  ]}
-                >
-                  <Text
-                    style={[styles.channelName, { color: uiColor.textColor }]}
-                    numberOfLines={1}
-                    adjustsFontSizeToFit
-                    minimumFontScale={0.78}
+                  <Pressable
+                    accessibilityLabel="Fechar modal de MCA"
+                    accessibilityRole="button"
+                    onPress={handleDismiss}
+                    style={({ pressed }) => [
+                      styles.closeButton,
+                      pressed && styles.closeButtonPressed,
+                    ]}
                   >
-                    {channel.name}
+                    <Text style={styles.closeButtonText}>X</Text>
+                  </Pressable>
+                </View>
+
+                <View style={styles.headerBottomRow}>
+                  <Text style={styles.subtitle}>
+                    {selectedIds.length}{' '}
+                    {selectedIds.length === 1 ? 'canal vinculado' : 'canais vinculados'}
                   </Text>
-                  <Text style={[styles.channelLabel, { color: uiColor.textColor }]}>
-                    {getChannelTypeLabel(channel)}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                  <Pressable
+                    accessibilityLabel="Limpar canais do MCA"
+                    accessibilityRole="button"
+                    disabled={selectedIds.length === 0}
+                    onPress={() => {
+                      setSelectedIds([]);
+                      onClearChannels();
+                    }}
+                    style={({ pressed }) => [
+                      styles.clearButton,
+                      pressed && styles.clearButtonPressed,
+                      selectedIds.length === 0 && styles.clearButtonDisabled,
+                    ]}
+                  >
+                    <Text style={styles.clearButtonText}>Limpar</Text>
+                  </Pressable>
+                </View>
+              </View>
+
+              <ScrollView
+                contentContainerStyle={styles.grid}
+                keyboardDismissMode="on-drag"
+                keyboardShouldPersistTaps="handled"
+                nestedScrollEnabled
+                showsVerticalScrollIndicator
+                style={styles.channelList}
+              >
+                {channels.map((channel) => {
+                  const uiColor = mapX32ColorToUiColor(channel.color ?? 0);
+                  const isSelected = selectedIds.includes(channel.number);
+
+                  return (
+                    <Pressable
+                      key={channel.id}
+                      accessibilityLabel={`${isSelected ? 'Remover' : 'Adicionar'} ${channel.name}`}
+                      accessibilityRole="button"
+                      onPress={() => {
+                        setSelectedIds((current) =>
+                          current.includes(channel.number)
+                            ? current.filter((item) => item !== channel.number)
+                            : [...current, channel.number],
+                        );
+                        onToggleChannel(channel);
+                      }}
+                      style={({ pressed }) => [
+                        styles.channelCard,
+                        {
+                          backgroundColor: uiColor.backgroundColor,
+                          opacity: isSelected ? 1 : 0.3,
+                        },
+                        pressed && styles.channelCardPressed,
+                      ]}
+                    >
+                      <Text
+                        adjustsFontSizeToFit
+                        minimumFontScale={0.78}
+                        numberOfLines={1}
+                        style={[styles.channelName, { color: uiColor.textColor }]}
+                      >
+                        {channel.name}
+                      </Text>
+                      <Text style={[styles.channelLabel, { color: uiColor.textColor }]}>
+                        {getChannelTypeLabel(channel)}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </Pressable>
           </ScrollView>
-        </Pressable>
-      </Pressable>
+        </KeyboardAvoidingView>
+      </View>
     </Modal>
   );
 };
 
 const styles = StyleSheet.create({
-  backdrop: {
-    alignItems: 'center',
-    backgroundColor: colors.overlay.backdrop,
-    flex: 1,
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
   card: {
     alignSelf: 'stretch',
     backgroundColor: colors.surface.modal,
@@ -193,11 +336,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     padding: spacing.lg,
     width: '100%',
-  },
-  channelList: {
-    flexGrow: 0,
-    flexShrink: 1,
-    marginTop: spacing.sm,
   },
   channelCard: {
     alignItems: 'center',
@@ -220,12 +358,36 @@ const styles = StyleSheet.create({
     opacity: 0.9,
     textAlign: 'center',
   },
+  channelList: {
+    flexGrow: 0,
+    flexShrink: 1,
+    marginTop: spacing.sm,
+  },
   channelName: {
     fontSize: 13,
     fontWeight: '900',
     lineHeight: 16,
     textAlign: 'center',
     width: '100%',
+  },
+  clearButton: {
+    backgroundColor: colors.mute.active.background,
+    borderColor: colors.border.red,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
+  clearButtonDisabled: {
+    opacity: 0.4,
+  },
+  clearButtonPressed: {
+    opacity: 0.72,
+  },
+  clearButtonText: {
+    color: colors.status.danger,
+    fontSize: 12,
+    fontWeight: '800',
   },
   closeButton: {
     alignItems: 'center',
@@ -244,23 +406,8 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '900',
   },
-  clearButton: {
-    borderColor: colors.border.subtle,
-    borderRadius: radius.md,
-    borderWidth: 1,
-    paddingHorizontal: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  clearButtonDisabled: {
-    opacity: 0.4,
-  },
-  clearButtonPressed: {
-    opacity: 0.72,
-  },
-  clearButtonText: {
-    color: colors.text.primary,
-    fontSize: 12,
-    fontWeight: '800',
+  dismissBackdrop: {
+    ...StyleSheet.absoluteFillObject,
   },
   grid: {
     flexDirection: 'row',
@@ -274,26 +421,79 @@ const styles = StyleSheet.create({
     gap: spacing.xxs,
     paddingBottom: spacing.sm,
   },
+  headerBottomRow: {
+    alignItems: 'center',
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+  },
   headerTopRow: {
     alignItems: 'center',
     flexDirection: 'row',
     gap: spacing.sm,
     justifyContent: 'space-between',
   },
-  headerBottomRow: {
+  keyboardLayer: {
+    flex: 1,
+  },
+  keyboardScroll: {
+    flex: 1,
+  },
+  keyboardScrollContent: {
     alignItems: 'center',
+    flexGrow: 1,
+    justifyContent: 'center',
+    padding: spacing.lg,
+  },
+  modalRoot: {
+    backgroundColor: colors.overlay.backdrop,
+    flex: 1,
+  },
+  nameEditor: {
+    alignItems: 'center',
+    flex: 1,
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: spacing.sm,
+  },
+  saveNameButton: {
+    alignItems: 'center',
+    backgroundColor: colors.accent.primary,
+    borderRadius: radius.md,
+    height: 44,
+    justifyContent: 'center',
+    width: 44,
+  },
+  saveNameButtonPressed: {
+    opacity: 0.84,
   },
   subtitle: {
     color: colors.text.secondary,
     fontSize: 13,
     fontWeight: '700',
   },
+  titleButton: {
+    borderRadius: radius.sm,
+    flex: 1,
+    marginLeft: -spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingVertical: spacing.xxs,
+  },
+  titleButtonPressed: {
+    opacity: 0.78,
+  },
   titleInput: {
+    backgroundColor: colors.background.secondary,
+    borderColor: colors.border.active,
+    borderRadius: radius.md,
+    borderWidth: 1,
     flex: 1,
     fontSize: 20,
     fontWeight: '900',
-    padding: 0,
+    minHeight: 44,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 0,
+  },
+  titleText: {
+    fontSize: 20,
+    fontWeight: '900',
   },
 });

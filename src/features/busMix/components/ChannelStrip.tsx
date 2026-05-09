@@ -81,8 +81,6 @@ const ChannelStripComponent = ({
           <VerticalFader
             level={channel.localFaderRaw}
             height={faderHeight}
-            meterChannelId={channel.meterChannelId}
-            registerMeterListener={registerMeterListener}
             onChange={onFaderChange}
             onChangeEnd={onFaderChangeEnd}
           />

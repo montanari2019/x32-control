@@ -1,0 +1,47 @@
+Contexto:
+- A estrutura do modal ja tinha sido migrada para `KeyboardAvoidingView + ScrollView`, mas surgiu um bug especifico no Android:
+  - ao apertar a tecla de confirmar/done do teclado, o modal entrava num tremor vertical repetitivo
+- O problema era mais perceptivel exatamente na transicao entre:
+  - submit do `TextInput`
+  - fechamento do teclado
+  - troca imediata do modo de edicao para o titulo normal
+
+Arquivo alterado:
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+
+Diagnostico:
+- O modal estava desmontando o `TextInput` e fechando o teclado praticamente ao mesmo tempo no `onSubmitEditing`
+- No Android, essa troca de altura durante a animacao do teclado podia gerar oscilacao visual no `KeyboardAvoidingView`
+
+Implementacao:
+- Adicionado `ref` para o `TextInput`
+- Adicionado controle interno para fechar o modo de edicao apenas depois do teclado terminar de esconder no Android
+- Fluxo novo:
+  - salva nome localmente e dispara `onRename`
+  - faz `blur()` no input
+  - aguarda `keyboardDidHide`
+  - so entao chama `setIsEditingName(false)`
+- Tambem foi adicionado um fallback por `setTimeout` caso o evento do teclado nao chegue
+- Em iOS o fechamento continua simples e direto
+
+Comportamento preservado:
+- nome continua atualizando imediatamente no proprio modal
+- persistencia continua no fluxo existente de `useBusGroups`
+- destaque destrutivo do botao `Limpar` foi mantido
+- nenhuma regra de master, mute, fader, canais, navegacao ou OSC foi alterada
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+
+Pendencia:
+- validar manualmente no Android:
+  - abrir modal
+  - tocar no titulo
+  - digitar novo nome
+  - apertar a tecla de confirmar do teclado
+  - confirmar que o modal nao treme mais

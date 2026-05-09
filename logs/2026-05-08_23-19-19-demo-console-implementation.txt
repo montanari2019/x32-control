@@ -1,0 +1,98 @@
+Contexto:
+- Foi implementado um console Demo sempre visivel na descoberta, sem dependencia de mesa real na rede.
+- O objetivo desta rodada foi reutilizar a infraestrutura de mock ja existente, mas sem quebrar o fluxo normal de consoles reais.
+- A implementacao foi feita preservando:
+  - descoberta real por broadcast
+  - BusSelection
+  - BusGroups
+  - BusMix
+  - presets locais
+  - edicao e persistencia local dos nomes dos MCAs
+
+Arquivos alterados:
+- `src/shared/mixer/mock/mockMixerProvider.ts`
+  - adicionadas as constantes `DEMO_CONSOLE_IP` e `DEMO_CONSOLE_ID`
+  - adicionada a funcao `isDemoConsoleIp`
+  - `isMockConsoleIp` passou a reconhecer tambem o IP Demo
+  - adicionada a funcao `getMockProviderForIp`
+  - o helper usa `require` lazy para evitar dependencia circular com o provider de demo
+- `src/shared/mixer/mock/demoMixerProvider.ts`
+  - arquivo novo
+  - implementado `DemoMixerProvider`
+  - 8 buses de demo
+  - 16 canais principais + 4 AUX + 4 FX Returns
+  - 5 MCAs pre-configurados
+  - faders, mutes, master, DCA e meters mockados
+  - VU meters com animacao senoidal individual por canal
+- `src/features/consoleDiscovery/hooks/useConsoleDiscovery.ts`
+  - a lista agora nasce com o console Demo no primeiro render
+  - o scan real continua funcionando
+  - em erro de scan, o Demo permanece disponivel
+- `src/features/consoleDiscovery/components/ConsoleCard.tsx`
+  - card do Demo ganhou destaque visual
+  - badge `DEMO`
+  - borda diferenciada
+  - o IP do Demo nao eh exibido para evitar confusao com `0.0.0.0`
+- `src/features/busMix/services/BusMixService.ts`
+  - passou a usar `getMockProviderForIp`
+  - o provider mock/demo ficou centralizado em campo interno
+- `src/features/busSelection/services/BusService.ts`
+  - passou a usar `getMockProviderForIp`
+- `src/features/busGroups/services/X32BusGroupsService.ts`
+  - passou a usar `getMockProviderForIp`
+- `src/features/busMix/hooks/useMeterSubscription.ts`
+  - deixou de usar `mockMixerProvider` fixo
+  - agora resolve o provider certo por IP, o que faz os meters funcionarem tambem na Demo
+- `src/features/busGroups/hooks/useBusGroups.ts`
+  - para o IP Demo, o hook preserva nomes e atribuicoes iniciais vindas do provider
+  - para consoles reais, o comportamento anterior foi mantido
+
+Decisao importante de compatibilidade:
+- O caminho antigo de `DEV_MOCK_CONSOLE_IP` foi mantido internamente para nao introduzir regressao em fluxos de desenvolvimento ja existentes.
+- O que mudou para o usuario final eh que apenas o console Demo fica exposto automaticamente na descoberta.
+
+Comportamento final esperado:
+- A tela de descoberta sempre mostra `Demo - X32 Control`.
+- O scan continua trazendo consoles reais abaixo do Demo quando houver resposta na rede.
+- O Demo abre normalmente:
+  - BusSelection com 8 buses
+  - BusGroups com 5 MCAs pre-configurados
+  - BusMix com 16 CH + 4 AUX + 4 FX Returns
+  - VU meters animados
+  - presets locais continuam disponiveis
+  - nomes de MCA continuam editaveis e persistidos localmente pelo storage ja existente
+
+Escopo preservado:
+- Nenhuma alteracao foi feita no fluxo real de rede/OSC para consoles fisicos.
+- Nenhuma alteracao foi feita na navegacao entre telas.
+- Nenhuma regra de negocio de fader, mute, pan, master ou presets foi removida.
+
+Validacoes executadas:
+- `npx prettier --write` nos arquivos alterados da rodada
+  - sucesso
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+
+Validacao que nao concluiu:
+- `npm run lint`
+  - falhou porque o executavel `eslint` nao estava disponivel no ambiente no momento desta rodada
+- `npx eslint ...`
+  - tentou resolver dependencias/registry e nao concluiu dentro do timeout
+- conclusao:
+  - o lint nao foi validado por limitacao do ambiente, nao por erro confirmado dos arquivos alterados
+
+Pendencias de validacao manual:
+- abrir o app e confirmar:
+  - o card Demo aparece sem clicar em Buscar
+  - BusSelection abre com os 8 buses de demo
+  - BusGroups abre com os MCAs pre-agrupados
+  - BusMix mostra canais e meters animando
+  - presets continuam salvando/restaurando
+  - nomes de MCA persistem apos fechar e reabrir o app
+
+Observacoes:
+- O nome exibido do console e textos novos foram mantidos em ASCII para seguir o padrao de edicao adotado nesta sessao.

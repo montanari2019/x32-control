@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { DEMO_CONSOLE_ID } from '@shared/mixer/mock/mockMixerProvider';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -10,32 +11,42 @@ type ConsoleCardProps = {
   onPress: (device: ConsoleDevice) => void;
 };
 
-export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element => (
-  <Pressable
-    onPress={() => onPress(device)}
-    style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-  >
-    <View style={styles.top}>
-      <View>
-        <Text style={styles.eyebrow}>Console disponivel</Text>
-        <Text style={styles.name}>{device.name}</Text>
-        <Text style={styles.meta}>{device.model}</Text>
+export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element => {
+  const isDemo = device.id === DEMO_CONSOLE_ID;
+
+  return (
+    <Pressable
+      onPress={() => onPress(device)}
+      style={({ pressed }) => [styles.card, isDemo && styles.demoCard, pressed && styles.pressed]}
+    >
+      <View style={styles.top}>
+        <View>
+          {isDemo ? (
+            <Text style={styles.demoBadge}>DEMO</Text>
+          ) : (
+            <Text style={styles.eyebrow}>Console disponivel</Text>
+          )}
+          <Text style={styles.name}>{device.name}</Text>
+          <Text style={styles.meta}>{device.model}</Text>
+        </View>
+        <View style={styles.statusPill}>
+          <View
+            style={[
+              styles.dot,
+              device.status === 'connected' ? styles.connected : styles.disconnected,
+            ]}
+          />
+          <Text style={styles.statusText}>{isDemo ? 'demo' : device.status}</Text>
+        </View>
       </View>
-      <View style={styles.statusPill}>
-        <View
-          style={[
-            styles.dot,
-            device.status === 'connected' ? styles.connected : styles.disconnected,
-          ]}
-        />
-        <Text style={styles.statusText}>{device.status}</Text>
-      </View>
-    </View>
-    <Text style={styles.ip}>
-      {device.ip}:{device.port}
-    </Text>
-  </Pressable>
-);
+      {!isDemo ? (
+        <Text style={styles.ip}>
+          {device.ip}:{device.port}
+        </Text>
+      ) : null}
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   card: {
@@ -45,6 +56,18 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     gap: spacing.sm,
     padding: spacing.lg,
+  },
+  demoBadge: {
+    color: colors.accent.primary,
+    fontSize: 11,
+    fontWeight: '800',
+    letterSpacing: 1.2,
+    marginBottom: spacing.xs,
+    textTransform: 'uppercase',
+  },
+  demoCard: {
+    borderColor: colors.accent.primary,
+    borderStyle: 'dashed',
   },
   connected: {
     backgroundColor: colors.status.success,

@@ -1,5 +1,5 @@
-import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
-import { useCallback, useEffect, useRef } from 'react';
+import { getMockProviderForIp, isMockConsoleIp } from '@shared/mixer/mock/mockMixerProvider';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
@@ -9,8 +9,8 @@ import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDe
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
-// Poll at ~10fps. This is enough for readable VU meters and cuts UDP traffic in half.
-const POLL_INTERVAL_MS = 100;
+// Poll around 15fps. This keeps the meter responsive without flooding OSC.
+const POLL_INTERVAL_MS = 66;
 
 const getBlobArg = (message: OscMessage): Uint8Array | null => {
   const [first] = message.args;
@@ -19,6 +19,7 @@ const getBlobArg = (message: OscMessage): Uint8Array | null => {
 
 export const useMeterSubscription = (consoleIp: string) => {
   const isMock = isMockConsoleIp(consoleIp);
+  const mockProvider = useMemo(() => getMockProviderForIp(consoleIp), [consoleIp]);
   const clientRef = useRef<OscClient | null>(null);
   const clientLeaseRef = useRef<SharedOscClientLease | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -105,7 +106,7 @@ export const useMeterSubscription = (consoleIp: string) => {
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
       if (isMock) {
-        return mockMixerProvider.subscribeMeter(channelId, listener);
+        return mockProvider.subscribeMeter(channelId, listener);
       }
 
       const listeners = listenersRef.current.get(channelId) ?? new Set<MeterListener>();
@@ -121,7 +122,7 @@ export const useMeterSubscription = (consoleIp: string) => {
         }
       };
     },
-    [isMock],
+    [isMock, mockProvider],
   );
 
   return { registerMeterListener };

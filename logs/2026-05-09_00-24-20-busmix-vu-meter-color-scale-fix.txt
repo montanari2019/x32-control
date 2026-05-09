@@ -1,0 +1,54 @@
+Contexto
+- Correcao da escala de cores do `ChannelVuMeter` para impedir exibicao falsa de amarelo/vermelho quando o sinal real nao entrou nessas faixas.
+- O ajuste foi feito preservando o fluxo real da X32, o provider Demo e as otimizações recentes de performance dos meters.
+
+Problema observado
+- O meter exibia uma "pontinha vermelha" mesmo sem o sinal real passar da faixa vermelha.
+- A barra ativa estava sendo desenhada com segmentos coloridos fixos e apenas mascarada por altura.
+- O indicador de clip tambem nascia com opacidade inicial diferente de zero, reforcando a falsa leitura visual.
+
+Arquivos alterados
+- `src/features/busMix/components/ChannelVuMeter.tsx`
+- `src/features/busMix/components/MeterSegments.tsx`
+- `src/features/busMix/utils/meterDecoder.ts`
+- `src/shared/mixer/mock/demoMixerProvider.ts`
+
+Implementacao
+- Centralizados thresholds explicitos:
+  - `METER_GREEN_MAX_DB = -2`
+  - `METER_YELLOW_MAX_DB = 8`
+  - `METER_MIN_DBFS = -60`
+  - `METER_MAX_DBFS = 10`
+- Criada a funcao `getMeterFillRatios()` para calcular preenchimento por faixa real de dB.
+- O `ChannelVuMeter` deixou de renderizar uma unica mascara sobre segmentos ativos fixos.
+- A barra ativa agora e composta por tres segmentos independentes:
+  - verde
+  - amarelo
+  - vermelho
+- Cada segmento so cresce quando o valor real entra naquela faixa.
+- O fundo "off" do meter foi neutralizado para evitar leitura enganosa de cor fixa no topo.
+- O `clip` passou a iniciar com opacidade `0`, aparecendo apenas quando o valor realmente ultrapassa o threshold vermelho.
+- O Demo passou a permitir picos raros reais na faixa vermelha, em vez de parecer que clipa por desenho.
+
+Comportamento esperado apos a correcao
+- Se o sinal estiver ate `-2 dB`, o meter aparece somente verde.
+- Se o sinal passar de `-2 dB` e ficar ate `+8 dB`, surge amarelo proporcional apenas na parte excedente.
+- Vermelho so aparece se o valor real ultrapassar `+8 dB`.
+- O Demo continua majoritariamente em verde/amarelo, com vermelho apenas em picos raros.
+
+Validacao executada
+- `npm run tsc` -> OK
+- `npm test -- --runInBand` -> OK (9 suites / 26 testes)
+- `android\\gradlew.bat app:createBundleDevelopDebugJsAndAssets` -> OK
+
+Observacoes
+- Nao foi possivel rodar o lint segmentado porque `eslint` nao esta disponivel localmente em `node_modules/.bin` neste ambiente.
+- Ainda falta validacao manual visual em runtime para conferir:
+  - canais baixos somente verdes
+  - amarelo surgindo apenas acima de `-2 dB`
+  - vermelho surgindo apenas acima de `+8 dB`
+  - ausencia da "pontinha vermelha" fixa
+
+Risco residual
+- Baixo. A mudanca ficou isolada no desenho/decisao visual do meter e no gerador mockado do Demo.
+- Nao houve alteracao em fader, mute, master, pan, navegacao, presets ou OSC real.
