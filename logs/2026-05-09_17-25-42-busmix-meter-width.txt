@@ -1,0 +1,9 @@
+UI: BUSMIX METER WIDTH
+
+Contexto: Signal meter do BusMix precisava ficar um pouco mais fino.
+Causa: largura visual estava fixa em 10px no ChannelVuMeter/placeholder e SignalMeter legado.
+Acao: add METER_WIDTH=8 em ChannelStrip; aplicar width 8 em ChannelVuMeter, placeholder e SignalMeter.
+Resultado: OK; meter fica mais fino sem alterar altura, calculo, estado, hooks ou comunicacao.
+Arquivos: src/features/busMix/components/ChannelStrip.tsx; src/features/busMix/components/SignalMeter.tsx.
+Validacao: npx prettier OK; npm test -- --runInBand OK 11 suites/35 tests; git diff --check OK; npm run tsc falha preexistente KeepAwake App.tsx; npm run lint falha eslint nao reconhecido.
+Pontos atencao: validar visual em device real se 8px e fino o bastante.

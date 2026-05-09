@@ -1,0 +1,9 @@
+FIX: BUSMIX FADER AREA HEIGHT
+
+Contexto: Fader/meter ainda invadiam visualmente nameplate e area mute no BusMix.
+Causa: BusMixScreen calculava faderHeight descontando overhead menor que chrome real do ChannelStrip.
+Acao: ajustar STRIP_FIXED_OVERHEAD 108->160 e min visual 180->120; manter inset 8px existente em fader/meter.
+Resultado: OK; altura enviada a Fader/ChannelVuMeter representa melhor area intermediaria entre nameplate e footer.
+Arquivos: src/features/busMix/screens/BusMixScreen.tsx.
+Validacao: npx prettier OK; npm test -- --runInBand OK 11 suites/35 tests; git diff --check OK; npm run tsc falha preexistente KeepAwake App.tsx; npm run lint falha eslint nao reconhecido.
+Pontos atencao: validar visual em device real c/ alturas diferentes de tela/lista.

@@ -22,6 +22,7 @@ const FADER_MAX_DB = 10;
 const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
 const THUMB_HEIGHT = 36;
+const VERTICAL_INSET = 8;
 
 const positionToRaw = (position: number): number => {
   const clamped = Math.max(0, Math.min(1, position));
@@ -39,8 +40,9 @@ export const VerticalFader = ({
   onChange,
   onChangeEnd,
 }: VerticalFaderProps): JSX.Element => {
-  const available = Math.max(1, height - THUMB_HEIGHT);
-  const zeroMarkTop = (1 - rawToPosition(x32DbToRaw(0))) * height;
+  const trackHeight = Math.max(1, height - VERTICAL_INSET * 2);
+  const available = Math.max(1, trackHeight - THUMB_HEIGHT);
+  const zeroMarkTop = (1 - rawToPosition(x32DbToRaw(0))) * trackHeight;
   const animatedY = useRef(new Animated.Value(0)).current;
   const availableRef = useRef(available);
   const currentY = useRef(0);
@@ -128,11 +130,13 @@ export const VerticalFader = ({
 
   return (
     <View style={[styles.container, { height }]} {...panResponder.panHandlers}>
-      <View style={styles.track} />
-      <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
-      <Animated.View style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}>
-        <View style={styles.thumbHighlight} />
-      </Animated.View>
+      <View style={styles.trackBounds}>
+        <View style={styles.track} />
+        <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
+        <Animated.View style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}>
+          <View style={styles.thumbHighlight} />
+        </Animated.View>
+      </View>
     </View>
   );
 };
@@ -142,6 +146,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'visible',
+    paddingVertical: VERTICAL_INSET,
     position: 'relative',
     width: 40,
   },
@@ -174,6 +179,13 @@ const styles = StyleSheet.create({
     height: 5,
     marginHorizontal: 6,
     marginTop: 4,
+  },
+  trackBounds: {
+    alignItems: 'center',
+    flex: 1,
+    justifyContent: 'center',
+    position: 'relative',
+    width: '100%',
   },
   zeroMark: {
     backgroundColor: colors.fader.zeroMark,

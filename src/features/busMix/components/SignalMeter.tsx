@@ -10,6 +10,8 @@ type SignalMeterProps = {
 const SEGMENTS = 10;
 const RED_SEGMENTS = 3;
 const YELLOW_SEGMENTS = 4;
+const VERTICAL_INSET = 8;
+const METER_WIDTH = 8;
 
 const clampLevel = (value: number): number => Math.max(0, Math.min(1, value));
 
@@ -46,26 +48,28 @@ export const SignalMeter = ({ level, height }: SignalMeterProps): JSX.Element =>
 
   return (
     <View style={[styles.container, { height }]}>
-      {Array.from({ length: SEGMENTS }).map((_, index) => {
-        const reversedIndex = SEGMENTS - 1 - index;
-        const isActive = reversedIndex < activeCount;
-        const segmentStyle = isActive
-          ? reversedIndex < RED_SEGMENTS
-            ? styles.red
-            : reversedIndex < RED_SEGMENTS + YELLOW_SEGMENTS
+      <View style={styles.segmentBounds}>
+        {Array.from({ length: SEGMENTS }).map((_, index) => {
+          const reversedIndex = SEGMENTS - 1 - index;
+          const isActive = reversedIndex < activeCount;
+          const segmentStyle = isActive
+            ? reversedIndex < RED_SEGMENTS
+              ? styles.red
+              : reversedIndex < RED_SEGMENTS + YELLOW_SEGMENTS
               ? styles.yellow
               : styles.green
-          : styles.off;
-        return <View key={`seg-${index}`} style={[styles.segment, segmentStyle]} />;
-      })}
+            : styles.off;
+          return <View key={`seg-${index}`} style={[styles.segment, segmentStyle]} />;
+        })}
+      </View>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    justifyContent: 'space-between',
-    width: 10,
+    paddingVertical: VERTICAL_INSET,
+    width: METER_WIDTH,
   },
   green: {
     backgroundColor: colors.meter.green,
@@ -80,6 +84,11 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     flex: 1,
     marginVertical: 1,
+  },
+  segmentBounds: {
+    flex: 1,
+    justifyContent: 'space-between',
+    width: '100%',
   },
   yellow: {
     backgroundColor: colors.meter.yellow,
