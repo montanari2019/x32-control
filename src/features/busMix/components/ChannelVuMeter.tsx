@@ -23,6 +23,7 @@ type ChannelVuMeterProps = {
 
 const METER_SEGMENT_HEIGHT = 4.82;
 const METER_SEGMENT_GAP = 1;
+const METER_VERTICAL_INSET = 8;
 
 type MeterZoneSegmentCounts = {
   green: number;
@@ -77,7 +78,8 @@ const ChannelVuMeterComponent = ({
   width,
   registerMeterListener,
 }: ChannelVuMeterProps): JSX.Element => {
-  const segmentCount = getMeterSegmentCount(height);
+  const meterHeight = Math.max(1, height - METER_VERTICAL_INSET * 2);
+  const segmentCount = getMeterSegmentCount(meterHeight);
   const zoneCounts = useMemo(() => getZoneSegmentCounts(segmentCount), [segmentCount]);
   const [activeSegmentCount, setActiveSegmentCount] = useState(0);
   const activeSegmentCountRef = useRef(0);
@@ -117,31 +119,33 @@ const ChannelVuMeterComponent = ({
 
   return (
     <View pointerEvents="none" style={[styles.container, { height, width }]}>
-      <View style={[styles.fillBase, styles.fillGreen, { height: toPercent(greenRatio) }]} />
-      {yellowRatio > 0 ? (
-        <View
-          style={[
-            styles.fillBase,
-            styles.fillYellow,
-            {
-              bottom: toPercent(greenRatio),
-              height: toPercent(yellowRatio),
-            },
-          ]}
-        />
-      ) : null}
-      {redRatio > 0 ? (
-        <View
-          style={[
-            styles.fillBase,
-            styles.fillRed,
-            {
-              bottom: toPercent(greenRatio + yellowRatio),
-              height: toPercent(redRatio),
-            },
-          ]}
-        />
-      ) : null}
+      <View style={styles.track}>
+        <View style={[styles.fillBase, styles.fillGreen, { height: toPercent(greenRatio) }]} />
+        {yellowRatio > 0 ? (
+          <View
+            style={[
+              styles.fillBase,
+              styles.fillYellow,
+              {
+                bottom: toPercent(greenRatio),
+                height: toPercent(yellowRatio),
+              },
+            ]}
+          />
+        ) : null}
+        {redRatio > 0 ? (
+          <View
+            style={[
+              styles.fillBase,
+              styles.fillRed,
+              {
+                bottom: toPercent(greenRatio + yellowRatio),
+                height: toPercent(redRatio),
+              },
+            ]}
+          />
+        ) : null}
+      </View>
     </View>
   );
 };
@@ -157,9 +161,7 @@ export const ChannelVuMeter = React.memo(
 
 const styles = StyleSheet.create({
   container: {
-    backgroundColor: colors.meter.background,
-    borderRadius: radius.xs,
-    overflow: 'hidden',
+    paddingVertical: METER_VERTICAL_INSET,
   },
   fillBase: {
     borderRadius: radius.xs,
@@ -176,5 +178,12 @@ const styles = StyleSheet.create({
   },
   fillYellow: {
     backgroundColor: colors.meter.yellow,
+  },
+  track: {
+    backgroundColor: colors.meter.background,
+    borderRadius: radius.xs,
+    flex: 1,
+    position: 'relative',
+    width: '100%',
   },
 });

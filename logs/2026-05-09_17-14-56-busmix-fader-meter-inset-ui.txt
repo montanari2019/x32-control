@@ -1,0 +1,9 @@
+FIX: BUSMIX FADER METER INSET UI
+
+Contexto: Barras centrais de Fader e Signal Meter ultrapassavam/ocupavam altura total do pai sem respiro interno.
+Causa: track/fill usavam height recebido como area util, sem descontar margem vertical interna.
+Acao: add inset vertical 8px em VerticalFader, ChannelVuMeter e SignalMeter; track/fill passam a renderizar dentro de bounds internos flex.
+Resultado: OK; barras respeitam altura externa e area util interna sem mascarar via overflow hidden.
+Arquivos: src/features/busMix/components/VerticalFader.tsx; src/features/busMix/components/ChannelVuMeter.tsx; src/features/busMix/components/SignalMeter.tsx.
+Validacao: npx prettier OK; npm test -- --runInBand OK 11 suites/35 tests; git diff --check OK; npm run tsc falha preexistente KeepAwake App.tsx; npm run lint falha eslint nao reconhecido.
+Pontos atencao: validar visual em Android real c/ alturas diferentes de lista.

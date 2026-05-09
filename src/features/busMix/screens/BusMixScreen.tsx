@@ -24,7 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
 const CHANNEL_STRIP_WIDTH = 86;
 const CHANNEL_STRIP_GAP = 1;
 const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
-const STRIP_FIXED_OVERHEAD = 108;
+const STRIP_FIXED_OVERHEAD = 160;
 
 type BusMixChannelItemProps = {
   channel: Channel;
@@ -202,7 +202,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
 
   const handleListLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextHeight = Math.max(
-      180,
+      120,
       Math.floor(event.nativeEvent.layout.height) - STRIP_FIXED_OVERHEAD,
     );
     setFaderHeight((current) => (current === nextHeight ? current : nextHeight));

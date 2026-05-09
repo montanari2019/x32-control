@@ -25,6 +25,8 @@ type ChannelStripProps = {
   onPressBadge: () => void;
 };
 
+const METER_WIDTH = 8;
+
 const withAlpha = (hexColor: string, alphaHex: string): string =>
   /^#[0-9A-Fa-f]{6}$/.test(hexColor) ? `${hexColor}${alphaHex}` : hexColor;
 
@@ -90,11 +92,11 @@ const ChannelStripComponent = ({
             <ChannelVuMeter
               channelId={channel.meterChannelId}
               height={faderHeight}
-              width={10}
+              width={METER_WIDTH}
               registerMeterListener={registerMeterListener}
             />
           ) : (
-            <View style={[styles.meterPlaceholder, { height: faderHeight, width: 10 }]} />
+            <View style={[styles.meterPlaceholder, { height: faderHeight, width: METER_WIDTH }]} />
           )}
           <VerticalFader
             level={displayLevel}
