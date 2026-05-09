@@ -1,4 +1,9 @@
-import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
+import { MixerControlProvider } from '@shared/mixer/MixerControlProvider';
+import {
+  getMockProviderForIp,
+  isMockConsoleIp,
+  mockMixerProvider,
+} from '@shared/mixer/mock/mockMixerProvider';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
@@ -32,13 +37,19 @@ const parseBusColor = (message: OscMessage): X32ChannelColor | number | undefine
 
 export class BusService {
   private useMockProvider = false;
+  private mockProvider: MixerControlProvider = mockMixerProvider;
 
   constructor(private readonly client = new OscClient()) {}
 
   async connect(consoleIp: string): Promise<void> {
+    if (this.useMockProvider) {
+      this.mockProvider.disconnect();
+    }
+
     this.useMockProvider = isMockConsoleIp(consoleIp);
     if (this.useMockProvider) {
-      await mockMixerProvider.connect(consoleIp);
+      this.mockProvider = getMockProviderForIp(consoleIp);
+      await this.mockProvider.connect(consoleIp);
       return;
     }
 
@@ -48,7 +59,7 @@ export class BusService {
 
   disconnect(): void {
     if (this.useMockProvider) {
-      mockMixerProvider.disconnect();
+      this.mockProvider.disconnect();
       this.useMockProvider = false;
       return;
     }
@@ -58,7 +69,7 @@ export class BusService {
 
   async getBuses(): Promise<Bus[]> {
     if (this.useMockProvider) {
-      return mockMixerProvider.getBuses();
+      return this.mockProvider.getBuses();
     }
 
     const byNumber = new Map<number, Bus>();

@@ -13,16 +13,18 @@ export type ChannelMeterValues = {
 
 export const METER_MARKS = ['0', '-6', '-12', '-18', '-24', '-36', '-48', '-60'];
 
-const MIN_DBFS = -60;
-const MAX_DBFS = 10;
-export const SILENCE_DBFS = MIN_DBFS;
+export const METER_MIN_DBFS = -60;
+export const METER_MAX_DBFS = 10;
+export const METER_GREEN_MAX_DB = -2;
+export const METER_YELLOW_MAX_DB = 8;
+export const SILENCE_DBFS = METER_MIN_DBFS;
 
 const linearToDb = (linear: number): number => {
   if (!Number.isFinite(linear) || linear <= 0) {
-    return MIN_DBFS;
+    return METER_MIN_DBFS;
   }
 
-  return clamp(20 * Math.log10(linear), MIN_DBFS, MAX_DBFS);
+  return clamp(20 * Math.log10(linear), METER_MIN_DBFS, METER_MAX_DBFS);
 };
 
 const decodeFloatDbValue = (value: number): number => {
@@ -30,7 +32,7 @@ const decodeFloatDbValue = (value: number): number => {
     return linearToDb(value);
   }
 
-  return clamp(value, MIN_DBFS, MAX_DBFS);
+  return clamp(value, METER_MIN_DBFS, METER_MAX_DBFS);
 };
 
 const makeSilence = (): ChannelMeterValues => ({
@@ -111,7 +113,7 @@ export const decodeMeter1BlobForChannel = (
     }
 
     const db = view.getInt16(4 + index * 2, true) / 256.0;
-    return makeValues(clamp(db, MIN_DBFS, MAX_DBFS));
+    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
   }
 
   if (countHeaderBe > 0 && countHeaderBe <= 512 && blob.byteLength === 4 + countHeaderBe * 2) {
@@ -120,7 +122,7 @@ export const decodeMeter1BlobForChannel = (
     }
 
     const db = view.getInt16(4 + index * 2, true) / 256.0;
-    return makeValues(clamp(db, MIN_DBFS, MAX_DBFS));
+    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
   }
 
   if (countHeaderLe > 0 && countHeaderLe <= 256 && blob.byteLength === 4 + countHeaderLe * 4) {
@@ -144,17 +146,18 @@ export const decodeMeter1BlobForChannel = (
   const rawCount = Math.floor(blob.byteLength / 2);
   if (index < rawCount) {
     const db = view.getInt16(index * 2, true) / 256.0;
-    return makeValues(clamp(db, MIN_DBFS, MAX_DBFS));
+    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
   }
 
   return makeSilence();
 };
 
-export const clampMeterValue = (dbfs: number): number => clamp(dbfs, MIN_DBFS, MAX_DBFS);
+export const clampMeterValue = (dbfs: number): number =>
+  clamp(dbfs, METER_MIN_DBFS, METER_MAX_DBFS);
 
 export const meterValueToPercent = (dbfs: number): number => {
   const clamped = clampMeterValue(dbfs);
-  return (clamped - MIN_DBFS) / (MAX_DBFS - MIN_DBFS);
+  return (clamped - METER_MIN_DBFS) / (METER_MAX_DBFS - METER_MIN_DBFS);
 };
 
 export const smoothMeterValue = (
@@ -169,9 +172,25 @@ export const smoothMeterValue = (
 
 export const dbfsToMeterHeight = (dbfs: number): number => meterValueToPercent(dbfs);
 
+const rangeFillRatio = (dbfs: number, min: number, max: number): number => {
+  if (max <= min) {
+    return 0;
+  }
+
+  return clamp((clampMeterValue(dbfs) - min) / (max - min), 0, 1);
+};
+
+export const getMeterFillRatios = (
+  dbfs: number,
+): { green: number; red: number; yellow: number } => ({
+  green: rangeFillRatio(dbfs, METER_MIN_DBFS, METER_GREEN_MAX_DB),
+  yellow: rangeFillRatio(dbfs, METER_GREEN_MAX_DB, METER_YELLOW_MAX_DB),
+  red: rangeFillRatio(dbfs, METER_YELLOW_MAX_DB, METER_MAX_DBFS),
+});
+
 export const getMeterZone = (dbfs: number): MeterZone => {
-  if (dbfs > 8) return 'clip-danger';
-  if (dbfs > -2) return 'hot';
+  if (dbfs > METER_YELLOW_MAX_DB) return 'clip-danger';
+  if (dbfs > METER_GREEN_MAX_DB) return 'hot';
   if (dbfs >= -24) return 'nominal';
   if (dbfs >= -48) return 'low';
   return 'silent';

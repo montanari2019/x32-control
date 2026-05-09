@@ -1,4 +1,8 @@
-import { BusGroupsState, McaAssignedChannel, McaGroup } from '@features/busGroups/types/busGroups.types';
+import {
+  BusGroupsState,
+  McaAssignedChannel,
+  McaGroup,
+} from '@features/busGroups/types/busGroups.types';
 import { Channel, ChannelKind } from '@features/busMix/types/Channel';
 import { ChannelMeterValues } from '@features/busMix/utils/meterDecoder';
 import { Bus } from '@features/busSelection/types/Bus';
@@ -8,6 +12,8 @@ import { clamp } from '@shared/utils/clamp';
 import { x32RawToDb } from '@shared/utils/faderDb';
 
 export const DEV_MOCK_CONSOLE_IP = '10.254.254.10';
+export const DEMO_CONSOLE_IP = '0.0.0.0';
+export const DEMO_CONSOLE_ID = 'demo-console';
 const DEV_MOCK_CONSOLE_ID = 'dev-mock-console';
 
 const BUS_NAMES = [
@@ -72,16 +78,7 @@ const CHANNEL_NAMES = [
   'Spare',
 ];
 
-const AUX_NAMES = [
-  'Aux 1',
-  'Aux 2',
-  'Aux 3',
-  'Aux 4',
-  'Aux 5',
-  'Aux 6',
-  'USB L',
-  'USB R',
-];
+const AUX_NAMES = ['Aux 1', 'Aux 2', 'Aux 3', 'Aux 4', 'Aux 5', 'Aux 6', 'USB L', 'USB R'];
 
 const FX_RETURN_NAMES = [
   'FX 1 L',
@@ -512,8 +509,25 @@ export class MockMixerProvider implements MixerControlProvider {
 
 export const mockMixerProvider = new MockMixerProvider();
 
+export const isDemoConsoleIp = (consoleIp: string): boolean => consoleIp === DEMO_CONSOLE_IP;
+
 export const isMockConsoleIp = (consoleIp: string): boolean =>
-  consoleIp === DEV_MOCK_CONSOLE_IP;
+  consoleIp === DEV_MOCK_CONSOLE_IP || isDemoConsoleIp(consoleIp);
+
+/**
+ * Retorna o provider mock correto baseado no IP.
+ * O `require` lazy evita dependencia circular entre os providers mock e demo.
+ */
+export const getMockProviderForIp = (consoleIp: string): MixerControlProvider => {
+  if (isDemoConsoleIp(consoleIp)) {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const { demoMixerProvider } =
+      require('./demoMixerProvider') as typeof import('./demoMixerProvider');
+    return demoMixerProvider;
+  }
+
+  return mockMixerProvider;
+};
 
 export const getMockConsoleDevice = (): ConsoleDevice => ({
   id: DEV_MOCK_CONSOLE_ID,

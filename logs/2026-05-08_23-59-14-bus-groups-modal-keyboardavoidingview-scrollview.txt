@@ -1,0 +1,46 @@
+Contexto:
+- A rodada anterior ja tinha introduzido `KeyboardAvoidingView` no modal de MCA, mas o ajuste ainda estava mais raso do que o ideal para o caso do input.
+- Nesta rodada, o modal foi reorganizado para seguir o padrao mais robusto para teclado em React Native:
+  - `KeyboardAvoidingView`
+  - `ScrollView` externo para mover o modal inteiro
+  - `ScrollView` interno da grade com `nestedScrollEnabled`
+
+Arquivo alterado:
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+
+Implementacao:
+- O modal agora usa uma estrutura em camadas:
+  - `modalRoot`
+  - `dismissBackdrop` absoluto
+  - `KeyboardAvoidingView`
+  - `ScrollView` externo com `contentContainerStyle`
+  - card do modal
+- O `KeyboardAvoidingView` ficou com:
+  - `behavior="padding"` no iOS
+  - `behavior="height"` no Android
+  - `keyboardVerticalOffset={spacing.md}`
+- O `ScrollView` externo foi adicionado para permitir que o modal inteiro suba/role com o teclado aberto, em vez de depender apenas da grade interna
+- O `ScrollView` externo usa:
+  - `keyboardShouldPersistTaps="handled"`
+  - `keyboardDismissMode="interactive"` no iOS
+  - `keyboardDismissMode="on-drag"` no Android
+- O `ScrollView` interno da grade de canais recebeu `nestedScrollEnabled`
+
+Comportamento preservado:
+- A sincronizacao local imediata do nome salvo dentro do modal foi mantida
+- O destaque destrutivo do botao `Limpar` foi mantido
+- Nenhuma logica de persistencia, fader, mute, master, navegacao ou OSC foi alterada
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+
+Pendencia:
+- Validacao manual ainda necessaria em dispositivo/emulador para confirmar visualmente:
+  - teclado nao cobre input nem botao `SaveData`
+  - modal inteiro ajusta corretamente no Android
+  - nome continua atualizando imediatamente no proprio modal

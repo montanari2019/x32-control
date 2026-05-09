@@ -1,0 +1,67 @@
+Contexto:
+- Foi implementado o fluxo de edicao de nome dos MCAs dentro do modal de Bus Groups.
+- O objetivo desta rodada foi expor na interface uma capacidade que ja possuia base de persistencia local no hook/service do modulo, sem alterar a regra de negocio de master, mute, faders, selecao de canais ou navegacao.
+
+Arquivos alterados:
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+  - O titulo do MCA no modal passou a ser clicavel.
+  - Ao clicar no nome atual, o modal entra em modo de edicao e exibe um `TextInput` preenchido com o nome atual.
+  - Foi adicionado botao de confirmacao com `Icons.SaveData`.
+  - O botao foi alinhado visualmente ao azul primario do app via `colors.accent.primary`.
+  - O dismiss do modal agora descarta edicao em andamento e nao tenta salvar implicitamente.
+- `src/features/busGroups/services/BusGroupsSecureStoreService.ts`
+  - Ajuste de formatacao para manter o arquivo consistente com o lint segmentado.
+- `src/assets/icons/SaveData.tsx`
+  - Ajuste de formatacao para manter o icone consistente com o lint segmentado.
+
+Base tecnica preservada:
+- O carregamento e a persistencia local dos nomes dos MCAs ja existiam no hook `useBusGroups`.
+- Foi preservado o comportamento de:
+  - normalizar nome padrao como `MCA N`
+  - aplicar `trim()`
+  - reduzir espacos duplicados
+  - usar fallback para o nome padrao quando o valor salvo/editado for vazio
+  - ignorar falhas de storage sem quebrar a tela
+
+Comportamento final esperado:
+- O usuario abre o modal de qualquer MCA.
+- O nome atual do MCA aparece como titulo.
+- Ao tocar no titulo, entra em modo de edicao.
+- O campo abre preenchido com o nome atual.
+- Ao confirmar pelo botao com icone `SaveData`, o novo nome atualiza imediatamente na UI.
+- A persistencia continua sendo feita no storage local do app por console, de forma isolada por MCA.
+
+Escopo preservado:
+- Nenhuma alteracao foi feita na logica de:
+  - volume master
+  - mute master
+  - faders dos MCAs
+  - atribuicao de canais
+  - navegacao entre telas
+  - comunicacao OSC com a mesa
+
+Validacoes executadas:
+- `npx prettier --write src/features/busGroups/components/McaChannelSelectionModal.tsx`
+- `npx prettier --write src/features/busGroups/services/BusGroupsSecureStoreService.ts`
+- `npx prettier --write src/assets/icons/SaveData.tsx`
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+- `npx eslint src/features/busGroups/components/McaChannelSelectionModal.tsx src/features/busGroups/hooks/useBusGroups.ts src/features/busGroups/services/BusGroupsSecureStoreService.ts src/assets/icons/SaveData.tsx --ext .ts,.tsx --quiet`
+  - sucesso
+- `npm run lint`
+  - falhou por problemas globais pre-existentes de `prettier/prettier` e fim de linha em varios arquivos fora do escopo desta entrega
+
+Observacoes:
+- Esta rodada nao incluiu teste manual em dispositivo/emulador, portanto a persistencia apos reiniciar o app segue pendente de validacao visual/runtime.
+- A implementacao foi mantida isolada no modal para reduzir risco de regressao.
+
+Proxima validacao recomendada:
+- Abrir cada MCA em runtime e confirmar:
+  - entrada em modo de edicao ao tocar no titulo
+  - salvamento do nome via botao `SaveData`
+  - persistencia apos fechar e reabrir o app
+  - ausencia de regressao em canais, mute, master e navegacao

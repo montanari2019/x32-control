@@ -1,10 +1,7 @@
 import { secureStore } from '@shared/storage';
 import { McaAssignedChannel, McaGroup } from '../types/busGroups.types';
 
-type StoredDcaGroup = Pick<
-  McaGroup,
-  'colorToken' | 'dcaNumber' | 'isMuted' | 'name'
-> & {
+type StoredDcaGroup = Pick<McaGroup, 'colorToken' | 'dcaNumber' | 'isMuted' | 'name'> & {
   assignedChannels: McaAssignedChannel[];
   faderRawValue: number;
 };

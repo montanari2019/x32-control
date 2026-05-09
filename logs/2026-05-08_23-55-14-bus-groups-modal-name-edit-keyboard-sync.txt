@@ -1,0 +1,76 @@
+Contexto:
+- A edicao do nome dos MCAs no modal de `Bus Groups` ja estava funcional e persistindo localmente.
+- Esta rodada foi focada apenas em tres problemas de UX/runtime do modal:
+  - teclado empurrando o modal e dificultando clicar no botao de salvar
+  - nome salvo nao refletindo imediatamente dentro do proprio modal
+  - botao `Limpar` pouco destacado como acao destrutiva
+- O objetivo foi corrigir isso sem alterar a logica de persistencia, grupos, faders, mute, master, navegacao ou OSC real.
+
+Arquivo alterado:
+- `src/features/busGroups/components/McaChannelSelectionModal.tsx`
+
+Implementacao:
+- Adicionado `KeyboardAvoidingView` no modal
+  - comportamento:
+    - `padding` no iOS
+    - `height` no Android
+  - objetivo:
+    - manter input e botao `SaveData` visiveis quando o teclado abrir
+- Adicionado `Keyboard.dismiss()` nos fluxos relevantes
+  - ao salvar o nome
+  - ao fechar o modal
+  - ao ocultar o modal
+- Adicionado estado local `displayName`
+  - o `ModalProvider` trabalha com snapshot de props, entao o modal aberto nao recebia o novo `mca.name` enquanto ainda estava visivel
+  - `displayName` agora garante feedback visual imediato apos salvar
+- Fluxo de save do nome ajustado
+  - normaliza o valor localmente com `trim` e colapso de espacos
+  - aplica fallback `MCA X` quando o texto fica vazio
+  - atualiza `displayName` e `draftName` imediatamente
+  - chama `onRename` para preservar a persistencia existente no hook/service
+  - sai do modo de edicao sem precisar fechar o modal
+- Botao `Limpar` atualizado visualmente
+  - borda vermelha com `colors.border.red`
+  - texto vermelho com `colors.status.danger`
+  - fundo usando `colors.mute.active.background`
+  - comportamento da acao foi preservado
+- Ajuste adicional no `ScrollView`
+  - `keyboardDismissMode="on-drag"`
+  - `keyboardShouldPersistTaps="handled"` mantido
+
+Escopo preservado:
+- Nenhuma alteracao foi feita em:
+  - `useBusGroups`
+  - persistencia local dos nomes
+  - logica de selecao/remocao de canais
+  - master
+  - mute
+  - faders
+  - navegacao
+  - OSC real da mesa fisica
+
+Validacoes executadas:
+- `npm run tsc`
+  - sucesso
+- `npm test -- --runInBand`
+  - sucesso
+  - 9 suites aprovadas
+  - 26 testes aprovados
+
+Validacao que nao concluiu:
+- `npx eslint src/features/busGroups/components/McaChannelSelectionModal.tsx src/features/busGroups/hooks/useBusGroups.ts src/features/busGroups/services/BusGroupsSecureStoreService.ts --ext .ts,.tsx --quiet`
+  - primeira tentativa falhou por `npx` tentar resolver `eslint` fora do ambiente local
+  - segunda tentativa com permissao ampliada expirou por timeout
+  - nao houve confirmacao de lint nessa rodada por limitacao de ambiente, nao por erro confirmado do arquivo alterado
+
+Pendencias de validacao manual:
+- abrir o modal de um MCA
+- tocar no titulo
+- abrir o teclado
+- confirmar que input e botao de salvar continuam totalmente visiveis
+- alterar o nome
+- salvar
+- confirmar que o nome muda imediatamente ainda com o modal aberto
+- fechar e reabrir o modal
+- confirmar persistencia
+- validar o destaque vermelho do botao `Limpar`

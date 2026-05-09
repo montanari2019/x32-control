@@ -1,5 +1,10 @@
-import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
 import { AppError } from '@shared/errors/AppError';
+import { MixerControlProvider } from '@shared/mixer/MixerControlProvider';
+import {
+  getMockProviderForIp,
+  isMockConsoleIp,
+  mockMixerProvider,
+} from '@shared/mixer/mock/mockMixerProvider';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
@@ -50,15 +55,25 @@ export class X32BusGroupsService {
   private connectedConsoleIp?: string;
   private sharedLease?: SharedOscClientLease;
   private useMockProvider = false;
+  private mockProvider: MixerControlProvider = mockMixerProvider;
 
   constructor(client = new OscClient()) {
     this.client = client;
   }
 
   async connect(consoleIp: string): Promise<void> {
+    if (this.useMockProvider) {
+      this.mockProvider.disconnect();
+    }
+
     this.useMockProvider = isMockConsoleIp(consoleIp);
     if (this.useMockProvider) {
-      await mockMixerProvider.connect(consoleIp);
+      this.client.stopXRemoteKeepAlive();
+      this.sharedLease?.release();
+      this.sharedLease = undefined;
+      this.connectedConsoleIp = undefined;
+      this.mockProvider = getMockProviderForIp(consoleIp);
+      await this.mockProvider.connect(consoleIp);
       return;
     }
 
@@ -76,8 +91,9 @@ export class X32BusGroupsService {
 
   disconnect(): void {
     if (this.useMockProvider) {
-      mockMixerProvider.disconnect();
+      this.mockProvider.disconnect();
       this.useMockProvider = false;
+      this.connectedConsoleIp = undefined;
       return;
     }
 
@@ -105,7 +121,7 @@ export class X32BusGroupsService {
 
   async fetchInitialState(busId: number): Promise<BusGroupsState> {
     if (this.useMockProvider) {
-      return mockMixerProvider.getBusGroupsState(busId);
+      return this.mockProvider.getBusGroupsState(busId);
     }
 
     await this.client.send(X32Protocol.getXRemotePath());
@@ -163,7 +179,7 @@ export class X32BusGroupsService {
 
   subscribeToDcaFader(dcaNumber: number, listener: (value: number) => void): () => void {
     if (this.useMockProvider) {
-      return mockMixerProvider.subscribeDcaFader(dcaNumber, listener);
+      return this.mockProvider.subscribeDcaFader(dcaNumber, listener);
     }
 
     return this.client.subscribe(X32Protocol.getDcaFaderPath(dcaNumber), (message) => {
@@ -173,7 +189,7 @@ export class X32BusGroupsService {
 
   subscribeToDcaOn(dcaNumber: number, listener: (isMuted: boolean) => void): () => void {
     if (this.useMockProvider) {
-      return mockMixerProvider.subscribeDcaOn(dcaNumber, listener);
+      return this.mockProvider.subscribeDcaOn(dcaNumber, listener);
     }
 
     return this.client.subscribe(X32Protocol.getDcaOnPath(dcaNumber), (message) => {
@@ -183,7 +199,7 @@ export class X32BusGroupsService {
 
   subscribeToBusMasterFader(busId: number, listener: (value: number) => void): () => void {
     if (this.useMockProvider) {
-      return mockMixerProvider.subscribeBusMasterFader(busId, listener);
+      return this.mockProvider.subscribeBusMasterFader(busId, listener);
     }
 
     return this.client.subscribe(X32Protocol.getBusMasterFaderPath(busId), (message) => {
@@ -193,7 +209,7 @@ export class X32BusGroupsService {
 
   subscribeToBusMasterOn(busId: number, listener: (isMuted: boolean) => void): () => void {
     if (this.useMockProvider) {
-      return mockMixerProvider.subscribeBusMasterOn(busId, listener);
+      return this.mockProvider.subscribeBusMasterOn(busId, listener);
     }
 
     return this.client.subscribe(X32Protocol.getBusMasterOnPath(busId), (message) => {
@@ -203,7 +219,7 @@ export class X32BusGroupsService {
 
   async setDcaFader(dcaNumber: number, value: number): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setDcaFader(dcaNumber, value);
+      await this.mockProvider.setDcaFader(dcaNumber, value);
       return;
     }
 
@@ -214,7 +230,7 @@ export class X32BusGroupsService {
 
   async setDcaOn(dcaNumber: number, isOn: boolean): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setDcaOn(dcaNumber, isOn);
+      await this.mockProvider.setDcaOn(dcaNumber, isOn);
       return;
     }
 
@@ -223,7 +239,7 @@ export class X32BusGroupsService {
 
   async setBusMasterFader(busId: number, value: number): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setBusMasterFader(busId, value);
+      await this.mockProvider.setBusMasterFader(busId, value);
       return;
     }
 
@@ -234,7 +250,7 @@ export class X32BusGroupsService {
 
   async setBusMasterOn(busId: number, isOn: boolean): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setBusMasterOn(busId, isOn);
+      await this.mockProvider.setBusMasterOn(busId, isOn);
       return;
     }
 

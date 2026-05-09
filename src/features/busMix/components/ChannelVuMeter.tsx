@@ -1,9 +1,14 @@
 import React, { useCallback, useEffect, useRef } from 'react';
-import { Animated, Easing, StyleSheet, View } from 'react-native';
+import { Animated, StyleSheet, View } from 'react-native';
 import { colors } from '@shared/theme/colors';
-import { ChannelMeterValues, dbfsToMeterHeight } from '../utils/meterDecoder';
+import {
+  ChannelMeterValues,
+  dbfsToMeterHeight,
+  getMeterFillRatios,
+  METER_YELLOW_MAX_DB,
+} from '../utils/meterDecoder';
 import { PeakHoldState, updatePeakHold } from '../utils/peakHold';
-import { MeterSegments } from './MeterSegments';
+import { getMeterSegmentLayout, MeterSegments } from './MeterSegments';
 
 type ChannelVuMeterProps = {
   channelId: number;
@@ -15,46 +20,78 @@ type ChannelVuMeterProps = {
   ) => () => void;
 };
 
-export const ChannelVuMeter = ({
+const METER_RISE_DELTA_THRESHOLD = 0.008;
+const METER_FALL_DURATION_MS = 75;
+const CLIP_FADE_DURATION_MS = 100;
+const PEAK_HOLD_FRAMES = 8;
+const PEAK_DECAY_PER_FRAME_DB = 3;
+
+const ChannelVuMeterComponent = ({
   channelId,
   height,
   width,
   registerMeterListener,
 }: ChannelVuMeterProps): JSX.Element => {
-  const meterScale = useRef(new Animated.Value(0)).current;
+  const greenScale = useRef(new Animated.Value(0)).current;
+  const yellowScale = useRef(new Animated.Value(0)).current;
+  const redScale = useRef(new Animated.Value(0)).current;
   const peakOffset = useRef(new Animated.Value(0)).current;
-  const clipOpacity = useRef(new Animated.Value(0.2)).current;
+  const clipOpacity = useRef(new Animated.Value(0)).current;
   const peakStateRef = useRef<PeakHoldState>({ peakDb: -60, peakHoldFrames: 0 });
-  const currentLevelRef = useRef(0);
-  const currentClipOpacityRef = useRef(0.2);
+  const currentFillRatiosRef = useRef({ green: 0, red: 0, yellow: 0 });
+  const currentClipOpacityRef = useRef(0);
   const currentPeakPxRef = useRef(0);
-  const meterTranslateY = meterScale.interpolate({
+  const segmentLayout = getMeterSegmentLayout(height);
+  const [greenSegment, yellowSegment, redSegment] = segmentLayout;
+  const greenTranslateY = greenScale.interpolate({
     inputRange: [0, 1],
-    outputRange: [height / 2, 0],
+    outputRange: [greenSegment.segmentHeight / 2, 0],
   });
+  const yellowTranslateY = yellowScale.interpolate({
+    inputRange: [0, 1],
+    outputRange: [yellowSegment.segmentHeight / 2, 0],
+  });
+  const redTranslateY = redScale.interpolate({
+    inputRange: [0, 1],
+    outputRange: [redSegment.segmentHeight / 2, 0],
+  });
+
+  const syncFillScale = useCallback(
+    (animatedValue: Animated.Value, nextRatio: number, previousRatio: number) => {
+      const delta = Math.abs(nextRatio - previousRatio);
+      animatedValue.stopAnimation();
+
+      if (nextRatio >= previousRatio || delta < METER_RISE_DELTA_THRESHOLD) {
+        animatedValue.setValue(nextRatio);
+        return;
+      }
+
+      Animated.timing(animatedValue, {
+        toValue: nextRatio,
+        duration: METER_FALL_DURATION_MS,
+        useNativeDriver: true,
+      }).start();
+    },
+    [],
+  );
 
   const updateMeter = useCallback(
     (values: ChannelMeterValues) => {
-      const nextLevel = dbfsToMeterHeight(values.preFadeDbfs);
-      const prevLevel = currentLevelRef.current;
-      const delta = Math.abs(nextLevel - currentLevelRef.current);
-      const nextPeakState = updatePeakHold(values.preFadeDbfs, peakStateRef.current);
+      const nextFillRatios = getMeterFillRatios(values.preFadeDbfs);
+      const previousFillRatios = currentFillRatiosRef.current;
+      const nextPeakState = updatePeakHold(
+        values.preFadeDbfs,
+        peakStateRef.current,
+        PEAK_HOLD_FRAMES,
+        PEAK_DECAY_PER_FRAME_DB,
+      );
       peakStateRef.current = nextPeakState;
       const nextPeakPx = dbfsToMeterHeight(nextPeakState.peakDb) * height;
-      const isRising = nextLevel > prevLevel;
-      const nextClipOpacity = values.preFadeDbfs > 8 ? 1 : 0;
+      const nextClipOpacity = values.preFadeDbfs > METER_YELLOW_MAX_DB ? 1 : 0;
 
-      if (delta < 0.015) {
-        meterScale.setValue(nextLevel);
-      } else {
-        meterScale.stopAnimation();
-        Animated.timing(meterScale, {
-          toValue: nextLevel,
-          duration: isRising ? 5 : 160,
-          easing: Easing.out(Easing.ease),
-          useNativeDriver: true,
-        }).start();
-      }
+      syncFillScale(greenScale, nextFillRatios.green, previousFillRatios.green);
+      syncFillScale(yellowScale, nextFillRatios.yellow, previousFillRatios.yellow);
+      syncFillScale(redScale, nextFillRatios.red, previousFillRatios.red);
 
       if (Math.abs(nextPeakPx - currentPeakPxRef.current) >= 0.5) {
         peakOffset.setValue(nextPeakPx);
@@ -63,17 +100,21 @@ export const ChannelVuMeter = ({
 
       if (nextClipOpacity !== currentClipOpacityRef.current) {
         clipOpacity.stopAnimation();
-        Animated.timing(clipOpacity, {
-          toValue: nextClipOpacity,
-          duration: nextClipOpacity === 1 ? 0 : 200,
-          useNativeDriver: true,
-        }).start();
+        if (nextClipOpacity === 1) {
+          clipOpacity.setValue(1);
+        } else {
+          Animated.timing(clipOpacity, {
+            toValue: 0,
+            duration: CLIP_FADE_DURATION_MS,
+            useNativeDriver: true,
+          }).start();
+        }
         currentClipOpacityRef.current = nextClipOpacity;
       }
 
-      currentLevelRef.current = nextLevel;
+      currentFillRatiosRef.current = nextFillRatios;
     },
-    [clipOpacity, height, meterScale, peakOffset],
+    [clipOpacity, greenScale, height, peakOffset, redScale, syncFillScale, yellowScale],
   );
 
   useEffect(
@@ -86,27 +127,57 @@ export const ChannelVuMeter = ({
       <MeterSegments height={height} width={width} variant="off" />
       <Animated.View
         style={[
-          styles.activeMask,
+          styles.activeSegment,
           {
-            transform: [{ translateY: meterTranslateY }, { scaleY: meterScale }],
+            backgroundColor: colors.meter.green,
+            bottom: greenSegment.bottom,
+            height: greenSegment.segmentHeight,
+            transform: [{ translateY: greenTranslateY }, { scaleY: greenScale }],
           },
         ]}
-      >
-        <MeterSegments height={height} width={width} variant="active" />
-      </Animated.View>
+      />
+      <Animated.View
+        style={[
+          styles.activeSegment,
+          {
+            backgroundColor: colors.meter.yellow,
+            bottom: yellowSegment.bottom,
+            height: yellowSegment.segmentHeight,
+            transform: [{ translateY: yellowTranslateY }, { scaleY: yellowScale }],
+          },
+        ]}
+      />
+      <Animated.View
+        style={[
+          styles.activeSegment,
+          {
+            backgroundColor: colors.meter.red,
+            bottom: redSegment.bottom,
+            height: redSegment.segmentHeight,
+            transform: [{ translateY: redTranslateY }, { scaleY: redScale }],
+          },
+        ]}
+      />
       <Animated.View style={[styles.peakMarker, { bottom: peakOffset }]} />
       <Animated.View style={[styles.clip, { opacity: clipOpacity }]} />
     </View>
   );
 };
 
+export const ChannelVuMeter = React.memo(
+  ChannelVuMeterComponent,
+  (prev, next) =>
+    prev.channelId === next.channelId &&
+    prev.height === next.height &&
+    prev.width === next.width &&
+    prev.registerMeterListener === next.registerMeterListener,
+);
+
 const styles = StyleSheet.create({
-  activeMask: {
-    bottom: 0,
+  activeSegment: {
     left: 0,
     position: 'absolute',
     right: 0,
-    top: 0,
   },
   clip: {
     backgroundColor: colors.meter.clip,

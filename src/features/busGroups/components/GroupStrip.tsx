@@ -60,6 +60,7 @@ export const GroupStrip = ({
       >
         <Pressable
           disabled={!canOpenDetails}
+          hitSlop={6}
           onPress={onPress}
           style={({ pressed }) => [
             styles.headerPressable,
@@ -92,6 +93,7 @@ export const GroupStrip = ({
 
         <Pressable
           disabled={!canOpenDetails}
+          hitSlop={6}
           onPress={onPress}
           style={({ pressed }) => [
             styles.footerPressable,

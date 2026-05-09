@@ -1,4 +1,9 @@
-import { isMockConsoleIp, mockMixerProvider } from '@shared/mixer/mock/mockMixerProvider';
+import { MixerControlProvider } from '@shared/mixer/MixerControlProvider';
+import {
+  getMockProviderForIp,
+  isMockConsoleIp,
+  mockMixerProvider,
+} from '@shared/mixer/mock/mockMixerProvider';
 import { clamp } from '@shared/utils/clamp';
 import { x32RawToDb } from '@shared/utils/faderDb';
 import { OscClient } from '@shared/osc/OscClient';
@@ -83,15 +88,25 @@ export class BusMixService {
   private connectedConsoleIp?: string;
   private sharedLease?: SharedOscClientLease;
   private useMockProvider = false;
+  private mockProvider: MixerControlProvider = mockMixerProvider;
 
   constructor(client = new OscClient()) {
     this.client = client;
   }
 
   async connect(consoleIp: string): Promise<void> {
+    if (this.useMockProvider) {
+      this.mockProvider.disconnect();
+    }
+
     this.useMockProvider = isMockConsoleIp(consoleIp);
     if (this.useMockProvider) {
-      await mockMixerProvider.connect(consoleIp);
+      this.client.stopXRemoteKeepAlive();
+      this.sharedLease?.release();
+      this.sharedLease = undefined;
+      this.connectedConsoleIp = undefined;
+      this.mockProvider = getMockProviderForIp(consoleIp);
+      await this.mockProvider.connect(consoleIp);
       return;
     }
 
@@ -110,8 +125,9 @@ export class BusMixService {
 
   disconnect(): void {
     if (this.useMockProvider) {
-      mockMixerProvider.disconnect();
+      this.mockProvider.disconnect();
       this.useMockProvider = false;
+      this.connectedConsoleIp = undefined;
       return;
     }
 
@@ -123,7 +139,7 @@ export class BusMixService {
 
   onLevel(channel: Channel, bus: number, listener: (level: number) => void): () => void {
     if (this.useMockProvider) {
-      return mockMixerProvider.subscribeChannelLevel(channel.number, bus, listener);
+      return this.mockProvider.subscribeChannelLevel(channel.number, bus, listener);
     }
 
     const source = this.getSourceDefinition(channel.kind);
@@ -187,7 +203,7 @@ export class BusMixService {
 
   async loadChannels(bus: number): Promise<Channel[]> {
     if (this.useMockProvider) {
-      return mockMixerProvider.getChannels(bus);
+      return this.mockProvider.getChannels(bus);
     }
 
     const groups = await Promise.all(
@@ -238,7 +254,7 @@ export class BusMixService {
 
   async setChannelFader(channel: Channel, bus: number, level: number): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setChannelFader(channel.number, bus, level);
+      await this.mockProvider.setChannelFader(channel.number, bus, level);
       return;
     }
 
@@ -253,7 +269,7 @@ export class BusMixService {
     existingChannels?: Channel[],
   ): Promise<{ channel: Channel; level: number }[]> {
     if (this.useMockProvider) {
-      const channels = await mockMixerProvider.getChannels(bus);
+      const channels = await this.mockProvider.getChannels(bus);
       return channels.map((channel) => ({ channel, level: channel.faderRaw }));
     }
 
@@ -273,7 +289,7 @@ export class BusMixService {
 
   async setChannelOn(channel: Channel, bus: number, on: boolean): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setChannelOn(channel.number, bus, on);
+      await this.mockProvider.setChannelOn(channel.number, bus, on);
       return;
     }
 
@@ -283,7 +299,7 @@ export class BusMixService {
 
   async setChannelPan(channel: Channel, bus: number, pan: number): Promise<void> {
     if (this.useMockProvider) {
-      await mockMixerProvider.setChannelPan(channel.number, bus, pan);
+      await this.mockProvider.setChannelPan(channel.number, bus, pan);
       return;
     }
 

@@ -21,15 +21,18 @@ export const useOscSubscription = ({
   onMasterFader,
   onMasterMute,
 }: UseOscSubscriptionParams): void => {
+  const mcaNumbersKey = mcas.map((mca) => mca.dcaNumber).join(',');
+
   useEffect(() => {
     if (mcas.length === 0) {
       return;
     }
 
+    const dcaNumbers = mcas.map((mca) => mca.dcaNumber);
     const unsubscribers = [
-      ...mcas.flatMap((mca) => [
-        service.subscribeToDcaFader(mca.dcaNumber, (value) => onDcaFader(mca.dcaNumber, value)),
-        service.subscribeToDcaOn(mca.dcaNumber, (isMuted) => onDcaMute(mca.dcaNumber, isMuted)),
+      ...dcaNumbers.flatMap((dcaNumber) => [
+        service.subscribeToDcaFader(dcaNumber, (value) => onDcaFader(dcaNumber, value)),
+        service.subscribeToDcaOn(dcaNumber, (isMuted) => onDcaMute(dcaNumber, isMuted)),
       ]),
       service.subscribeToBusMasterFader(busId, onMasterFader),
       service.subscribeToBusMasterOn(busId, onMasterMute),
@@ -38,5 +41,5 @@ export const useOscSubscription = ({
     return () => {
       unsubscribers.forEach((unsubscribe) => unsubscribe());
     };
-  }, [busId, mcas, onDcaFader, onDcaMute, onMasterFader, onMasterMute, service]);
+  }, [busId, mcaNumbersKey, onDcaFader, onDcaMute, onMasterFader, onMasterMute, service]);
 };
