@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -17,7 +18,7 @@ export const BusGroupsHeader = ({ onBack, onChannels }: BusGroupsHeaderProps): J
       onPress={onBack}
       style={({ pressed }) => [styles.backButton, pressed && styles.pressed]}
     >
-      <Text style={styles.backIcon}>{'<'}</Text>
+      <Icons.ArrowLeft color={colors.text.primary} width={24} height={24} />
     </Pressable>
 
     <View style={styles.titleWrap} pointerEvents="none">
@@ -45,12 +46,6 @@ const styles = StyleSheet.create({
     height: 44,
     justifyContent: 'center',
     width: 44,
-  },
-  backIcon: {
-    color: colors.text.primary,
-    fontSize: 24,
-    fontWeight: '900',
-    lineHeight: 24,
   },
   channelsButton: {
     alignItems: 'center',

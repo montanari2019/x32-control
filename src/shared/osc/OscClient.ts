@@ -1,3 +1,4 @@
+import { Buffer } from 'buffer';
 import { AppError } from '@shared/errors/AppError';
 import { UdpTransport } from '@shared/network/UdpTransport';
 import { OscArg, OscMessage } from './OscMessage';
@@ -13,6 +14,13 @@ type PendingRequest<T> = {
 };
 
 const XREMOTE_RENEW_INTERVAL_MS = 5000;
+
+const pad4 = (length: number): number => (4 - (length % 4)) % 4;
+
+const encodeAddressOnly = (address: string): Buffer => {
+  const content = Buffer.from(`${address}\0`, 'utf8');
+  return Buffer.concat([content, Buffer.alloc(pad4(content.length))]);
+};
 
 export class OscClient {
   private ip?: string;
@@ -59,6 +67,14 @@ export class OscClient {
     }
 
     await this.transport.send(OscEncoder.encode({ address, args }), this.ip, this.port);
+  }
+
+  async sendRaw(address: string): Promise<void> {
+    if (!this.ip) {
+      throw new AppError('CONNECTION_LOST', 'Cliente OSC nao conectado.');
+    }
+
+    await this.transport.send(encodeAddressOnly(address), this.ip, this.port);
   }
 
   async request<T>(address: string, args: OscArg[] = [], timeoutMs = 800): Promise<T> {

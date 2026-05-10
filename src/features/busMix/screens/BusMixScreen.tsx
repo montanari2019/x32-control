@@ -1,6 +1,7 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FlatList, LayoutChangeEvent, ListRenderItemInfo, StyleSheet, View } from 'react-native';
+import type { ViewToken, ViewabilityConfig } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -29,6 +30,7 @@ const STRIP_FIXED_OVERHEAD = 160;
 type BusMixChannelItemProps = {
   channel: Channel;
   faderHeight: number;
+  isVisible: boolean;
   registerMeterListener: (
     channelId: number,
     listener: (values: ChannelMeterValues) => void,
@@ -42,6 +44,7 @@ type BusMixChannelItemProps = {
 const BusMixChannelItemComponent = ({
   channel,
   faderHeight,
+  isVisible,
   registerMeterListener,
   onChangeLevel,
   onChangeLevelEnd,
@@ -69,6 +72,7 @@ const BusMixChannelItemComponent = ({
     <ChannelStrip
       channel={channel}
       faderHeight={faderHeight}
+      isVisible={isVisible}
       registerMeterListener={registerMeterListener}
       onToggleMute={handleToggleMute}
       onFaderChange={handleFaderChange}
@@ -92,6 +96,7 @@ const BusMixChannelItem = React.memo(
     prev.channel.on === next.channel.on &&
     prev.channel.pan === next.channel.pan &&
     prev.faderHeight === next.faderHeight &&
+    prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onChangeLevel === next.onChangeLevel &&
     prev.onChangeLevelEnd === next.onChangeLevelEnd &&
@@ -122,6 +127,10 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
   const [faderHeight, setFaderHeight] = useState(240);
+  const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
+  const viewabilityConfig = useRef<ViewabilityConfig>({
+    itemVisiblePercentThreshold: 10,
+  }).current;
   const channelsRef = useRef<Channel[]>(channels);
   channelsRef.current = channels;
 
@@ -200,6 +209,13 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [],
   );
 
+  const onViewableItemsChanged = useCallback(
+    ({ viewableItems }: { viewableItems: ViewToken<Channel>[] }): void => {
+      setVisibleChannelIds(new Set(viewableItems.map((viewableItem) => viewableItem.item.id)));
+    },
+    [],
+  );
+
   const handleListLayout = useCallback((event: LayoutChangeEvent): void => {
     const nextHeight = Math.max(
       120,
@@ -213,6 +229,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       <BusMixChannelItem
         channel={item}
         faderHeight={faderHeight}
+        isVisible={visibleChannelIds.has(item.id)}
         registerMeterListener={registerMeterListener}
         onToggleMute={handleToggleMute}
         onChangeLevel={handleFaderChange}
@@ -227,6 +244,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       faderHeight,
       openPanModal,
       registerMeterListener,
+      visibleChannelIds,
     ],
   );
 
@@ -271,6 +289,8 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         contentContainerStyle={styles.list}
         renderItem={renderChannel}
         getItemLayout={getChannelItemLayout}
+        viewabilityConfig={viewabilityConfig}
+        onViewableItemsChanged={onViewableItemsChanged}
         onLayout={handleListLayout}
         initialNumToRender={10}
         maxToRenderPerBatch={8}

@@ -15,6 +15,7 @@ import { VerticalFader } from './VerticalFader';
 type ChannelStripProps = {
   channel: Channel;
   faderHeight: number;
+  isVisible: boolean;
   registerMeterListener: (
     channelId: number,
     listener: (values: ChannelMeterValues) => void,
@@ -39,6 +40,7 @@ const opacityToAlphaHex = (opacity: number): string =>
 const ChannelStripComponent = ({
   channel,
   faderHeight,
+  isVisible,
   registerMeterListener,
   onToggleMute,
   onFaderChange,
@@ -93,6 +95,7 @@ const ChannelStripComponent = ({
               channelId={channel.meterChannelId}
               height={faderHeight}
               width={METER_WIDTH}
+              isVisible={isVisible}
               registerMeterListener={registerMeterListener}
             />
           ) : (
@@ -128,6 +131,7 @@ export const ChannelStrip = React.memo(
     prev.channel.number === next.channel.number &&
     prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
     prev.channel.meterChannelId === next.channel.meterChannelId &&
+    prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onToggleMute === next.onToggleMute &&
     prev.onFaderChange === next.onFaderChange &&

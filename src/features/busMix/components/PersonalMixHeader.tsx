@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -30,7 +31,7 @@ export const PersonalMixHeader = ({
       onPress={onBack}
       style={({ pressed }) => [styles.backButton, pressed && styles.backPressed]}
     >
-      <Text style={styles.backIcon}>‹</Text>
+      <Icons.ArrowLeft color={colors.text.primary} width={20} height={20} />
     </Pressable>
 
     <View style={styles.centerBlock}>
@@ -63,12 +64,6 @@ const styles = StyleSheet.create({
     height: 40,
     justifyContent: 'center',
     width: 40,
-  },
-  backIcon: {
-    color: colors.text.primary,
-    fontSize: 20,
-    fontWeight: '900',
-    lineHeight: 20,
   },
   backPressed: {
     opacity: 0.7,

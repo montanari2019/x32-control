@@ -15,6 +15,7 @@ type ChannelVuMeterProps = {
   channelId: number;
   height: number;
   width: number;
+  isVisible: boolean;
   registerMeterListener: (
     channelId: number,
     listener: (values: ChannelMeterValues) => void,
@@ -76,6 +77,7 @@ const ChannelVuMeterComponent = ({
   channelId,
   height,
   width,
+  isVisible,
   registerMeterListener,
 }: ChannelVuMeterProps): JSX.Element => {
   const meterHeight = Math.max(1, height - METER_VERTICAL_INSET * 2);
@@ -101,10 +103,21 @@ const ChannelVuMeterComponent = ({
     [zoneCounts],
   );
 
-  useEffect(
-    () => registerMeterListener(channelId, updateMeter),
-    [channelId, registerMeterListener, updateMeter],
-  );
+  useEffect(() => {
+    if (!isVisible) {
+      activeSegmentCountRef.current = 0;
+      setActiveSegmentCount(0);
+      return undefined;
+    }
+
+    const unregisterMeterListener = registerMeterListener(channelId, updateMeter);
+
+    return () => {
+      unregisterMeterListener();
+      activeSegmentCountRef.current = 0;
+      setActiveSegmentCount(0);
+    };
+  }, [channelId, isVisible, registerMeterListener, updateMeter]);
 
   const totalSegments = Math.max(1, zoneCounts.green + zoneCounts.yellow + zoneCounts.red);
   const activeGreenSegments = Math.min(activeSegmentCount, zoneCounts.green);
@@ -156,6 +169,7 @@ export const ChannelVuMeter = React.memo(
     prev.channelId === next.channelId &&
     prev.height === next.height &&
     prev.width === next.width &&
+    prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener,
 );
 

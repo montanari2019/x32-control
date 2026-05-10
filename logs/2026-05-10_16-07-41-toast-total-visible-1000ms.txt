@@ -1,0 +1,10 @@
+FIX: TOAST TOTAL VISIBLE 1000MS
+
+Contexto: Toast apos restore preset ainda parecia demorar >1s p/ sair.
+Causa: auto-dismiss disparava em 1000ms, mas animacao de saida 250ms rodava depois; tempo visual total ficava ~1250ms.
+Acao: ajustar Toast global p/ calcular autoDismissDelay = timeoutDuration - toastAnimationDuration.
+Acao: limitar timeoutDuration a 1000ms e limitar toastAnimationDuration ao budget do toast.
+Resultado: OK; toast inicia saida antes e desaparece visualmente dentro do limite total de 1000ms.
+Arquivos: src/shared/components/Toast/index.tsx.
+Validacao: npx prettier OK; npm test -- --runInBand OK 12 suites/36 tests; git diff --check OK c/ aviso CRLF Windows.
+Pontos atencao: validar manualmente restore BusMix em device real; toque fora do card segue liberado por pointerEvents box-none.

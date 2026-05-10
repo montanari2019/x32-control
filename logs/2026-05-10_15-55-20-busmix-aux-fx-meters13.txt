@@ -1,0 +1,13 @@
+FIX: BUSMIX AUX FX METERS13
+
+Contexto: AUX01-08 e FXRTN01-08 ficavam sem meter real no console X32; so CH01-32 recebiam poll /meters/1.
+Causa: BusMixService removia meterChannelId de aux/fxReturn; useMeterSubscription nao fazia poll /meters/13.
+Acao: add X32Protocol.getMeters13Path() retornando /meters/13.
+Acao: useMeterSubscription add subscribe + poll paralelo /meters/13 via sendRaw; despacha somente channelIds 33-48.
+Acao: poll /meters/13 roda so quando existe listener AUX/FX ativo na viewport.
+Acao: cleanup remove unsubscribe/interval/ref de /meters/13.
+Acao: BusMixService restaura meterChannelId p/ aux/fxReturn usando number; cache dynamic path força meterChannelId=channel.number.
+Resultado: OK; CH01-32 mantem /meters/1; AUX01-08 usam ids 33-40 via /meters/13; FXRTN01-08 usam ids 41-48 via /meters/13.
+Arquivos: src/shared/osc/X32Protocol.ts; src/features/busMix/hooks/useMeterSubscription.ts; src/features/busMix/services/BusMixService.ts.
+Validacao: npx prettier OK; npm test -- --runInBand OK 12 suites/36 tests; git diff --check OK c/ aviso CRLF Windows; npm run tsc falha preexistente KeepAwake em src/app/App.tsx.
+Pontos atencao: validar em X32 real com sinal em AUX/FX Return; meterDecoder.ts, componentes visuais, OscClient/OscEncoder, demo/mock e SignalMeter.tsx intocados nesta etapa.

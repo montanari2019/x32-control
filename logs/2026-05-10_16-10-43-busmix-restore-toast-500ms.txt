@@ -1,0 +1,10 @@
+FIX: BUSMIX RESTORE TOAST 500MS
+
+Contexto: Toast de sucesso apos restaurar preset ainda precisava sair mais rapido.
+Causa: restore usava default global do Toast; mesmo c/ max 1000ms, UX desejada p/ restore era 500ms total.
+Acao: localizar disparo em BusMixPresetsModal.handleRestore; add timeToCloseInMilliseconds=500 no Toast "Preset restaurado".
+Acao: manter Toast global contabilizando animacao de saida dentro do tempo informado.
+Resultado: OK; toast sucesso restore inicia saida antes e some em ~500ms total.
+Arquivos: src/features/busMix/components/BusMixPresetsModal.tsx; src/shared/components/Toast/index.tsx.
+Validacao: npx prettier OK; npm test -- --runInBand OK 12 suites/36 tests; git diff --check OK c/ aviso CRLF Windows.
+Pontos atencao: validar manualmente no device apos restore real; erros de restore seguem usando default global 1000ms.

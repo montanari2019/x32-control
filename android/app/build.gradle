@@ -70,6 +70,28 @@ def enableProguardInReleaseBuilds = false
  */
 def jscFlavor = 'org.webkit:android-jsc:+'
 
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file('keystore.properties')
+if (keystorePropertiesFile.exists()) {
+    keystorePropertiesFile.withInputStream { stream ->
+        keystoreProperties.load(stream)
+    }
+}
+
+def getSigningProperty = { propertyName, environmentName, fallbackValue = '' ->
+    def propertyValue = keystoreProperties.getProperty(propertyName)
+    if (propertyValue != null && propertyValue.trim().length() > 0) {
+        return propertyValue
+    }
+
+    def environmentValue = System.getenv(environmentName)
+    if (environmentValue != null && environmentValue.trim().length() > 0) {
+        return environmentValue
+    }
+
+    return fallbackValue
+}
+
 android {
     ndkVersion rootProject.ext.ndkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
@@ -90,6 +112,18 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
+        homolog {
+            storeFile file(getSigningProperty('X32_HOMOL_STORE_FILE', 'X32_HOMOL_STORE_FILE', 'x32-control.keystore'))
+            storePassword getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD')
+            keyAlias getSigningProperty('X32_HOMOL_KEY_ALIAS', 'X32_HOMOL_KEY_ALIAS', 'androidhomolkey')
+            keyPassword getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD')
+        }
+        release {
+            storeFile file(getSigningProperty('X32_RELEASE_STORE_FILE', 'X32_RELEASE_STORE_FILE', 'x32-control.keystore'))
+            storePassword getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD')
+            keyAlias getSigningProperty('X32_RELEASE_KEY_ALIAS', 'X32_RELEASE_KEY_ALIAS', 'androidreleasekey')
+            keyPassword getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD')
+        }
     }
     flavorDimensions "environment"
     productFlavors {
@@ -97,14 +131,17 @@ android {
             dimension "environment"
             applicationIdSuffix ".develop"
             versionNameSuffix "-develop"
+            signingConfig signingConfigs.debug
         }
         homolog {
             dimension "environment"
             applicationIdSuffix ".homolog"
             versionNameSuffix "-homolog"
+            signingConfig signingConfigs.homolog
         }
         production {
             dimension "environment"
+            signingConfig signingConfigs.release
         }
     }
     buildTypes {
@@ -112,9 +149,6 @@ android {
             signingConfig signingConfigs.debug
         }
         release {
-            // Caution! In production, you need to generate your own keystore file.
-            // see https://reactnative.dev/docs/signed-apk-android.
-            signingConfig signingConfigs.debug
             minifyEnabled enableProguardInReleaseBuilds
             proguardFiles getDefaultProguardFile("proguard-android.txt"), "proguard-rules.pro"
         }
