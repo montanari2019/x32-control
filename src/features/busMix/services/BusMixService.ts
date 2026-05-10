@@ -546,6 +546,7 @@ export class BusMixService {
 
       return {
         ...channel,
+        meterChannelId: channel.number,
         faderRaw: level,
         faderDb: x32RawToDb(level),
         localFaderRaw: level,

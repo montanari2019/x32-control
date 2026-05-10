@@ -26,6 +26,9 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
   const unsubscribeOscRef = useRef<(() => void) | null>(null);
   const listenersRef = useRef(new Map<number, Set<MeterListener>>());
   const isPollingRef = useRef(false);
+  const isPolling13Ref = useRef(false);
+  const pollInterval13Ref = useRef<ReturnType<typeof setInterval> | null>(null);
+  const unsubscribeOsc13Ref = useRef<(() => void) | null>(null);
 
   useEffect(() => {
     if (!enabled || isMock) {
@@ -71,10 +74,42 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
 
           isPollingRef.current = true;
           client
-            .send(X32Protocol.getMeters1Path(), [])
+            .sendRaw(X32Protocol.getMeters1Path())
             .catch(() => undefined)
             .finally(() => {
               isPollingRef.current = false;
+            });
+        }, POLL_INTERVAL_MS);
+
+        // Listen for /meters/13 responses (AUX 01-08 + FX Return 01-08, channelIds 33-48)
+        unsubscribeOsc13Ref.current = client.subscribe(X32Protocol.getMeters13Path(), (message) => {
+          const blob = getBlobArg(message);
+          if (!blob) {
+            return;
+          }
+
+          listenersRef.current.forEach((listeners, channelId) => {
+            if (channelId < 33 || channelId > 48) return;
+            if (listeners.size === 0) return;
+            const values = decodeMeter1BlobForChannel(blob, channelId);
+            listeners.forEach((listener) => listener(values));
+          });
+        });
+
+        // Poll /meters/13 only while AUX/FX Return listeners are active.
+        pollInterval13Ref.current = setInterval(() => {
+          const hasAuxFxListeners = [...listenersRef.current.keys()].some(
+            (channelId) => channelId >= 33 && channelId <= 48,
+          );
+          if (!hasAuxFxListeners) return;
+          if (isPolling13Ref.current) return;
+
+          isPolling13Ref.current = true;
+          client
+            .sendRaw(X32Protocol.getMeters13Path())
+            .catch(() => undefined)
+            .finally(() => {
+              isPolling13Ref.current = false;
             });
         }, POLL_INTERVAL_MS);
       } catch {
@@ -94,7 +129,16 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
         pollIntervalRef.current = null;
       }
 
+      unsubscribeOsc13Ref.current?.();
+      unsubscribeOsc13Ref.current = null;
+
+      if (pollInterval13Ref.current) {
+        clearInterval(pollInterval13Ref.current);
+        pollInterval13Ref.current = null;
+      }
+
       isPollingRef.current = false;
+      isPolling13Ref.current = false;
       clientRef.current?.stopXRemoteKeepAlive();
       clientLeaseRef.current?.release();
       clientLeaseRef.current = null;

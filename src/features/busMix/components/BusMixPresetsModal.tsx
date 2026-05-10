@@ -11,6 +11,8 @@ import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
 import { BusMixPreset } from '../types/BusMixPreset';
 
+const RESTORE_SUCCESS_TOAST_DURATION_MS = 500;
+
 type BusMixPresetsModalProps = ModalRenderProps & {
   presets: BusMixPreset[];
   maxPresets: number;
@@ -137,6 +139,7 @@ export const BusMixPresetsModal = ({
         title: 'Preset restaurado',
         message: 'Os volumes salvos foram aplicados ao Bus Mix e enviados para a mesa.',
         variant: 'success',
+        timeToCloseInMilliseconds: RESTORE_SUCCESS_TOAST_DURATION_MS,
       });
     } catch (error) {
       showModal(Toast, {
@@ -178,7 +181,7 @@ export const BusMixPresetsModal = ({
             isRestoringPreset && styles.closeButtonDisabled,
           ]}
         >
-          <Text style={styles.closeButtonText}>X</Text>
+          <Icons.Close color={colors.text.primary} width={14} height={14} />
         </Pressable>
       </View>
 
@@ -256,8 +259,7 @@ export const BusMixPresetsModal = ({
                       styles.iconButton,
                       styles.deleteButton,
                       pressed && styles.iconButtonPressed,
-                      (pendingPresetId !== null || isRestoringPreset) &&
-                        styles.iconButtonDisabled,
+                      (pendingPresetId !== null || isRestoringPreset) && styles.iconButtonDisabled,
                     ]}
                   >
                     <Icons.Trash color={colors.status.danger} width={18} height={18} />
@@ -274,8 +276,7 @@ export const BusMixPresetsModal = ({
                       styles.iconButton,
                       styles.overwriteButton,
                       pressed && styles.iconButtonPressed,
-                      (pendingPresetId !== null || isRestoringPreset) &&
-                        styles.iconButtonDisabled,
+                      (pendingPresetId !== null || isRestoringPreset) && styles.iconButtonDisabled,
                     ]}
                   >
                     <Icons.SaveData color={colors.mca.yellow} width={20} height={20} />
@@ -292,11 +293,10 @@ export const BusMixPresetsModal = ({
                       styles.iconButton,
                       styles.restoreButton,
                       pressed && styles.iconButtonPressed,
-                      (pendingPresetId !== null || isRestoringPreset) &&
-                        styles.iconButtonDisabled,
+                      (pendingPresetId !== null || isRestoringPreset) && styles.iconButtonDisabled,
                     ]}
                   >
-                    <Icons.RecoveryData color={colors.border.blue} width={20} height={20} />
+                    <Icons.Play color={colors.border.blue} width={20} height={20} />
                   </Pressable>
                 </View>
               </View>
@@ -325,11 +325,6 @@ const styles = StyleSheet.create({
   },
   closeButtonPressed: {
     opacity: 0.72,
-  },
-  closeButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '900',
   },
   createActions: {
     flexDirection: 'row',

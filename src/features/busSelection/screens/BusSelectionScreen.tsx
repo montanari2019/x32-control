@@ -1,6 +1,7 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Icons } from '@assets';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -73,7 +74,7 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
                 onPress={() => navigation.goBack()}
                 style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
               >
-                <Text style={styles.icon}>‹</Text>
+                <Icons.ArrowLeft color={colors.text.primary} width={20} height={20} />
               </Pressable>
 
               <View style={styles.headerCenter}>

@@ -1,0 +1,14 @@
+FIX: BUSMIX REAL METER POLL
+
+Contexto: ChannelVuMeter animava no demo/mock, mas podia ficar sem resposta em console X32 real.
+Causa: poll /meters/1 usava OscClient.send(..., []) e gerava type tag ","; alguns firmwares X32 esperam address puro sem type tag.
+Acao: add OscClient.sendRaw(address) p/ enviar address OSC 4-byte padded sem args/type tag; useMeterSubscription troca poll p/ sendRaw(X32Protocol.getMeters1Path()).
+Acao: BusMixService define meterChannelId so p/ source.kind "channel"; AUX/FX Return ficam undefined e usam placeholder existente.
+Acao: BusMixScreen add viewabilityConfig estavel + onViewableItemsChanged; repassa isVisible p/ strips visiveis.
+Acao: ChannelStrip repassa isVisible p/ ChannelVuMeter e comparator inclui prop.
+Acao: ChannelVuMeter registra listener so quando isVisible=true; cleanup remove listener e reseta segmentos p/ zero.
+Acao: add teste OscClient.test p/ garantir sendRaw sem type tag.
+Resultado: OK; CH01-CH32 usam /meters/1 raw; AUX/FX Return sem listener invalido; meters fora viewport nao consomem callbacks JS.
+Arquivos: src/shared/osc/OscClient.ts; src/features/busMix/hooks/useMeterSubscription.ts; src/features/busMix/services/BusMixService.ts; src/features/busMix/screens/BusMixScreen.tsx; src/features/busMix/components/ChannelStrip.tsx; src/features/busMix/components/ChannelVuMeter.tsx; __tests__/shared/osc/OscClient.test.ts.
+Validacao: npx prettier OK; npm test -- --runInBand OK 12 suites/36 tests; git diff --check OK c/ aviso CRLF Windows; npm run tsc falha preexistente KeepAwake em src/app/App.tsx.
+Pontos atencao: validar c/ X32 real recebendo sinal em CH01-CH32; /meters/1 nao cobre AUX/FX Return; SignalMeter.tsx, demo/mock, layout e estilos ficaram intocados.

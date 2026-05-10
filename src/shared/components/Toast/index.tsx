@@ -14,7 +14,7 @@ export type ToastPropsType = ModalPropsType & {
   bottomOffset?: number;
 };
 
-const DEFAULT_TIMEOUT = 4000;
+const MAX_TIMEOUT = 1000;
 const TOAST_VERTICAL_OFFSET = -32;
 
 const Toast = ({
@@ -26,12 +26,15 @@ const Toast = ({
   title,
   message,
   variant = 'success',
-  timeToCloseInMilliseconds = DEFAULT_TIMEOUT,
+  timeToCloseInMilliseconds = MAX_TIMEOUT,
 }: ToastPropsType): JSX.Element => {
   const [isModalVisible, setIsModalVisible] = useState(visible);
   const translateY = useRef(new Animated.Value(TOAST_VERTICAL_OFFSET)).current;
   const opacity = useRef(new Animated.Value(0)).current;
   const palette = getToastPalette(variant);
+  const timeoutDuration = Math.max(0, Math.min(timeToCloseInMilliseconds, MAX_TIMEOUT));
+  const toastAnimationDuration = Math.max(0, Math.min(animationDuration, timeoutDuration));
+  const autoDismissDelay = Math.max(0, timeoutDuration - toastAnimationDuration);
 
   useEffect(() => {
     if (visible) {
@@ -40,12 +43,12 @@ const Toast = ({
       Animated.parallel([
         Animated.timing(translateY, {
           toValue: 0,
-          duration: animationDuration,
+          duration: toastAnimationDuration,
           useNativeDriver: true,
         }),
         Animated.timing(opacity, {
           toValue: 1,
-          duration: animationDuration,
+          duration: toastAnimationDuration,
           useNativeDriver: true,
         }),
       ]).start();
@@ -55,12 +58,12 @@ const Toast = ({
     Animated.parallel([
       Animated.timing(translateY, {
         toValue: TOAST_VERTICAL_OFFSET,
-        duration: animationDuration,
+        duration: toastAnimationDuration,
         useNativeDriver: true,
       }),
       Animated.timing(opacity, {
         toValue: 0,
-        duration: animationDuration,
+        duration: toastAnimationDuration,
         useNativeDriver: true,
       }),
     ]).start(({ finished }) => {
@@ -71,7 +74,7 @@ const Toast = ({
     });
 
     return undefined;
-  }, [animationDuration, onDismissEnd, opacity, translateY, visible]);
+  }, [onDismissEnd, opacity, toastAnimationDuration, translateY, visible]);
 
   useEffect(() => {
     if (!visible) {
@@ -80,10 +83,10 @@ const Toast = ({
 
     const timeoutId = setTimeout(() => {
       onDismiss?.();
-    }, timeToCloseInMilliseconds);
+    }, autoDismissDelay);
 
     return () => clearTimeout(timeoutId);
-  }, [onDismiss, timeToCloseInMilliseconds, visible]);
+  }, [autoDismissDelay, onDismiss, visible]);
 
   if (!isModalVisible) {
     return <></>;

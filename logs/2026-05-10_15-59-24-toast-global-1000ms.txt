@@ -1,0 +1,12 @@
+FIX: TOAST GLOBAL 1000MS
+
+Contexto: Toast apos restore BusMix ficava tempo demais visivel e era percebido como bloqueio de tela.
+Causa: Toast global usava default 4000ms; chamadas individuais poderiam passar duracao maior sem limite central.
+Acao: ler skills 09/17 overlays e 19 logs; buscar Toastify/Toastfy/Toast/timeout/duration/autoClose/visibilityTime no projeto.
+Acao: alterar src/shared/components/Toast/index.tsx; trocar default p/ MAX_TIMEOUT=1000.
+Acao: aplicar clamp Math.min(timeToCloseInMilliseconds, 1000) p/ garantir max global mesmo se chamada individual passar valor maior.
+Acao: manter overlay Toast c/ pointerEvents="box-none" e card c/ pointerEvents="auto"; sem Modal nativo; sem mudanca visual.
+Resultado: OK; todos os toasts compartilhados somem em no max 1000ms e overlay fullscreen nao bloqueia interacao fora do card.
+Arquivos: src/shared/components/Toast/index.tsx.
+Validacao: rg Toast/timeout/duration OK; npx prettier OK; npm test -- --runInBand OK 12 suites/36 tests; git diff --check OK c/ aviso CRLF Windows; npm run tsc falha preexistente KeepAwake em src/app/App.tsx.
+Pontos atencao: validar manualmente no device restore BusMix + toasts de discovery/busGroups; docs skill 17 ainda descreve contrato historico, mas config runtime agora e 1000ms.

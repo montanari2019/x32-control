@@ -242,7 +242,7 @@ export const McaChannelSelectionModal = ({
                       pressed && styles.closeButtonPressed,
                     ]}
                   >
-                    <Text style={styles.closeButtonText}>X</Text>
+                    <Icons.Close color={colors.text.primary} width={14} height={14} />
                   </Pressable>
                 </View>
 
@@ -400,11 +400,6 @@ const styles = StyleSheet.create({
   },
   closeButtonPressed: {
     opacity: 0.72,
-  },
-  closeButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '900',
   },
   dismissBackdrop: {
     ...StyleSheet.absoluteFillObject,

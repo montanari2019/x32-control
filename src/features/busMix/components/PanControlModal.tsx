@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import Slider from '@react-native-community/slider';
+import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -102,7 +103,7 @@ export const PanControlModal = ({
                     pressed && styles.closeButtonPressed,
                   ]}
                 >
-                  <Text style={styles.closeButtonText}>X</Text>
+                  <Icons.Close color={colors.text.primary} width={14} height={14} />
                 </Pressable>
               </View>
 
@@ -207,11 +208,6 @@ const styles = StyleSheet.create({
   },
   closeButtonPressed: {
     opacity: 0.72,
-  },
-  closeButtonText: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '900',
   },
   footerLabel: {
     color: colors.text.muted,
