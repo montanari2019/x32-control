@@ -14,6 +14,11 @@ const LOCAL_PROTECTION_WINDOW_MS = 250;
 const BACKGROUND_SYNC_INTERVAL_MS = 30000;
 const BACKGROUND_SYNC_JITTER_MS = 5000;
 
+const waitForNextFrame = (): Promise<void> =>
+  new Promise((resolve) => {
+    requestAnimationFrame(() => resolve());
+  });
+
 export const useBusMix = (consoleIp: string, busNumber: number) => {
   const service = useMemo(() => new BusMixService(), []);
   const presetService = useMemo(() => new BusMixPresetService(), []);
@@ -435,14 +440,16 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
   const restorePreset = useCallback(
     async (presetId: string): Promise<void> => {
-      const preset = await presetService.loadPreset(consoleIp, busNumber, presetId);
-      if (!preset) {
-        throw new Error('Preset nao encontrado.');
-      }
-
       setIsRestoringPreset(true);
 
       try {
+        await waitForNextFrame();
+
+        const preset = await presetService.loadPreset(consoleIp, busNumber, presetId);
+        if (!preset) {
+          throw new Error('Preset nao encontrado.');
+        }
+
         const byChannel = new Map(channelsRef.current.map((channel) => [channel.number, channel]));
         const channelsToRestore = preset.channels.filter((presetChannel) =>
           byChannel.has(presetChannel.channelId),

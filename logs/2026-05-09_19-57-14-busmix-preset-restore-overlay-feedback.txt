@@ -1,0 +1,72 @@
+Contexto:
+- Foi investigado o fluxo visual de restauracao de presets da feature Bus Mix.
+- O problema reportado era que, ao tocar em restaurar preset, o usuario nao via imediatamente o overlay/loading de restauracao.
+- A confirmacao final aparecia depois via Toast, criando a percepcao de que a tela ficou sem feedback durante a operacao.
+
+Arquivos avaliados:
+- src/features/busMix/components/BusMixPresetRestoreOverlay.tsx
+- src/features/busMix/components/BusMixPresetsModal.tsx
+- src/features/busMix/screens/BusMixScreen.tsx
+- src/features/busMix/hooks/useBusMix.ts
+- src/shared/components/Toast/index.tsx
+- src/shared/components/Dialog/index.tsx
+- src/shared/components/Modal/ModalProvider.tsx
+
+Logs consultados:
+- logs/2026-05-09_17-34-50-real-console-before-demo.txt
+- logs/2026-05-09_09-20-49-toast-non-blocking-overlay-fix.txt
+- logs/2026-05-07_09-28-53-busmix-presets-locais.txt
+- logs/2026-05-07_19-10-29-busmix-presets-mute-persistence.txt
+
+Diagnostico:
+- O overlay ja estava montado na tela principal do Bus Mix por meio de `isRestoringPreset`.
+- O modal de presets chamava `onDismiss` antes de iniciar `onRestorePreset`, como esperado para liberar a tela principal.
+- O ponto critico estava no hook `useBusMix`.
+- `restorePreset` carregava o preset antes de ativar `isRestoringPreset`.
+- Em restores rapidos, o estado de restauracao podia ser ligado e desligado no mesmo ciclo visual, sem dar tempo para o React Native pintar o overlay.
+- O Toast global ja estava corrigido neste workspace para nao usar `Modal` nativo e nao bloquear a tela inteira; portanto nao foi necessario alterar componentes compartilhados.
+
+Correcao aplicada:
+- Arquivo alterado:
+  - src/features/busMix/hooks/useBusMix.ts
+- Foi criado o helper local `waitForNextFrame`.
+- `restorePreset` passou a ativar `setIsRestoringPreset(true)` imediatamente ao iniciar o fluxo.
+- Antes de carregar o preset e aplicar os valores, o hook aguarda o proximo frame com `requestAnimationFrame`.
+- O bloco `finally` continua removendo `isRestoringPreset`, garantindo que o overlay suma tanto em sucesso quanto em erro.
+
+Resultado esperado:
+- Ao tocar em restaurar preset, o estado de restauracao entra imediatamente.
+- O `BusMixPresetRestoreOverlay` tem chance real de montar e aparecer antes da aplicacao dos valores.
+- O usuario ve loading durante o processo de restore.
+- Ao finalizar com sucesso, o overlay some e o Toast de sucesso pode aparecer sem bloquear toda a tela.
+- Em erro, o overlay tambem some e o Toast de erro e exibido pelo fluxo existente.
+
+Escopo preservado:
+- Nenhuma alteracao em audio, mixer, faders, meters, buses ou comunicacao com dispositivo.
+- Nenhuma alteracao em cores globais, tema ou estilos gerais.
+- Nenhuma alteracao em salvar, listar, sobrescrever ou excluir presets.
+- Nenhuma dependencia nova.
+- Nenhuma alteracao fora do fluxo de restore de preset do Bus Mix.
+
+Validacoes executadas:
+- `npx prettier --write src\features\busMix\hooks\useBusMix.ts`
+  - sucesso apos executar fora do sandbox por falha de permissao `EPERM` no caminho do usuario.
+- `npm test -- --runInBand`
+  - sucesso
+  - 11 suites aprovadas
+  - 35 testes aprovados
+- `git diff --check`
+  - sucesso
+  - apenas aviso de CRLF esperado no Windows.
+- `npm run tsc`
+  - falhou por problema preexistente em `src/app/App.tsx` com `KeepAwake`.
+  - erro sem relacao com a alteracao em Bus Mix.
+
+Observacoes:
+- A correcao evita delays artificiais baseados em tempo fixo.
+- O uso de `requestAnimationFrame` foi limitado ao fluxo visual de restore para permitir renderizacao do overlay antes do processamento.
+- Recomenda-se validar manualmente no dispositivo:
+  - abrir Presets no Bus Mix
+  - tocar em restaurar
+  - confirmar que o overlay aparece imediatamente
+  - confirmar que o Toast final nao bloqueia interacoes fora do card
