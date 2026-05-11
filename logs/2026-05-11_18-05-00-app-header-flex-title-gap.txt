@@ -1,0 +1,9 @@
+APP HEADER FLEX TITLE GAP
+
+Contexto: o header compartilhado de BusSelection, BusGroups e BusMix ainda podia ocultar titulo com `...` porque o titulo estava centralizado por posicionamento absoluto em relacao ao eixo da tela.
+Causa: `AppHeader` reservava margens fixas (`left/right: 116`) para manter o titulo no centro visual da tela; isso deixava menos espaco util para textos quando havia botoes de acao largos como `Channels` e `Presets`.
+Ação: removido posicionamento absoluto de `titleWrap`; header agora usa layout flex natural com `botao voltar + titulo flexivel + botao acao`; adicionado `gap: spacing.xs` no container para garantir minimo de 8px entre os elementos; titulo passou a usar `adjustsFontSizeToFit` com `minimumFontScale=0.78`.
+Resultado: titulo ocupa o espaco real disponivel entre os botoes, mantendo respiro minimo por token e reduzindo chance de truncamento nas tres telas.
+Arquivos: `src/shared/components/AppHeader.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator.
+Pontos atenção: a partir daqui, toda mudanca relevante deve receber log proprio em `logs/` seguindo este mesmo formato.

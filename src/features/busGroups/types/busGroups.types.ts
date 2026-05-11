@@ -1,4 +1,12 @@
-export type McaColorToken = 'blue' | 'green' | 'yellow' | 'pink' | 'purple';
+export type McaColorToken =
+  | 'blue'
+  | 'green'
+  | 'yellow'
+  | 'pink'
+  | 'purple'
+  | 'cyan'
+  | 'red'
+  | 'amber';
 
 export type McaAssignedChannel = {
   channelId: number;

@@ -1,0 +1,9 @@
+SHARED APP HEADER BUS SCREENS
+
+Contexto: headers de `Selecione seu Monitor`, `Personal Mix Grupos` e `Personal Mix Channel` tinham tamanhos diferentes de titulo, botao de voltar e alinhamento entre iOS/Android.
+Causa: cada tela implementava seu header localmente, com botao de voltar 40/44, icones 20/24 e titulos com tamanhos distintos; os titulos tambem competiam visualmente com botoes de acao largos.
+Ação: criado `src/shared/components/AppHeader.tsx`; `BusSelectionScreen`, `BusGroupsHeader` e `PersonalMixHeader` passaram a usar o mesmo componente; botao voltar padronizado em 44x44 com icone 20x20; titulos centralizados; botoes de direita ganharam variantes `channels` e `success`; fonte do titulo reduzida para 16 para evitar `...` nas tres telas.
+Resultado: header unico para as tres telas, com titulos centralizados, mais espaco entre titulo e botoes, e `Presets` restaurado na variante verde.
+Arquivos: `src/shared/components/AppHeader.tsx`, `src/features/busSelection/screens/BusSelectionScreen.tsx`, `src/features/busGroups/components/BusGroupsHeader.tsx`, `src/features/busMix/components/PersonalMixHeader.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator.
+Pontos atenção: se novos botoes de direita tiverem labels maiores, ajustar `titleWrap`/minWidth no `AppHeader` em um unico lugar.

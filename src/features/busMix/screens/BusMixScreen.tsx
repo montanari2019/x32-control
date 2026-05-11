@@ -313,13 +313,12 @@ const styles = StyleSheet.create({
   },
   list: {
     gap: 1,
-    paddingHorizontal: spacing.md,
     paddingVertical: spacing.md,
   },
   screen: {
     paddingBottom: 0,
-    paddingHorizontal: 0,
-    paddingTop: 0,
-    backgroundColor: colors.background.deep,
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.md,
+    backgroundColor: colors.background.primary,
   },
 });

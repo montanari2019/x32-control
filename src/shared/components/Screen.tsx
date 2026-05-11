@@ -1,5 +1,5 @@
 import React, { PropsWithChildren } from 'react';
-import { SafeAreaView, ScrollView, StyleSheet, ViewStyle } from 'react-native';
+import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors } from '@shared/theme/colors';
 
 type ScreenProps = PropsWithChildren<{
@@ -10,13 +10,13 @@ type ScreenProps = PropsWithChildren<{
 export const Screen = ({ children, scroll = false, style }: ScreenProps): JSX.Element => {
   if (scroll) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <View style={styles.safe}>
         <ScrollView contentContainerStyle={[styles.content, style]}>{children}</ScrollView>
-      </SafeAreaView>
+      </View>
     );
   }
 
-  return <SafeAreaView style={[styles.safe, styles.content, style]}>{children}</SafeAreaView>;
+  return <View style={[styles.safe, styles.content, style]}>{children}</View>;
 };
 
 const styles = StyleSheet.create({

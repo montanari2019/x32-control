@@ -36,11 +36,14 @@ const BUS_NAMES = [
 ];
 
 const MCA_DEFINITIONS = [
-  { dcaNumber: 1, colorToken: 'blue' as const, name: 'Bateria', channels: [1, 2, 3, 4, 5, 6] },
+  { dcaNumber: 1, colorToken: 'red' as const, name: 'Bateria', channels: [1, 2, 3, 4, 5, 6] },
   { dcaNumber: 2, colorToken: 'green' as const, name: 'Baixo', channels: [7, 8] },
   { dcaNumber: 3, colorToken: 'yellow' as const, name: 'Guitarras', channels: [9, 10, 11, 12] },
   { dcaNumber: 4, colorToken: 'pink' as const, name: 'Vocais', channels: [13, 14, 15, 16, 17] },
   { dcaNumber: 5, colorToken: 'purple' as const, name: 'Playback', channels: [18, 19, 20, 21] },
+  { dcaNumber: 6, colorToken: 'cyan' as const, name: 'Keys', channels: [22, 23, 24] },
+  { dcaNumber: 7, colorToken: 'blue' as const, name: 'Percussao', channels: [25, 26] },
+  { dcaNumber: 8, colorToken: 'amber' as const, name: 'Ambiencia', channels: [27, 28, 30, 31] },
 ];
 
 const CHANNEL_NAMES = [

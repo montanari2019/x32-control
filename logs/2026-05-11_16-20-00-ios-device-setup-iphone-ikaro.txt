@@ -1,0 +1,9 @@
+IOS DEVICE SETUP IPHONE IKARO
+
+Contexto: Configurar iOS dev/prod base p/ rodar TaciMix em iPhone fisico conectado.
+Causa: Projeto RN tinha ios sem Pods/workspace; Mac usava Ruby 2.6 sem CocoaPods; Xcode 26 quebrava fmt C++20; device exigia assinatura Apple.
+Ação: analisado package/Podfile/skills; instalado ruby@3.3 via brew; bundle install; pod install; instalado ios-deploy; add script ios:device com UDID 00008140-000A222401B8801C; Podfile ajusta apenas pod fmt p/ c++17 no post_install.
+Resultado: iOS env OK; X32NativeShell.xcworkspace criado; build Debug iphonesimulator OK; iPhone de Ikaro detectado online; run device bloqueado por signing sem DEVELOPMENT_TEAM/cert.
+Arquivos: package.json; ios/Podfile; Gemfile.lock; ios/Podfile.lock; ios/X32NativeShell.xcworkspace; ios/X32NativeShell.xcodeproj/project.pbxproj; ios/X32NativeShell/PrivacyInfo.xcprivacy.
+Validação: npx react-native doctor iOS OK; pod --version 1.15.2 OK; ios-deploy 1.12.2 OK; xcrun lista iPhone de Ikaro; yarn ios:device chama build p/ UDID correto mas falha signing.
+Pontos atenção: configurar Apple ID/Team no Xcode Signing & Capabilities p/ target X32NativeShell e gerar Apple Development cert; depois rodar yarn ios:device. Android segue fora escopo e doctor mostra deps ausentes.

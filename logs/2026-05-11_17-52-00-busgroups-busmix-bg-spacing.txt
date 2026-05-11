@@ -1,0 +1,9 @@
+BUSGROUPS BUSMIX BACKGROUND SPACING
+
+Contexto: apos a safe area global, `BusGroups` e `BusMix` exibiam uma faixa de cor diferente no topo/area segura, destoando da tela inicial e da `BusSelection`.
+Causa: as duas telas usavam `colors.background.deep`, enquanto a raiz e as telas iniciais usam `colors.background.primary`; no `BusMix`, o header tambem estava com padding proprio diferente e os itens pareciam colados.
+Ação: `BusGroupsScreen` e `BusMixScreen` passaram a usar `colors.background.primary`; `BusMixScreen` recebeu padding horizontal/topo de `spacing.md`; padding horizontal duplicado da lista horizontal foi removido para manter o respiro da tela como referencia unica.
+Resultado: fundo das telas ficou consistente com inicial/BusSelection e o layout do header/lista ficou mais parecido entre plataformas.
+Arquivos: `src/features/busGroups/screens/BusGroupsScreen.tsx`, `src/features/busMix/screens/BusMixScreen.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator.
+Pontos atenção: componentes internos de strips ainda usam superficies proprias, mas a cor de pagina/safe area agora esta alinhada.

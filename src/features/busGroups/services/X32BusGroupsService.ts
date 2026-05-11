@@ -18,13 +18,16 @@ import {
   McaGroup,
 } from '../types/busGroups.types';
 
-const DCA_NUMBERS = [1, 2, 3, 4, 5] as const;
+const DCA_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
 const MCA_COLOR_TOKENS: Record<(typeof DCA_NUMBERS)[number], McaColorToken> = {
-  1: 'blue',
+  1: 'red',
   2: 'green',
   3: 'yellow',
   4: 'pink',
   5: 'purple',
+  6: 'cyan',
+  7: 'blue',
+  8: 'amber',
 };
 
 const asNumber = (message: OscMessage, fallback: number): number => {

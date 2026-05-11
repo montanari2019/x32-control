@@ -142,6 +142,9 @@ export const colors = {
     yellow: '#F0C61C',
     pink: '#E86AB2',
     purple: '#A86BFF',
+    cyan: '#44C7D8',
+    red: '#FF5A6A',
+    amber: '#FF9F43',
   },
 
   x32: {

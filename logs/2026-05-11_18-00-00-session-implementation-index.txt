@@ -1,0 +1,16 @@
+SESSION IMPLEMENTATION INDEX
+
+Contexto: registro consolidado das implementacoes feitas nesta sessao para facilitar retomada futura.
+Ação: criados logs separados para cada frente de trabalho executada.
+Registros:
+- `logs/2026-05-11_17-34-00-ios-simulator-appdelegate-fix.txt`: build/launch iOS Simulator e AppDelegate old-arch.
+- `logs/2026-05-11_17-43-00-safe-area-global-root.txt`: safe area global no root do app.
+- `logs/2026-05-11_17-48-00-shared-app-header-bus-screens.txt`: header compartilhado para BusSelection, BusGroups e BusMix.
+- `logs/2026-05-11_17-52-00-busgroups-busmix-bg-spacing.txt`: fundo/espacamento de BusGroups e BusMix.
+- `logs/2026-05-11_17-56-00-toast-safe-area-insets.txt`: Toast respeitando safe area por insets.
+- `logs/2026-05-11_18-05-00-app-header-flex-title-gap.txt`: header com titulo flexivel entre botoes e gap por token.
+- `logs/2026-05-11_18-12-00-mca-eight-groups-colors.txt`: MCAs expandidos de 5 para 8 com novas cores.
+- `logs/2026-05-11_18-18-00-mca-1-7-color-swap.txt`: troca de cores entre MCA 1 e MCA 7.
+- `logs/2026-05-11_18-24-00-modal-safe-area-insets.txt`: modais respeitando safe area por insets.
+Validação geral: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator apos as alteracoes.
+Pontos atenção: `yarn lint --quiet` nao rodou nesta instalacao porque `eslint` nao foi encontrado em `node_modules/.bin`.

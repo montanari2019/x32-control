@@ -1,0 +1,9 @@
+SAFE AREA GLOBAL ROOT
+
+Contexto: telas estavam sendo comidas por barras de navegacao/status no iOS e Android apos colocar o app para rodar no iOS Simulator.
+Causa: a protecao de safe area estava espalhada no componente `Screen`, mas o app inteiro, navegacao, modais e overlays nao estavam sob um provedor/raiz unica de safe area.
+Ação: envolvido o app inteiro com `SafeAreaProvider` e `SafeAreaView` em `src/app/App.tsx`; removido `SafeAreaView` interno de `src/shared/components/Screen.tsx` para evitar safe area duplicada; `KeepAwake` trocado para API imperativa `activate/deactivate` em `useEffect` para resolver incompatibilidade de tipos com React 19.
+Resultado: app passou a respeitar a area segura globalmente e as telas que usam `Screen` mantiveram apenas layout/padding de conteudo.
+Arquivos: `src/app/App.tsx`, `src/shared/components/Screen.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator; screenshot mostrou tela inicial sem conteudo sob notch/status bar.
+Pontos atenção: overlays absolutos ainda podem precisar ler `useSafeAreaInsets` diretamente, como foi feito depois no Toast.

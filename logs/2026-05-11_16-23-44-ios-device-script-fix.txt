@@ -1,0 +1,9 @@
+IOS DEVICE SCRIPT FIX
+
+Contexto: `yarn ios:device` falhava ao tentar rodar no iPhone fisico configurado.
+Causa: script usava `--udid 00008140-000A222401B8801C`; RN CLI tratou UDID como simulador e retornou `No simulator available with udid`.
+Ação: add/ajuste script `ios:device` em `package.json` p/ `react-native run-ios --mode Debug --device "iPhone de Ikaro"`.
+Resultado: OK. Build Debug compilou, instalou e iniciou app no device fisico.
+Arquivos: `package.json`, `logs/2026-05-11_16-23-44-ios-device-script-fix.txt`.
+Validação: `xcrun xctrace list devices` detectou `iPhone de Ikaro (26.4.2)`; `yarn ios:device` executou com `-destination id=00008140-000A222401B8801C`; output final `success Installed the app on the device`.
+Pontos atenção: primeira build em device pode demorar varios min; manter iPhone confiavel/desbloqueado e Metro ativo em 8081.

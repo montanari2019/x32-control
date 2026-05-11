@@ -1,0 +1,9 @@
+MODAL SAFE AREA INSETS
+
+Contexto: modais ainda podiam ser cortados pela notch/status area no iPhone, especialmente o modal de selecao de canais dos MCAs.
+Causa: alguns modais usam `Modal` nativo/overlays absolutos e nao herdam automaticamente o afastamento da `SafeAreaView` global; `Dialog` e `McaChannelSelectionModal` aplicavam padding fixo sem considerar `safeAreaInsets`.
+Ação: `Dialog` passou a usar `useSafeAreaInsets` para aplicar padding top/bottom no backdrop; `McaChannelSelectionModal` passou a usar `useSafeAreaInsets` para padding do scroll, offset do keyboard avoiding e calculo de altura maxima do card.
+Resultado: Dialogs globais, modal de presets e modal de canais dos MCAs passam a renderizar dentro da area segura do iOS/Android.
+Arquivos: `src/shared/components/Dialog/index.tsx`, `src/features/busGroups/components/McaChannelSelectionModal.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator.
+Pontos atenção: qualquer novo modal baseado em `Modal` nativo deve reaproveitar `Dialog` ou aplicar `useSafeAreaInsets` diretamente.
