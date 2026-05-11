@@ -222,7 +222,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
   },
   screen: {
-    backgroundColor: colors.background.deep,
+    backgroundColor: colors.background.primary,
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,

@@ -12,6 +12,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icons } from '@assets';
 import { Channel } from '@features/busMix/types/Channel';
 import { ModalRenderProps } from '@shared/components/Modal';
@@ -59,6 +60,7 @@ export const McaChannelSelectionModal = ({
   onRename,
   onToggleChannel,
 }: McaChannelSelectionModalProps): JSX.Element => {
+  const insets = useSafeAreaInsets();
   const inputRef = useRef<TextInput>(null);
   const closeAfterKeyboardHideRef = useRef(false);
   const closeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -69,7 +71,10 @@ export const McaChannelSelectionModal = ({
   const [selectedIds, setSelectedIds] = useState<number[]>(
     mca.assignedChannels.map((channel) => channel.channelId),
   );
-  const modalMaxHeight = Math.max(360, modalBaseHeightRef.current - spacing.xxl * 2);
+  const modalMaxHeight = Math.max(
+    360,
+    modalBaseHeightRef.current - insets.top - insets.bottom - spacing.lg * 2,
+  );
 
   useEffect(() => {
     setDisplayName(mca.name);
@@ -174,10 +179,19 @@ export const McaChannelSelectionModal = ({
       <View style={styles.modalRoot}>
         <Pressable style={styles.dismissBackdrop} onPress={handleDismiss} />
 
-        <KeyboardAvoidingView keyboardVerticalOffset={spacing.md} style={styles.keyboardLayer}>
+        <KeyboardAvoidingView
+          keyboardVerticalOffset={insets.top + spacing.md}
+          style={styles.keyboardLayer}
+        >
           <ScrollView
             bounces={false}
-            contentContainerStyle={styles.keyboardScrollContent}
+            contentContainerStyle={[
+              styles.keyboardScrollContent,
+              {
+                paddingBottom: insets.bottom + spacing.lg,
+                paddingTop: insets.top + spacing.lg,
+              },
+            ]}
             keyboardDismissMode={Platform.OS === 'ios' ? 'interactive' : 'on-drag'}
             keyboardShouldPersistTaps="handled"
             showsVerticalScrollIndicator={false}
@@ -437,7 +451,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexGrow: 1,
     justifyContent: 'center',
-    padding: spacing.lg,
+    paddingHorizontal: spacing.lg,
   },
   modalRoot: {
     backgroundColor: colors.overlay.backdrop,

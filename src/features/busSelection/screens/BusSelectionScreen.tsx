@@ -1,8 +1,8 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FlatList, Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
-import { Icons } from '@assets';
+import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
+import { AppHeader, AppHeaderIconText } from '@shared/components/AppHeader';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
 import { Screen } from '@shared/components/Screen';
@@ -67,33 +67,14 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
         )}
         ListHeaderComponent={
           <View style={styles.header}>
-            <View style={styles.headerRow}>
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Voltar"
-                onPress={() => navigation.goBack()}
-                style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-              >
-                <Icons.ArrowLeft color={colors.text.primary} width={20} height={20} />
-              </Pressable>
-
-              <View style={styles.headerCenter}>
-                <Text style={styles.title}>Selecione seu Monitor</Text>
-                <Text style={styles.consoleLabel}>Console</Text>
-                <Text style={styles.consoleName} numberOfLines={1}>
-                  {consoleName}
-                </Text>
-              </View>
-
-              <Pressable
-                accessibilityRole="button"
-                accessibilityLabel="Configurações"
-                onPress={openSettings}
-                style={({ pressed }) => [styles.iconButton, pressed && styles.iconButtonPressed]}
-              >
-                <Text style={styles.icon}>⚙</Text>
-              </Pressable>
-            </View>
+            <AppHeader
+              title="Selecione seu Monitor"
+              subtitle={consoleName}
+              onBack={() => navigation.goBack()}
+              onRightPress={openSettings}
+              rightAccessibilityLabel="Configurações"
+              rightContent={<AppHeaderIconText>⚙</AppHeaderIconText>}
+            />
 
             {isLoading ? <LoadingState label="Lendo nomes dos BUS..." /> : null}
             {error ? (
@@ -111,60 +92,12 @@ const styles = StyleSheet.create({
     gap: 14,
     marginBottom: 16,
   },
-  headerCenter: {
-    alignItems: 'center',
-    flex: 1,
-    gap: 2,
-    paddingHorizontal: 10,
-  },
-  headerRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  icon: {
-    color: colors.text.primary,
-    fontSize: 20,
-    fontWeight: '900',
-    lineHeight: 20,
-  },
-  iconButton: {
-    alignItems: 'center',
-    backgroundColor: colors.background.secondary,
-    borderColor: colors.border.primary,
-    borderRadius: 12,
-    borderWidth: 1,
-    height: 44,
-    justifyContent: 'center',
-    width: 44,
-  },
-  iconButtonPressed: {
-    opacity: 0.78,
-  },
   listContent: {
     padding: 16,
     paddingBottom: 24,
   },
   screen: {
     padding: 0,
-  },
-  title: {
-    color: colors.text.primary,
-    fontSize: 18,
-    fontWeight: '900',
-    textAlign: 'center',
-  },
-  consoleLabel: {
-    color: colors.text.secondary,
-    fontSize: 12,
-    fontWeight: '700',
-    marginTop: 6,
-    textTransform: 'uppercase',
-  },
-  consoleName: {
-    color: colors.text.primary,
-    fontSize: 14,
-    fontWeight: '800',
   },
   gridItem: {
     flex: 1,

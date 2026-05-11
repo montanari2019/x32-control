@@ -1,0 +1,9 @@
+IOS CRASH RCTVIEW COLOR FIX
+
+Contexto: app iOS abria, carregava splash e fechava no iPhone fisico.
+Causa: crash nativo `NSInvalidArgumentException`, `-[RCTView setColor:]: unrecognized selector`; origem compativel com incompatibilidade RN New Architecture/Fabric + native-stack/react-native-screens em iOS.
+Ação: sem alterar impl app/Android; ajuste iOS em `ios/Podfile` com `:new_arch_enabled => false`; rodado `bundle exec pod install`; Metro reiniciado com `npx react-native start --reset-cache`; rebuild via `yarn ios:device`.
+Resultado: OK. App instalou e permaneceu aberto no iPhone; console anexado ficou vivo ate timeout de validação, sem crash.
+Arquivos: `ios/Podfile`, `ios/Podfile.lock`, `ios/X32NativeShell.xcworkspace`, `logs/2026-05-11_16-52-45-ios-crash-rctview-color-fix.txt`.
+Validação: `xcrun devicectl device process launch --console` antes reproduziu crash em ~6s; apos ajuste comando excedeu timeout 20s sem crash; `xcrun devicectl device info processes` mostrou `X32NativeShell.app/X32NativeShell` rodando.
+Pontos atenção: manter iOS em old architecture ate revisar compat RN 0.78.1 + react-native-screens 4.9.1/new arch; Android não foi alterado.

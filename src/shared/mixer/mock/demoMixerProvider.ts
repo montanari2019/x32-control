@@ -52,7 +52,7 @@ type DemoMcaDefinition = {
 const DEMO_MCA_DEFINITIONS: DemoMcaDefinition[] = [
   {
     dcaNumber: 1,
-    colorToken: 'blue' as const,
+    colorToken: 'red' as const,
     name: 'MCA 1',
     channels: [],
   },
@@ -78,6 +78,24 @@ const DEMO_MCA_DEFINITIONS: DemoMcaDefinition[] = [
     dcaNumber: 5,
     colorToken: 'purple' as const,
     name: 'MCA 5',
+    channels: [],
+  },
+  {
+    dcaNumber: 6,
+    colorToken: 'cyan' as const,
+    name: 'MCA 6',
+    channels: [],
+  },
+  {
+    dcaNumber: 7,
+    colorToken: 'blue' as const,
+    name: 'MCA 7',
+    channels: [],
+  },
+  {
+    dcaNumber: 8,
+    colorToken: 'amber' as const,
+    name: 'MCA 8',
     channels: [],
   },
 ];

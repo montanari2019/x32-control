@@ -1,0 +1,9 @@
+MCA 1 7 COLOR SWAP
+
+Contexto: apos expandir MCAs para oito grupos, a cor vermelha do MCA 7 ficou visualmente boa e foi solicitada no MCA 1.
+Causa: mapeamento de cores colocava MCA 1 em `blue` e MCA 7 em `red`.
+Ação: invertidos os tokens de cor entre DCA/MCA 1 e 7 no servico real e nos providers mock/demo; nomes, canais, faders e comportamento foram preservados.
+Resultado: MCA 1 passa a usar vermelho e MCA 7 passa a usar azul.
+Arquivos: `src/features/busGroups/services/X32BusGroupsService.ts`, `src/shared/mixer/mock/mockMixerProvider.ts`, `src/shared/mixer/mock/demoMixerProvider.ts`.
+Validação: `yarn tsc` OK.
+Pontos atenção: estados persistidos salvam `colorToken`; usuarios com estado antigo salvo podem continuar vendo a cor antiga ate limpar/atualizar o estado salvo localmente.

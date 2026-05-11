@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ModalPropsType } from '@shared/components/Modal';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -15,7 +16,7 @@ export type ToastPropsType = ModalPropsType & {
 };
 
 const MAX_TIMEOUT = 1000;
-const TOAST_VERTICAL_OFFSET = -32;
+const TOAST_VERTICAL_OFFSET = 8;
 
 const Toast = ({
   visible,
@@ -28,6 +29,7 @@ const Toast = ({
   variant = 'success',
   timeToCloseInMilliseconds = MAX_TIMEOUT,
 }: ToastPropsType): JSX.Element => {
+  const insets = useSafeAreaInsets();
   const [isModalVisible, setIsModalVisible] = useState(visible);
   const translateY = useRef(new Animated.Value(TOAST_VERTICAL_OFFSET)).current;
   const opacity = useRef(new Animated.Value(0)).current;
@@ -93,7 +95,16 @@ const Toast = ({
   }
 
   return (
-    <View pointerEvents="box-none" style={styles.overlay}>
+    <View
+      pointerEvents="box-none"
+      style={[
+        styles.overlay,
+        {
+          paddingBottom: insets.bottom + spacing.md,
+          paddingTop: insets.top + spacing.md,
+        },
+      ]}
+    >
       <Animated.View
         pointerEvents="box-none"
         style={[

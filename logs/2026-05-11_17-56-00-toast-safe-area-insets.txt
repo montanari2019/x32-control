@@ -1,0 +1,9 @@
+TOAST SAFE AREA INSETS
+
+Contexto: Toasts da tela inicial e do fluxo de restaurar preset ainda eram cortados pela notch/status area no iOS, mesmo apos envolver o app em safe area global.
+Causa: o Toast usa overlay absoluto (`StyleSheet.absoluteFillObject`) renderizado pelo `ModalProvider`; esse tipo de overlay nao herda automaticamente o afastamento visual esperado da `SafeAreaView` global.
+Ação: `Toast` passou a usar `useSafeAreaInsets` de `react-native-safe-area-context`; overlay aplica `paddingTop: insets.top + spacing.md` e `paddingBottom: insets.bottom + spacing.md`; animacao vertical foi mantida entrando para baixo (`TOAST_VERTICAL_OFFSET = 8`) para nao invadir o notch.
+Resultado: todos os Toasts globais, incluindo os de descoberta inicial e os de restore de preset, ficam posicionados dentro da safe area.
+Arquivos: `src/shared/components/Toast/index.tsx`.
+Validação: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator; logs recentes sem `Exception`, `Fatal` ou `Error`.
+Pontos atenção: outros overlays absolutos que precisem aparecer junto das bordas devem seguir o mesmo padrao de `useSafeAreaInsets`.

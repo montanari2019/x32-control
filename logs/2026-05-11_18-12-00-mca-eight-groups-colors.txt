@@ -1,0 +1,9 @@
+MCA EIGHT GROUPS COLORS
+
+Contexto: ampliar a tela de MCAs de 5 para 8 grupos mantendo a mesma usabilidade e adicionando cores diferentes das existentes.
+Causa: `X32BusGroupsService` consultava apenas DCA 1-5 e os providers mock/demo tambem criavam apenas cinco MCAs; os tokens `colors.mca` tinham somente cinco opcoes.
+Ação: `DCA_NUMBERS` expandido para 1-8; adicionados tokens `cyan`, `red` e `amber` em `colors.mca`; tipo `McaColorToken` atualizado; mock de desenvolvimento recebeu MCAs 6-8 com nomes/canais de exemplo; demo recebeu MCAs 6-8 vazios seguindo o padrao atual.
+Resultado: BusGroups passa a renderizar oito MCAs no fluxo real, mock e demo, com tres novas cores visualmente distintas e coerentes com a paleta.
+Arquivos: `src/theme/tokens.colors.ts`, `src/features/busGroups/types/busGroups.types.ts`, `src/features/busGroups/services/X32BusGroupsService.ts`, `src/shared/mixer/mock/mockMixerProvider.ts`, `src/shared/mixer/mock/demoMixerProvider.ts`.
+Validação: `yarn tsc` OK; `yarn test __tests__/features/busGroups/hooks/useBusGroups.test.ts __tests__/features/busGroups/services/McaChannelFaderService.test.ts --runInBand` OK; `yarn ios` OK no iPhone 17 Simulator.
+Pontos atenção: X32Protocol ja aceitava DCA 1-8; estados persistidos antigos com cinco MCAs continuam compativeis porque restore faz merge por `dcaNumber`.

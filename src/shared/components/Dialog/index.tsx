@@ -9,6 +9,7 @@ import {
   View,
   ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@shared/components/Button';
 import { ModalPropsType } from '@shared/components/Modal';
 import { colors } from '@shared/theme/colors';
@@ -35,6 +36,7 @@ const DialogBase = ({
   containerChildren,
   children,
 }: DialogPropsType): JSX.Element => {
+  const insets = useSafeAreaInsets();
   const backdropOpacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const translateY = useRef(new Animated.Value(visible ? 0 : 48)).current;
 
@@ -80,7 +82,14 @@ const DialogBase = ({
     <Modal transparent visible={visible} animationType="none" onRequestClose={onDismiss}>
       <Animated.View style={[styles.modal, modalStyle, { opacity: backdropOpacity }]}>
         <Pressable
-          style={[styles.backdrop, backdropStyle]}
+          style={[
+            styles.backdrop,
+            {
+              paddingBottom: insets.bottom + spacing.lg,
+              paddingTop: insets.top + spacing.lg,
+            },
+            backdropStyle,
+          ]}
           onPress={dismissible ? onDismiss : undefined}
         >
           <Animated.View
