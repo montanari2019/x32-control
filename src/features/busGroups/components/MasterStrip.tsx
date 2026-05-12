@@ -4,6 +4,8 @@ import { GroupStrip } from './GroupStrip';
 type MasterStripProps = {
   busId: number;
   busName: string;
+  compact?: boolean;
+  dragSensitivity?: number;
   isMuted: boolean;
   onFaderChange: (value: number) => void;
   onToggleMute: () => void;
@@ -14,6 +16,8 @@ type MasterStripProps = {
 export const MasterStrip = ({
   busId,
   busName,
+  compact = false,
+  dragSensitivity,
   isMuted,
   onFaderChange,
   onToggleMute,
@@ -22,6 +26,8 @@ export const MasterStrip = ({
 }: MasterStripProps): JSX.Element => (
   <GroupStrip
     accentColor="#D8DDE5"
+    compact={compact}
+    dragSensitivity={dragSensitivity}
     isMaster
     isMuted={isMuted}
     label={`BUS ${busId.toString().padStart(2, '0')}`}

@@ -1,9 +1,11 @@
 import React from 'react';
 import { colors } from '@shared/theme/colors';
+import { LANDSCAPE_FADER_DRAG_SENSITIVITY } from '@shared/utils/faderInteraction';
 import { McaGroup } from '../types/busGroups.types';
 import { GroupStrip } from './GroupStrip';
 
 type McaStripProps = {
+  compact?: boolean;
   mca: McaGroup;
   onFaderChange: (value: number) => void;
   onPress: () => void;
@@ -11,9 +13,8 @@ type McaStripProps = {
   stripHeight?: number;
 };
 
-const MCA_FADER_DRAG_SENSITIVITY = 0.45;
-
 export const McaStrip = ({
+  compact = false,
   mca,
   onFaderChange,
   onPress,
@@ -23,7 +24,8 @@ export const McaStrip = ({
   <GroupStrip
     accentColor={colors.mca[mca.colorToken]}
     assignmentCount={mca.assignedChannels.length}
-    dragSensitivity={MCA_FADER_DRAG_SENSITIVITY}
+    compact={compact}
+    dragSensitivity={LANDSCAPE_FADER_DRAG_SENSITIVITY}
     isFaderDisabled={mca.assignedChannels.length === 0}
     isMuted={mca.isMuted}
     label="MCA"

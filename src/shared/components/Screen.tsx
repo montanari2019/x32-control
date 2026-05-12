@@ -1,10 +1,10 @@
 import React, { PropsWithChildren } from 'react';
-import { ScrollView, StyleSheet, View, ViewStyle } from 'react-native';
+import { ScrollView, StyleProp, StyleSheet, View, ViewStyle } from 'react-native';
 import { colors } from '@shared/theme/colors';
 
 type ScreenProps = PropsWithChildren<{
   scroll?: boolean;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
 }>;
 
 export const Screen = ({ children, scroll = false, style }: ScreenProps): JSX.Element => {

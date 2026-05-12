@@ -1,8 +1,9 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Icons } from '@assets';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
-import { AppHeader, AppHeaderIconText } from '@shared/components/AppHeader';
+import { AppHeader } from '@shared/components/AppHeader';
 import { ErrorState } from '@shared/components/ErrorState';
 import { LoadingState } from '@shared/components/LoadingState';
 import { Screen } from '@shared/components/Screen';
@@ -44,8 +45,8 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
     });
   };
 
-  const openSettings = (): void => {
-    navigation.popToTop();
+  const openAbout = (): void => {
+    navigation.navigate('About');
   };
 
   return (
@@ -71,9 +72,9 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
               title="Selecione seu Monitor"
               subtitle={consoleName}
               onBack={() => navigation.goBack()}
-              onRightPress={openSettings}
-              rightAccessibilityLabel="Configurações"
-              rightContent={<AppHeaderIconText>⚙</AppHeaderIconText>}
+              onRightPress={openAbout}
+              rightAccessibilityLabel="About"
+              rightContent={<Icons.Info color={colors.text.primary} width={20} height={20} />}
             />
 
             {isLoading ? <LoadingState label="Lendo nomes dos BUS..." /> : null}

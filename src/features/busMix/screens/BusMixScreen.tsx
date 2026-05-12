@@ -1,6 +1,13 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { FlatList, LayoutChangeEvent, ListRenderItemInfo, StyleSheet, View } from 'react-native';
+import {
+  FlatList,
+  LayoutChangeEvent,
+  ListRenderItemInfo,
+  StyleSheet,
+  View,
+  useWindowDimensions,
+} from 'react-native';
 import type { ViewToken, ViewabilityConfig } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { ErrorState } from '@shared/components/ErrorState';
@@ -9,6 +16,7 @@ import { useModal } from '@shared/components/Modal';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
+import { LANDSCAPE_FADER_DRAG_SENSITIVITY } from '@shared/utils/faderInteraction';
 import { MAX_BUS_MIX_PRESETS } from '../services/BusMixPresetService';
 import { BusMixPresetRestoreOverlay } from '../components/BusMixPresetRestoreOverlay';
 import { BusMixPresetsModal } from '../components/BusMixPresetsModal';
@@ -26,9 +34,11 @@ const CHANNEL_STRIP_WIDTH = 86;
 const CHANNEL_STRIP_GAP = 1;
 const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
 const STRIP_FIXED_OVERHEAD = 160;
+const STRIP_FIXED_OVERHEAD_COMPACT = 136;
 
 type BusMixChannelItemProps = {
   channel: Channel;
+  dragSensitivity?: number;
   faderHeight: number;
   isVisible: boolean;
   registerMeterListener: (
@@ -43,6 +53,7 @@ type BusMixChannelItemProps = {
 
 const BusMixChannelItemComponent = ({
   channel,
+  dragSensitivity,
   faderHeight,
   isVisible,
   registerMeterListener,
@@ -71,6 +82,7 @@ const BusMixChannelItemComponent = ({
   return (
     <ChannelStrip
       channel={channel}
+      dragSensitivity={dragSensitivity}
       faderHeight={faderHeight}
       isVisible={isVisible}
       registerMeterListener={registerMeterListener}
@@ -95,6 +107,7 @@ const BusMixChannelItem = React.memo(
     prev.channel.localFaderRaw === next.channel.localFaderRaw &&
     prev.channel.on === next.channel.on &&
     prev.channel.pan === next.channel.pan &&
+    prev.dragSensitivity === next.dragSensitivity &&
     prev.faderHeight === next.faderHeight &&
     prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
@@ -106,6 +119,8 @@ const BusMixChannelItem = React.memo(
 
 export const BusMixScreen = ({ route, navigation }: Props) => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
+  const { width, height } = useWindowDimensions();
+  const isCompactLayout = width > height;
   const {
     channels,
     error,
@@ -126,6 +141,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
+  const faderDragSensitivity = isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined;
   const [faderHeight, setFaderHeight] = useState(240);
   const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
   const viewabilityConfig = useRef<ViewabilityConfig>({
@@ -217,17 +233,19 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   );
 
   const handleListLayout = useCallback((event: LayoutChangeEvent): void => {
+    const fixedOverhead = isCompactLayout ? STRIP_FIXED_OVERHEAD_COMPACT : STRIP_FIXED_OVERHEAD;
     const nextHeight = Math.max(
       120,
-      Math.floor(event.nativeEvent.layout.height) - STRIP_FIXED_OVERHEAD,
+      Math.floor(event.nativeEvent.layout.height) - fixedOverhead,
     );
     setFaderHeight((current) => (current === nextHeight ? current : nextHeight));
-  }, []);
+  }, [isCompactLayout]);
 
   const renderChannel = useCallback(
     ({ item }: ListRenderItemInfo<Channel>) => (
       <BusMixChannelItem
         channel={item}
+        dragSensitivity={faderDragSensitivity}
         faderHeight={faderHeight}
         isVisible={visibleChannelIds.has(item.id)}
         registerMeterListener={registerMeterListener}
@@ -241,6 +259,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
       handleFaderChange,
       handleFaderChangeEnd,
       handleToggleMute,
+      faderDragSensitivity,
       faderHeight,
       openPanModal,
       registerMeterListener,
@@ -250,10 +269,11 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
 
   if (isLoading) {
     return (
-      <Screen style={styles.screen}>
+      <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
         <PersonalMixHeader
           title="Personal Mix Channel"
           subtitle={subtitle}
+          compact={isCompactLayout}
           onBack={() => navigation.goBack()}
           onAction={openPresetsModal}
           actionLabel="Presets"
@@ -265,10 +285,11 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   }
 
   return (
-    <Screen style={styles.screen}>
+    <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
       <PersonalMixHeader
         title="Personal Mix Channel"
         subtitle={subtitle}
+        compact={isCompactLayout}
         onBack={() => navigation.goBack()}
         onAction={openPresetsModal}
         actionLabel="Presets"
@@ -286,7 +307,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         keyExtractor={keyExtractor}
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.list}
+        contentContainerStyle={[styles.list, isCompactLayout && styles.listCompact]}
         renderItem={renderChannel}
         getItemLayout={getChannelItemLayout}
         viewabilityConfig={viewabilityConfig}
@@ -315,10 +336,18 @@ const styles = StyleSheet.create({
     gap: 1,
     paddingVertical: spacing.md,
   },
+  listCompact: {
+    paddingVertical: spacing.xs,
+  },
   screen: {
     paddingBottom: 0,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
     backgroundColor: colors.background.primary,
+  },
+  screenCompact: {
+    paddingBottom: spacing.xxs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
 });

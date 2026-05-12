@@ -9,76 +9,108 @@ type AppHeaderProps = {
   title: string;
   subtitle?: string;
   onBack: () => void;
+  compact?: boolean;
   rightContent?: ReactNode;
   onRightPress?: () => void;
   rightAccessibilityLabel?: string;
   isRightDisabled?: boolean;
   rightVariant?: 'default' | 'channels' | 'success';
+  reserveRightSpace?: boolean;
 };
 
 export const AppHeader = ({
   title,
   subtitle,
   onBack,
+  compact = false,
   rightContent,
   onRightPress,
   rightAccessibilityLabel,
   isRightDisabled = false,
   rightVariant = 'default',
-}: AppHeaderProps): JSX.Element => (
-  <View style={styles.container}>
-    <Pressable
-      accessibilityRole="button"
-      accessibilityLabel="Voltar"
-      hitSlop={8}
-      onPress={onBack}
-      style={({ pressed }) => [styles.iconButton, pressed && styles.pressed]}
-    >
-      <Icons.ArrowLeft color={colors.text.primary} width={20} height={20} />
-    </Pressable>
+  reserveRightSpace = true,
+}: AppHeaderProps): JSX.Element => {
+  const iconSize = compact ? 18 : 20;
 
-    <View style={styles.titleWrap} pointerEvents="none">
-      <Text adjustsFontSizeToFit minimumFontScale={0.78} numberOfLines={1} style={styles.title}>
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text style={styles.subtitle} numberOfLines={1}>
-          {subtitle}
-        </Text>
-      ) : null}
-    </View>
-
-    {rightContent ? (
+  return (
+    <View style={[styles.container, compact && styles.containerCompact]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel={rightAccessibilityLabel}
-        disabled={!onRightPress || isRightDisabled}
+        accessibilityLabel="Voltar"
         hitSlop={8}
-        onPress={onRightPress}
+        onPress={onBack}
         style={({ pressed }) => [
-          styles.actionButton,
-          rightVariant === 'channels' && styles.channelsButton,
-          rightVariant === 'success' && styles.successButton,
-          isRightDisabled && styles.disabled,
-          pressed && !isRightDisabled && styles.pressed,
+          styles.iconButton,
+          compact && styles.iconButtonCompact,
+          pressed && styles.pressed,
         ]}
       >
-        {rightContent}
+        <Icons.ArrowLeft color={colors.text.primary} width={iconSize} height={iconSize} />
       </Pressable>
-    ) : (
-      <View style={styles.iconButton} />
-    )}
-  </View>
-);
 
-export const AppHeaderActionText = ({ children }: { children: ReactNode }): JSX.Element => (
-  <Text style={styles.actionText} numberOfLines={1}>
+      <View style={styles.titleWrap} pointerEvents="none">
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.78}
+          numberOfLines={1}
+          style={[styles.title, compact && styles.titleCompact]}
+        >
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={[styles.subtitle, compact && styles.subtitleCompact]} numberOfLines={1}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+
+      {rightContent ? (
+        <Pressable
+          accessibilityRole="button"
+          accessibilityLabel={rightAccessibilityLabel}
+          disabled={!onRightPress || isRightDisabled}
+          hitSlop={8}
+          onPress={onRightPress}
+          style={({ pressed }) => [
+            styles.actionButton,
+            compact && styles.actionButtonCompact,
+            rightVariant === 'channels' && styles.channelsButton,
+            rightVariant === 'channels' && compact && styles.channelsButtonCompact,
+            rightVariant === 'success' && styles.successButton,
+            rightVariant === 'success' && compact && styles.successButtonCompact,
+            isRightDisabled && styles.disabled,
+            pressed && !isRightDisabled && styles.pressed,
+          ]}
+        >
+          {rightContent}
+        </Pressable>
+      ) : reserveRightSpace ? (
+        <View style={[styles.iconButton, compact && styles.iconButtonCompact]} />
+      ) : null}
+    </View>
+  );
+};
+
+export const AppHeaderActionText = ({
+  children,
+  compact = false,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}): JSX.Element => (
+  <Text style={[styles.actionText, compact && styles.actionTextCompact]} numberOfLines={1}>
     {children}
   </Text>
 );
 
-export const AppHeaderIconText = ({ children }: { children: ReactNode }): JSX.Element => (
-  <Text style={styles.iconText}>{children}</Text>
+export const AppHeaderIconText = ({
+  children,
+  compact = false,
+}: {
+  children: ReactNode;
+  compact?: boolean;
+}): JSX.Element => (
+  <Text style={[styles.iconText, compact && styles.iconTextCompact]}>{children}</Text>
 );
 
 const styles = StyleSheet.create({
@@ -94,15 +126,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.sm,
     zIndex: 1,
   },
+  actionButtonCompact: {
+    height: 36,
+    minWidth: 72,
+    paddingHorizontal: spacing.md,
+  },
   actionText: {
     color: colors.text.primary,
     fontSize: 13,
     fontWeight: '900',
   },
+  actionTextCompact: {
+    fontSize: 12,
+  },
   channelsButton: {
     backgroundColor: colors.button.channels.background,
     borderColor: colors.button.channels.border,
     minWidth: 96,
+  },
+  channelsButtonCompact: {
+    minWidth: 104,
   },
   container: {
     alignItems: 'center',
@@ -110,6 +153,10 @@ const styles = StyleSheet.create({
     gap: spacing.xs,
     justifyContent: 'space-between',
     minHeight: 44,
+  },
+  containerCompact: {
+    gap: spacing.xxs,
+    minHeight: 36,
   },
   disabled: {
     opacity: 0.5,
@@ -125,11 +172,19 @@ const styles = StyleSheet.create({
     width: 44,
     zIndex: 1,
   },
+  iconButtonCompact: {
+    height: 36,
+    width: 40,
+  },
   iconText: {
     color: colors.text.primary,
     fontSize: 20,
     fontWeight: '900',
     lineHeight: 20,
+  },
+  iconTextCompact: {
+    fontSize: 18,
+    lineHeight: 18,
   },
   pressed: {
     opacity: 0.78,
@@ -139,6 +194,9 @@ const styles = StyleSheet.create({
     borderColor: colors.button.success.border,
     minWidth: 88,
   },
+  successButtonCompact: {
+    minWidth: 96,
+  },
   subtitle: {
     color: colors.text.secondary,
     fontSize: 12,
@@ -146,11 +204,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.xxs,
     textAlign: 'center',
   },
+  subtitleCompact: {
+    fontSize: 10,
+    marginTop: 0,
+  },
   title: {
     color: colors.text.primary,
     fontSize: 16,
     fontWeight: '900',
     textAlign: 'center',
+  },
+  titleCompact: {
+    fontSize: 14,
   },
   titleWrap: {
     alignItems: 'center',

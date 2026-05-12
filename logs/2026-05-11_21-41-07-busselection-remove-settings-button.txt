@@ -1,0 +1,9 @@
+BUSSELECTION REMOVE SETTINGS BUTTON
+
+Contexto: remover o botao de configuracao no canto superior direito da tela BusSelection.
+Causa: o header da tela usava `AppHeaderIconText` com o simbolo de engrenagem e `onRightPress` apontando para `navigation.popToTop()`.
+Ação: removido o import de `AppHeaderIconText`, removida a funcao `openSettings` e retiradas as props `onRightPress`, `rightAccessibilityLabel` e `rightContent` do `AppHeader`.
+Resultado: tela BusSelection mantém apenas o botao de voltar, titulo/subtitulo e lista de monitores; o botao de configuracao nao aparece mais.
+Arquivos: `src/features/busSelection/screens/BusSelectionScreen.tsx`, `logs/2026-05-11_21-41-07-busselection-remove-settings-button.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: o comportamento de voltar pelo botao esquerdo permanece inalterado.

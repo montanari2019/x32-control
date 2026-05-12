@@ -1,5 +1,6 @@
 import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { AboutScreen } from '@features/about/screens/AboutScreen';
 import { BusGroupsScreen } from '@features/busGroups/screens/BusGroupsScreen';
 import { ConsoleDiscoveryScreen } from '@features/consoleDiscovery/screens/ConsoleDiscoveryScreen';
 import { BusSelectionScreen } from '@features/busSelection/screens/BusSelectionScreen';
@@ -24,6 +25,7 @@ export type RootStackParamList = {
     busName: string;
     linkedBusNumber?: number;
   };
+  About: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -42,7 +44,7 @@ export const RootNavigator = (): JSX.Element => (
     <Stack.Screen
       name="ConsoleDiscovery"
       component={ConsoleDiscoveryScreen}
-      options={{ title: 'X32/M32' }}
+      options={{ headerShown: false }}
     />
     <Stack.Screen
       name="BusSelection"
@@ -51,5 +53,6 @@ export const RootNavigator = (): JSX.Element => (
     />
     <Stack.Screen name="BusGroups" component={BusGroupsScreen} options={{ headerShown: false }} />
     <Stack.Screen name="BusMix" component={BusMixScreen} options={{ headerShown: false }} />
+    <Stack.Screen name="About" component={AboutScreen} options={{ headerShown: false }} />
   </Stack.Navigator>
 );

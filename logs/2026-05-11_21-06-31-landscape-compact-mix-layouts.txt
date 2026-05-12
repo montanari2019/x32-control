@@ -1,0 +1,48 @@
+LANDSCAPE COMPACT MIX LAYOUTS
+
+Contexto: ao usar o app na horizontal, as telas de BusGroups e BusMix precisavam aproveitar melhor a altura disponivel. Em BusGroups, os faders podiam vazar para baixo porque a tela mantinha minimos verticais pensados para portrait.
+
+Causa:
+- O header compartilhado tinha altura fixa de 44px e fontes/botoes de portrait.
+- BusGroups forçava `stripsHeight` minimo de 320px mesmo quando a area disponivel em landscape era menor.
+- Os strips de BusGroups tinham paddings, gaps, textos, botao MUTE e `minHeight` de fader pensados para portrait, reduzindo a altura util do fader.
+- BusMix ja usava uma abordagem mais correta: medir a area real da lista e calcular a altura do fader a partir dela.
+
+Ação:
+- Adicionado modo `compact` em `AppHeader`, reduzindo altura do header, icones, fonte de titulo/subtitulo e altura dos botoes.
+- Mantidos botoes de acao mais largos no modo compacto para preservar toque e leitura em landscape.
+- `PersonalMixHeader` e `BusGroupsHeader` agora recebem `compact`.
+- `BusMixScreen` detecta landscape via `useWindowDimensions` e ativa header/padding/lista compactos.
+- `BusMixScreen` ajusta o overhead do fader em landscape para seguir a reducao visual do header.
+- `BusGroupsScreen` detecta landscape via `useWindowDimensions` e ativa header/padding/strips compactos.
+- `BusGroupsScreen` passou a medir a area real dos strips em landscape, sem impor altura minima de 320px.
+- `GroupStrip`, `MasterStrip`, `McaStrip` e `GroupMuteButton` receberam modo compacto.
+- Em modo compacto, BusGroups reduz paddings, gaps, fontes, placa de dB, botao MUTE e remove o `minHeight` fixo do slot do fader.
+- `Screen` passou a aceitar `StyleProp<ViewStyle>`, permitindo compor estilos responsivos sem contornar tipagem.
+
+Resultado:
+- Em landscape, os headers de BusGroups e BusMix ficam mais baixos.
+- Botoes do header ficam menores em altura, mais largos e com fonte menor.
+- BusGroups segue a abordagem de BusMix: faders derivados da altura disponivel em vez de valores minimos fixos.
+- Os strips de BusGroups ficam compactos o bastante para o fader ocupar a area disponivel sem vazar para baixo.
+
+Arquivos:
+- `src/shared/components/AppHeader.tsx`
+- `src/shared/components/Screen.tsx`
+- `src/features/busGroups/screens/BusGroupsScreen.tsx`
+- `src/features/busGroups/components/BusGroupsHeader.tsx`
+- `src/features/busGroups/components/GroupStrip.tsx`
+- `src/features/busGroups/components/GroupMuteButton.tsx`
+- `src/features/busGroups/components/McaStrip.tsx`
+- `src/features/busGroups/components/MasterStrip.tsx`
+- `src/features/busMix/screens/BusMixScreen.tsx`
+- `src/features/busMix/components/PersonalMixHeader.tsx`
+
+Validação:
+- `yarn tsc` OK.
+- `yarn ios` OK no iPhone 17 Simulator.
+- App compilado, instalado e iniciado com sucesso no simulador.
+
+Pontos atenção:
+- O `simctl` disponivel nesta maquina nao oferece comando de rotacao de orientacao; a validacao automatizada confirmou build/instalacao no simulador, e a regra de landscape foi implementada por `width > height`.
+- A porta `8081` ja estava em uso por servidor existente e foi reaproveitada, sem ser encerrada.

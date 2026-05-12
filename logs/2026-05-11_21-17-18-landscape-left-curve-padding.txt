@@ -1,0 +1,9 @@
+LANDSCAPE LEFT CURVE PADDING
+
+Contexto: adicionar somente um leve espaco na lateral esquerda no modo horizontal para evitar que a curvatura do telefone corte os primeiros itens da tela.
+Causa: apos liberar mais area util no landscape, o primeiro card/botao ficava muito proximo da borda esquerda arredondada em alguns iPhones.
+Ação: removida a logica de padding baseada em `useSafeAreaInsets` nas telas Personal Mix Grupos e Personal Mix Channel; o modo compacto agora aplica `paddingLeft: spacing.md` e mantem `paddingRight: spacing.sm`, sem adicionar safe area extra do lado direito.
+Resultado: landscape ganha um respiro fixo e leve na esquerda, enquanto a direita continua aproveitando melhor o espaco; portrait permanece sem alteracao especifica deste ajuste.
+Arquivos: `src/features/busGroups/screens/BusGroupsScreen.tsx`, `src/features/busMix/screens/BusMixScreen.tsx`, `logs/2026-05-11_21-17-18-landscape-left-curve-padding.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: `src/app/App.tsx` continua com safe area global reduzida no landscape conforme ajuste anterior; este prompt alterou apenas o padding compacto das telas.

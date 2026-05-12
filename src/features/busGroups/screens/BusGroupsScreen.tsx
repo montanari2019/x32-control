@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
-import { LayoutChangeEvent, ScrollView, StyleSheet, View } from 'react-native';
+import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import Toast from '@shared/components/Toast';
 import { ErrorState } from '@shared/components/ErrorState';
@@ -9,6 +9,7 @@ import { useModal } from '@shared/components/Modal';
 import { Screen } from '@shared/components/Screen';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
+import { LANDSCAPE_FADER_DRAG_SENSITIVITY } from '@shared/utils/faderInteraction';
 import { BusGroupsHeader } from '../components/BusGroupsHeader';
 import { McaChannelSelectionModal } from '../components/McaChannelSelectionModal';
 import { MasterStrip } from '../components/MasterStrip';
@@ -24,11 +25,13 @@ type McaStripItemProps = {
   onPress: () => void;
   onToggleMute: () => void;
   stripHeight: number;
+  compact: boolean;
 };
 
 const McaStripItem = React.memo(
-  ({ mca, onFaderChange, onPress, onToggleMute, stripHeight }: McaStripItemProps) => (
+  ({ compact, mca, onFaderChange, onPress, onToggleMute, stripHeight }: McaStripItemProps) => (
     <McaStrip
+      compact={compact}
       mca={mca}
       onFaderChange={onFaderChange}
       onPress={onPress}
@@ -43,6 +46,7 @@ const McaStripItem = React.memo(
     prev.mca.colorToken === next.mca.colorToken &&
     prev.mca.assignedChannels.length === next.mca.assignedChannels.length &&
     prev.stripHeight === next.stripHeight &&
+    prev.compact === next.compact &&
     prev.onFaderChange === next.onFaderChange &&
     prev.onPress === next.onPress &&
     prev.onToggleMute === next.onToggleMute,
@@ -50,8 +54,10 @@ const McaStripItem = React.memo(
 
 export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { consoleIp, busNumber, busName, linkedBusNumber } = route.params;
+  const { width, height } = useWindowDimensions();
   const { showModal } = useModal();
   const [stripsHeight, setStripsHeight] = useState(0);
+  const isCompactLayout = width > height;
   const {
     masterFaderRaw,
     masterMuted,
@@ -92,9 +98,10 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   }, [error, showModal]);
 
   const handleStripsAreaLayout = useCallback((event: LayoutChangeEvent): void => {
-    const nextHeight = Math.max(320, Math.floor(event.nativeEvent.layout.height));
+    const minHeight = isCompactLayout ? 1 : 320;
+    const nextHeight = Math.max(minHeight, Math.floor(event.nativeEvent.layout.height));
     setStripsHeight((current) => (current === nextHeight ? current : nextHeight));
-  }, []);
+  }, [isCompactLayout]);
 
   const mcaFaderCallbacks = useMemo(
     () =>
@@ -148,9 +155,10 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   );
 
   return (
-    <Screen style={styles.screen}>
-      <View style={styles.content}>
+    <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
+      <View style={[styles.content, isCompactLayout && styles.contentCompact]}>
         <BusGroupsHeader
+          compact={isCompactLayout}
           onBack={() => navigation.goBack()}
           onChannels={() =>
             navigation.push('BusMix', {
@@ -175,6 +183,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
               horizontal
               contentContainerStyle={[
                 styles.strips,
+                isCompactLayout && styles.stripsCompact,
                 stripsHeight > 0 ? { minHeight: stripsHeight } : undefined,
               ]}
               decelerationRate="fast"
@@ -188,6 +197,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
               <MasterStrip
                 busId={busNumber}
                 busName={busName}
+                compact={isCompactLayout}
+                dragSensitivity={isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined}
                 isMuted={masterMuted}
                 onFaderChange={setMasterFader}
                 onToggleMute={toggleMasterMute}
@@ -198,6 +209,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
               {mcas.map((mca) => (
                 <McaStripItem
                   key={mca.id}
+                  compact={isCompactLayout}
                   mca={mca}
                   onFaderChange={mcaFaderCallbacks.get(mca.dcaNumber)!}
                   onPress={mcaPressCallbacks.get(mca.dcaNumber)!}
@@ -218,6 +230,9 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.lg,
   },
+  contentCompact: {
+    gap: spacing.xs,
+  },
   errorBlock: {
     paddingHorizontal: spacing.sm,
   },
@@ -226,6 +241,11 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.md,
     paddingHorizontal: spacing.md,
     paddingTop: spacing.md,
+  },
+  screenCompact: {
+    paddingBottom: spacing.xxs,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.xs,
   },
   stripsArea: {
     flex: 1,
@@ -236,8 +256,12 @@ const styles = StyleSheet.create({
   },
   strips: {
     alignItems: 'stretch',
-    gap: spacing.sm,
+    gap: spacing.xs,
     paddingBottom: spacing.xs,
     paddingHorizontal: spacing.xxs,
+  },
+  stripsCompact: {
+    gap: spacing.xs,
+    paddingBottom: 0,
   },
 });

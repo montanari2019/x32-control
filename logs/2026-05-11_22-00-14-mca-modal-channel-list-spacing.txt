@@ -1,0 +1,9 @@
+MCA MODAL CHANNEL LIST SPACING
+
+Contexto: aumentar o espacamento entre a area superior do modal de MCA, onde ficam quantidade de canais e botao Limpar, e a lista de canais.
+Causa: apos remover a linha divisoria, a lista ficou visualmente muito proxima do header.
+Ação: `channelList.marginTop` foi aumentado de `spacing.sm` para `spacing.lg` em `McaChannelSelectionModal`.
+Resultado: a lista de canais fica mais afastada da area superior do modal sem restaurar a linha/faixa removida.
+Arquivos: `src/features/busGroups/components/McaChannelSelectionModal.tsx`, `logs/2026-05-11_22-00-14-mca-modal-channel-list-spacing.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: ajuste apenas visual no espaçamento vertical.

@@ -1,0 +1,26 @@
+BUSGROUPS CHANNELS ARROW ICON
+
+Contexto: o botao `Channels` no header de BusGroups usava o caractere `>` como indicador de navegacao.
+
+Causa: o indicador precisava seguir o mesmo padrao visual do botao de voltar, usando o icone de seta existente no projeto em vez de texto.
+
+Ação:
+- Atualizado `BusGroupsHeader` para substituir `>` por `Icons.ArrowLeft` rotacionado em 180 graus.
+- Ajustado o icone para `16x16`, mantendo proporcao adequada ao botao `Channels`.
+- Usado `colors.button.channels.text` para manter a cor alinhada ao token do botao.
+- Criado layout em linha com `gap: spacing.xxs` entre texto e icone.
+
+Resultado:
+- O botao `Channels` agora usa um icone de seta consistente com o botao de voltar.
+- O tamanho do icone fica adaptado ao botao de acao do header.
+
+Arquivos:
+- `src/features/busGroups/components/BusGroupsHeader.tsx`
+
+Validação:
+- `yarn tsc` OK.
+- `yarn ios` OK no iPhone 17 Simulator.
+- App compilado, instalado e iniciado com sucesso no simulador.
+
+Pontos atenção:
+- A porta `8081` ja estava em uso por um servidor existente; a validacao iOS reaproveitou esse servidor e ele nao foi encerrado.

@@ -1,0 +1,9 @@
+BUSMASTER MCA BOTTOM HEIGHT ALIGN
+
+Contexto: alinhar a parte inferior do bus master com a parte inferior dos MCAs, como se todos tivessem exatamente a mesma altura visual.
+Causa: o modo `dense` aplicado aos MCAs tambem alterava o padding horizontal do botao MUTE, criando diferenca visual entre a caixa do botao do master e dos MCAs.
+Ação: `GroupMuteButton` manteve o modo `dense` apenas no texto, removendo o estilo de caixa `buttonDense`; assim master e MCAs usam a mesma altura e padding de botao, enquanto o texto dos MCAs continua menor para caber.
+Resultado: a base inferior dos controles fica mais consistente entre bus master e MCAs.
+Arquivos: `src/features/busGroups/components/GroupMuteButton.tsx`, `logs/2026-05-11_22-12-42-busmaster-mca-bottom-height-align.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: ajuste preserva a fonte reduzida dos MCAs para caber `MUTE`.

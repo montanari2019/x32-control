@@ -1,0 +1,9 @@
+INITIAL SCREEN HIDE X32 HEADER
+
+Contexto: remover o titulo `X32/M32` da tela inicial, mantendo o restante da interface.
+Causa: o texto vinha do header nativo da rota `ConsoleDiscovery` no `RootNavigator`, nao do conteudo da tela.
+Ação: rota `ConsoleDiscovery` passou de `options={{ title: 'X32/M32' }}` para `options={{ headerShown: false }}`.
+Resultado: tela inicial deixa de mostrar o header/titulo superior `X32/M32`; card de descoberta, texto explicativo, botao e lista permanecem iguais.
+Arquivos: `src/app/navigation/RootNavigator.tsx`, `logs/2026-05-11_21-31-42-initial-screen-hide-x32-header.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: apenas a rota inicial foi alterada; as demais rotas ja usavam headers customizados ou header oculto.

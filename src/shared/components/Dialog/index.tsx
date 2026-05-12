@@ -12,6 +12,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@shared/components/Button';
 import { ModalPropsType } from '@shared/components/Modal';
+import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -79,7 +80,14 @@ const DialogBase = ({
   }, [animationDuration, backdropOpacity, onDismissEnd, translateY, visible]);
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={onDismiss}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      onRequestClose={onDismiss}
+      presentationStyle="overFullScreen"
+      supportedOrientations={APP_MODAL_SUPPORTED_ORIENTATIONS}
+    >
       <Animated.View style={[styles.modal, modalStyle, { opacity: backdropOpacity }]}>
         <Pressable
           style={[
@@ -178,9 +186,10 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   backdrop: {
+    alignItems: 'center',
     backgroundColor: colors.overlay.backdrop,
     flex: 1,
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     padding: spacing.lg,
   },
   container: {

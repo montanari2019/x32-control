@@ -1,0 +1,9 @@
+MCA MODAL ACCENT SAFE AREA VERSION FORMAT
+
+Contexto: ajustar o modal de MCAs para usar a cor predominante do MCA em elementos de edicao, respeitar safe area como o modal de Presets e mudar o formato da versao para sempre tres digitos.
+Causa: o botao de salvar e a borda/input de edicao usavam cores genericas; o modal de MCA tinha padding lateral fixo e nao somava os insets de safe area; a versao `2.7` nao seguia o padrao desejado de tres digitos (`2.7.0`).
+Ação: `McaChannelSelectionModal` passou a aplicar `accentColor` na borda principal do card, header, input de nome e botao salvar; o botao salvar tambem usa fundo/borda do MCA e icone em cor escura; o scroll do modal agora soma `insets.left/right` ao padding lateral; `AboutScreen` passou a formatar a versao com `padEnd(3, '0')` antes de separar os digitos por ponto.
+Resultado: o modal de MCA fica visualmente coerente com a cor do grupo e respeita a safe area lateral; a versao baseada em 27 commits passa a aparecer como `2.7.0`.
+Arquivos: `src/features/busGroups/components/McaChannelSelectionModal.tsx`, `src/features/about/screens/AboutScreen.tsx`, `logs/2026-05-11_21-56-53-mca-modal-accent-safe-area-version-format.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: o total de commits continua fixado em `APP_COMMIT_VERSION = 27` ate ser atualizado/automatizado em um fluxo de build ou release.

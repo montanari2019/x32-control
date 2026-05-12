@@ -1,0 +1,9 @@
+BUSMASTER FADER AXIS ALIGN
+
+Contexto: alinhar a barra central/trilho do fader do bus master com a barra central dos MCAs, mantendo o alinhamento da escala `+10 dB`.
+Causa: o bus master usava geometria propria no `VerticalGroupFader`: trilho com largura `6` e thumb com recuo `10`, enquanto os MCAs usavam trilho `5` e recuo `8`.
+Ação: `masterTrack.width` foi igualado para `5`; `masterThumb.left/right` foram igualados para `8`, seguindo a mesma geometria central dos MCAs.
+Resultado: o eixo visual do fader do bus master fica consistente com os MCAs sem alterar o posicionamento da escala dB.
+Arquivos: `src/features/busGroups/components/VerticalGroupFader.tsx`, `logs/2026-05-11_22-11-16-busmaster-fader-axis-align.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: mudanca visual localizada apenas no fader de grupos.

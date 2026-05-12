@@ -10,6 +10,7 @@ import { VerticalGroupFader } from './VerticalGroupFader';
 type GroupStripProps = {
   accentColor: string;
   assignmentCount?: number;
+  compact?: boolean;
   dragSensitivity?: number;
   isFaderDisabled?: boolean;
   isMaster?: boolean;
@@ -26,6 +27,7 @@ type GroupStripProps = {
 export const GroupStrip = ({
   accentColor,
   assignmentCount,
+  compact = false,
   dragSensitivity,
   isFaderDisabled = false,
   isMaster = false,
@@ -39,11 +41,11 @@ export const GroupStrip = ({
   value,
 }: GroupStripProps): JSX.Element => {
   const dbLabel = formatDb(faderToDb(value));
-  const [measuredFaderHeight, setMeasuredFaderHeight] = useState(320);
+  const [measuredFaderHeight, setMeasuredFaderHeight] = useState(compact ? 160 : 320);
   const canOpenDetails = Boolean(onPress && !isMaster);
 
   const handleFaderSlotLayout = (event: LayoutChangeEvent): void => {
-    const nextHeight = Math.max(180, Math.floor(event.nativeEvent.layout.height));
+    const nextHeight = Math.max(compact ? 1 : 180, Math.floor(event.nativeEvent.layout.height));
     setMeasuredFaderHeight(nextHeight);
   };
 
@@ -51,6 +53,7 @@ export const GroupStrip = ({
     <View
       style={[
         styles.wrapper,
+        compact && styles.wrapperCompact,
         isMaster ? styles.masterWrapper : styles.mcaWrapper,
         stripHeight ? { height: stripHeight } : undefined,
       ]}
@@ -58,6 +61,7 @@ export const GroupStrip = ({
       <View
         style={[
           styles.card,
+          compact && styles.cardCompact,
           isMaster ? styles.masterCard : styles.mcaCard,
           { borderColor: isMaster ? colors.border.subtle : accentColor },
         ]}
@@ -68,24 +72,33 @@ export const GroupStrip = ({
           onPress={onPress}
           style={({ pressed }) => [
             styles.headerPressable,
+            compact && styles.headerPressableCompact,
             pressed && canOpenDetails ? styles.cardPressed : undefined,
           ]}
         >
-          <Text style={styles.kicker}>{label}</Text>
+          <Text style={[styles.kicker, compact && styles.kickerCompact]}>{label}</Text>
           <Text
             style={[
               styles.name,
+              compact && styles.nameCompact,
+              !isMaster ? styles.mcaName : undefined,
+              compact && !isMaster ? styles.mcaNameCompact : undefined,
               {
                 color: isMaster ? colors.master.label : accentColor,
               },
             ]}
+            adjustsFontSizeToFit
+            minimumFontScale={0.72}
             numberOfLines={2}
           >
             {name}
           </Text>
         </Pressable>
 
-        <View style={styles.faderSlot} onLayout={handleFaderSlotLayout}>
+        <View
+          style={[styles.faderSlot, compact && styles.faderSlotCompact]}
+          onLayout={handleFaderSlotLayout}
+        >
           <VerticalGroupFader
             accentColor={accentColor}
             disabled={isFaderDisabled}
@@ -103,12 +116,14 @@ export const GroupStrip = ({
           onPress={onPress}
           style={({ pressed }) => [
             styles.footerPressable,
+            compact && styles.footerPressableCompact,
             pressed && canOpenDetails ? styles.cardPressed : undefined,
           ]}
         >
           <View
             style={[
               styles.labelPlate,
+              compact && styles.labelPlateCompact,
               {
                 backgroundColor: isMaster ? colors.master.thumb : accentColor,
               },
@@ -117,21 +132,45 @@ export const GroupStrip = ({
             <Text
               ellipsizeMode="clip"
               numberOfLines={1}
-              style={[styles.labelPlateText, !isMaster ? styles.mcaLabelPlateText : undefined]}
+              style={[
+                styles.labelPlateText,
+                compact && styles.labelPlateTextCompact,
+                !isMaster ? styles.mcaLabelPlateText : undefined,
+                compact && !isMaster ? styles.mcaLabelPlateTextCompact : undefined,
+              ]}
             >
               {dbLabel}
             </Text>
           </View>
 
           {assignmentCount != null ? (
-            <Text style={styles.assignmentText}>{assignmentCount} canais</Text>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.7}
+              numberOfLines={1}
+              style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
+            >
+              {assignmentCount} canais
+            </Text>
           ) : (
-            <Text style={styles.assignmentText}>Bus master</Text>
+            <Text
+              adjustsFontSizeToFit
+              minimumFontScale={0.62}
+              numberOfLines={1}
+              style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
+            >
+              Bus master
+            </Text>
           )}
         </Pressable>
       </View>
 
-      <GroupMuteButton isMuted={isMuted} onPress={onToggleMute} />
+      <GroupMuteButton
+        compact={compact}
+        dense={!isMaster}
+        isMuted={isMuted}
+        onPress={onToggleMute}
+      />
     </View>
   );
 };
@@ -142,7 +181,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: '700',
     marginTop: spacing.xs,
+    minHeight: 13,
     textAlign: 'center',
+  },
+  assignmentTextCompact: {
+    fontSize: 9,
+    marginTop: spacing.xxs,
   },
   card: {
     borderRadius: radius.xl,
@@ -150,9 +194,16 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: spacing.sm,
     paddingBottom: spacing.md,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.xs,
     paddingTop: spacing.md,
     width: '100%',
+  },
+  cardCompact: {
+    borderRadius: radius.md,
+    gap: spacing.xxs,
+    paddingBottom: spacing.xs,
+    paddingHorizontal: spacing.xs,
+    paddingTop: spacing.xs,
   },
   cardPressed: {
     opacity: 0.9,
@@ -164,11 +215,21 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
     minHeight: 220,
   },
+  faderSlotCompact: {
+    marginTop: 0,
+    minHeight: 0,
+  },
   footerPressable: {
     gap: spacing.xs,
   },
+  footerPressableCompact: {
+    gap: spacing.xxs,
+  },
   headerPressable: {
     gap: spacing.xs,
+  },
+  headerPressableCompact: {
+    gap: 0,
   },
   kicker: {
     color: colors.text.secondary,
@@ -178,17 +239,30 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     textTransform: 'uppercase',
   },
+  kickerCompact: {
+    fontSize: 9,
+    letterSpacing: 0.4,
+  },
   labelPlate: {
     borderRadius: radius.md,
     marginTop: spacing.xs,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.sm,
   },
+  labelPlateCompact: {
+    marginTop: 0,
+    paddingHorizontal: spacing.xxs,
+    paddingVertical: spacing.xxs,
+  },
   labelPlateText: {
     color: colors.background.deep,
     fontSize: 13,
     fontWeight: '900',
     textAlign: 'center',
+  },
+  labelPlateTextCompact: {
+    fontSize: 10,
+    lineHeight: 12,
   },
   mcaLabelPlateText: {
     flexShrink: 0,
@@ -197,17 +271,30 @@ const styles = StyleSheet.create({
     lineHeight: 13,
     textAlign: 'center',
   },
+  mcaLabelPlateTextCompact: {
+    fontSize: 9,
+    lineHeight: 11,
+  },
   masterCard: {
     backgroundColor: colors.surface.stripMaster,
   },
   masterWrapper: {
-    width: 104,
+    width: 72,
   },
   mcaCard: {
     backgroundColor: colors.surface.strip,
+    borderRadius: radius.lg,
+  },
+  mcaName: {
+    fontSize: 13,
+    lineHeight: 16,
+  },
+  mcaNameCompact: {
+    fontSize: 10,
+    lineHeight: 12,
   },
   mcaWrapper: {
-    width: 82,
+    width: 70,
   },
   name: {
     fontSize: 15,
@@ -215,7 +302,14 @@ const styles = StyleSheet.create({
     minHeight: 38,
     textAlign: 'center',
   },
+  nameCompact: {
+    fontSize: 11,
+    minHeight: 24,
+  },
   wrapper: {
     gap: spacing.sm,
+  },
+  wrapperCompact: {
+    gap: spacing.xxs,
   },
 });

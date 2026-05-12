@@ -1,0 +1,9 @@
+ORIENTATION NOTCH RIGHT UNBLOCKED CHECK
+
+Contexto: remover bloqueio que impede o app de girar com o notch para a direita.
+Causa: foi necessario verificar se ainda havia alguma restricao nativa ou React Native para apenas um sentido de landscape.
+Ação: inspecionado `ios/X32NativeShell/Info.plist` e confirmada a presenca de `UIInterfaceOrientationLandscapeLeft` e `UIInterfaceOrientationLandscapeRight`; inspecionada constante `APP_MODAL_SUPPORTED_ORIENTATIONS`, que ja contem `landscape`, `landscape-left` e `landscape-right`; nenhuma alteracao de codigo foi necessaria.
+Resultado: no codigo atual, o app esta liberado para os dois sentidos horizontais no iOS, incluindo notch para a direita.
+Arquivos: `ios/X32NativeShell/Info.plist`, `src/shared/components/Modal/modalOrientations.ts`, `logs/2026-05-11_22-07-48-orientation-notch-right-unblocked-check.txt`.
+Validação: `plutil -lint ios/X32NativeShell/Info.plist` OK; `yarn tsc` OK; `git diff` sem alteracoes nesses arquivos.
+Pontos atenção: se o simulador/device ainda bloquear esse lado, e necessario rebuild/reinstalar o app nativo; reload do Metro nao atualiza `Info.plist`.

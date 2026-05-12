@@ -7,6 +7,7 @@ import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
 import { formatPanLabel } from '@shared/x32/pan';
 import { ModalRenderProps } from '@shared/components/Modal';
+import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
 
 type PanControlModalProps = ModalRenderProps & {
   channelLabel: string;
@@ -84,7 +85,14 @@ export const PanControlModal = ({
   };
 
   return (
-    <Modal transparent visible={isModalVisible} animationType="none" onRequestClose={onDismiss}>
+    <Modal
+      transparent
+      visible={isModalVisible}
+      animationType="none"
+      onRequestClose={onDismiss}
+      presentationStyle="overFullScreen"
+      supportedOrientations={APP_MODAL_SUPPORTED_ORIENTATIONS}
+    >
       <Animated.View style={[styles.modalSurface, { opacity }]}>
         <Pressable style={styles.backdrop} onPress={onDismiss}>
           <Animated.View style={{ transform: [{ scale }] }}>

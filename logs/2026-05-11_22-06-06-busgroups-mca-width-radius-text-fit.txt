@@ -1,0 +1,9 @@
+BUSGROUPS MCA WIDTH RADIUS TEXT FIT
+
+Contexto: manter a largura atual do bus master, mas melhorar a largura/aparencia dos MCAs e garantir melhor encaixe de nomes e texto MUTE.
+Causa: os MCAs ficaram estreitos demais em `62px`, com aparencia muito eliptica e textos apertados.
+Ação: largura dos MCAs aumentada para `70px`; border radius dos cards MCA reduzido para `radius.lg`; nomes dos MCAs receberam fonte menor (`13`, ou `10` compacto), `lineHeight` dedicado, `adjustsFontSizeToFit` e `minimumFontScale`; `GroupMuteButton` recebeu modo `dense` para MCAs com padding menor, fonte `10` e letter spacing reduzido.
+Resultado: bus master permanece em `72px`; MCAs ficam um pouco maiores, menos arredondados/ovalados e com melhor chance de caber nomes como `Batera`, `Guitar` e `Vozes`, alem do texto `MUTE`.
+Arquivos: `src/features/busGroups/components/GroupStrip.tsx`, `src/features/busGroups/components/GroupMuteButton.tsx`, `logs/2026-05-11_22-06-06-busgroups-mca-width-radius-text-fit.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: em nomes muito longos ainda pode haver quebra em duas linhas por design.

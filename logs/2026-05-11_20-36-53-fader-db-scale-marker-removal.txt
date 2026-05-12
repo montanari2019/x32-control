@@ -1,0 +1,26 @@
+FADER DB SCALE MARKER REMOVAL
+
+Contexto: a regua lateral dos faders precisava manter os labels negativos, mas remover apenas o traco indicativo de posicao ao lado dos numeros.
+
+Causa: a alteracao anterior removeu o sinal negativo dos valores, interpretando incorretamente que o `-` de `-40` era o elemento a retirar. O desejado era remover a pequena linha visual que indicava a posicao em relacao a barra central.
+
+Ação:
+- Restaurado o formato dos labels negativos em `FaderDbScale`, voltando a exibir `-60`, `-50`, `-40`, `-30`, `-20` e `-10`.
+- Removido o elemento visual `line` da regua.
+- Ajustado `minWidth` do label para acomodar os sinais negativos sem cortar texto.
+
+Resultado:
+- A regua exibe novamente valores negativos com sinal.
+- O traco/linha indicadora ao lado dos numeros foi removido.
+- A regua continua aplicada em BusGroups e BusMix pelo componente compartilhado.
+
+Arquivos:
+- `src/shared/components/FaderDbScale.tsx`
+
+Validação:
+- `yarn tsc` OK.
+- `yarn ios` OK no iPhone 17 Simulator.
+- App compilado, instalado e iniciado com sucesso no simulador.
+
+Pontos atenção:
+- Uma execucao paralela de `yarn ios` falhou com `build.db` bloqueado porque outra chamada ainda estava em andamento. A primeira chamada ativa terminou com sucesso.

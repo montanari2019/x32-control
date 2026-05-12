@@ -4,6 +4,7 @@ import { AppHeader, AppHeaderActionText } from '@shared/components/AppHeader';
 type PersonalMixHeaderProps = {
   title: string;
   subtitle?: string;
+  compact?: boolean;
   onBack: () => void;
   onAction: () => void;
   actionLabel?: string;
@@ -14,6 +15,7 @@ type PersonalMixHeaderProps = {
 export const PersonalMixHeader = ({
   title,
   subtitle,
+  compact = false,
   onBack,
   onAction,
   actionLabel = 'Presets',
@@ -23,13 +25,16 @@ export const PersonalMixHeader = ({
   <AppHeader
     title={title}
     subtitle={subtitle}
+    compact={compact}
     onBack={onBack}
     onRightPress={onAction}
     rightAccessibilityLabel={actionLabel}
     isRightDisabled={isActionDisabled || isActionLoading}
     rightVariant="success"
     rightContent={
-      <AppHeaderActionText>{isActionLoading ? 'Abrindo...' : actionLabel}</AppHeaderActionText>
+      <AppHeaderActionText compact={compact}>
+        {isActionLoading ? 'Abrindo...' : actionLabel}
+      </AppHeaderActionText>
     }
   />
 );
