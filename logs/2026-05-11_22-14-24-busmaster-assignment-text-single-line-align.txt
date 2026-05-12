@@ -1,0 +1,25 @@
+Contexto
+- Ajustar o desalinhamento restante do Bus Master em relacao aos MCAs, visivel apenas no modo vertical.
+
+Causa
+- No portrait, o texto inferior "Bus master" quebrava em duas linhas, enquanto os MCAs mantinham o texto de canais em uma linha.
+- Essa diferenca fazia a parte inferior do Bus Master parecer mais alta/desalinhada em relacao aos MCAs.
+
+Acao
+- Mantive o texto inferior do Bus Master em uma unica linha usando ajuste automatico de fonte.
+- Apliquei o mesmo comportamento ao texto inferior dos MCAs para manter altura visual consistente.
+- Defini uma altura minima para essa regiao de texto, evitando variacao de layout entre master e MCAs.
+
+Resultado
+- O Bus Master passa a manter o rodape interno alinhado com os MCAs no modo vertical.
+- A alteracao preserva o layout horizontal e evita aumentar novamente a largura do Bus Master.
+
+Arquivos alterados
+- src/features/busGroups/components/GroupStrip.tsx
+- logs/2026-05-11_22-14-24-busmaster-assignment-text-single-line-align.txt
+
+Validacao
+- yarn tsc executado com sucesso.
+
+Pontos de atencao
+- Em telas verticais muito estreitas, o texto "Bus master" pode reduzir um pouco a fonte para preservar uma linha e manter o alinhamento.

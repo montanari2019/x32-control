@@ -1,0 +1,9 @@
+LANDSCAPE SAFE AREA RESTORE
+
+Contexto: desfazer o ajuste anterior de centralizacao customizada do modal de Presets e fazer o landscape voltar a respeitar a SafeAreaView completa, sem aproveitar area do notch.
+Causa: os ajustes anteriores liberavam area horizontal no landscape e compensavam notch manualmente; a nova direcao e deixar o proprio iOS/SafeAreaView impor os limites seguros.
+Ação: `App.tsx` voltou a usar `SafeAreaView` com edges `top/right/bottom/left` em todas as orientacoes; removido o respiro manual `paddingRight: 72` do content container compacto do BusGroups; desfeito o ajuste anterior do `BusMixPresetsModal` que calculava largura por `useWindowDimensions` e centralizava com estilos extras.
+Resultado: em landscape, o conteudo volta a ficar dentro da safe area nativa; o modal de Presets retorna ao comportamento anterior; o notch passa a ser respeitado pela safe area global em vez de compensacoes locais.
+Arquivos: `src/app/App.tsx`, `src/features/busGroups/screens/BusGroupsScreen.tsx`, `src/features/busMix/components/BusMixPresetsModal.tsx`, `logs/2026-05-11_21-37-34-landscape-safe-area-restore.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: como `App.tsx` voltou ao mesmo estado do baseline, ele pode nao aparecer no diff final, mas a reversao do comportamento de safe area foi aplicada no workspace.

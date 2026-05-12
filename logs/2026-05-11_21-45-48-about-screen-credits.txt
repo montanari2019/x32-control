@@ -1,0 +1,9 @@
+ABOUT SCREEN CREDITS
+
+Contexto: voltar o botao no canto direito da BusSelection como About, usando icone de informacao, e abrir uma tela nova com creditos.
+Causa: o botao de configuracao havia sido removido; agora a necessidade e reaproveitar o local para uma tela simples de informacoes/creditos.
+Ação: criado icone `Info` no pacote local de icones; registrado em `src/assets/icons/index.ts`; criada rota `About` no `RootNavigator`; criada `AboutScreen` com header `ABOUT`, botao voltar padrao, versao do app, creditos de desenvolvimento, apoio e ano atual; BusSelection agora navega para `About` pelo botao direito.
+Resultado: tela BusSelection mostra um botao de informacao no canto superior direito; ao tocar, abre a tela ABOUT com os creditos solicitados.
+Arquivos: `src/assets/icons/Info.tsx`, `src/assets/icons/index.ts`, `src/app/navigation/RootNavigator.tsx`, `src/features/about/screens/AboutScreen.tsx`, `src/features/busSelection/screens/BusSelectionScreen.tsx`, `logs/2026-05-11_21-45-48-about-screen-credits.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: a versao exibida foi fixada como `1.0.0`, igual ao `package.json`; o ano e calculado em runtime com `new Date().getFullYear()`.

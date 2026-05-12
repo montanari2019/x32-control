@@ -14,6 +14,7 @@ import { VerticalFader } from './VerticalFader';
 
 type ChannelStripProps = {
   channel: Channel;
+  dragSensitivity?: number;
   faderHeight: number;
   isVisible: boolean;
   registerMeterListener: (
@@ -39,6 +40,7 @@ const opacityToAlphaHex = (opacity: number): string =>
 
 const ChannelStripComponent = ({
   channel,
+  dragSensitivity,
   faderHeight,
   isVisible,
   registerMeterListener,
@@ -102,6 +104,7 @@ const ChannelStripComponent = ({
             <View style={[styles.meterPlaceholder, { height: faderHeight, width: METER_WIDTH }]} />
           )}
           <VerticalFader
+            dragSensitivity={dragSensitivity}
             level={displayLevel}
             height={faderHeight}
             onChange={handleFaderChange}
@@ -131,6 +134,7 @@ export const ChannelStrip = React.memo(
     prev.channel.number === next.channel.number &&
     prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
     prev.channel.meterChannelId === next.channel.meterChannelId &&
+    prev.dragSensitivity === next.dragSensitivity &&
     prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onToggleMute === next.onToggleMute &&

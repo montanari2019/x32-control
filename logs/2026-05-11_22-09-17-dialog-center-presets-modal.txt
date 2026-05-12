@@ -1,0 +1,9 @@
+DIALOG CENTER PRESETS MODAL
+
+Contexto: modal de Presets continuava deslocado para a esquerda no modo horizontal e precisava ficar sempre centralizado na tela, tanto horizontal quanto vertical.
+Causa: a base `Dialog` tinha `justifyContent: 'flex-end'` e nao definia `alignItems`; mesmo quando o Presets passava `justifyContent: 'center'`, o eixo horizontal continuava alinhando no inicio.
+Ação: `Dialog` passou a centralizar o backdrop por padrao com `alignItems: 'center'` e `justifyContent: 'center'`.
+Resultado: o modal de Presets, que usa `Dialog`, fica centralizado nos dois eixos em portrait e landscape; outros dialogs tambem herdam o mesmo comportamento centralizado.
+Arquivos: `src/shared/components/Dialog/index.tsx`, `logs/2026-05-11_22-09-17-dialog-center-presets-modal.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: se algum dialog futuro precisar abrir como bottom sheet, deve sobrescrever `backdropStyle`.

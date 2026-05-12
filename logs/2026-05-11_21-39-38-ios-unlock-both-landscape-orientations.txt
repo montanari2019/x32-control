@@ -1,0 +1,9 @@
+IOS UNLOCK BOTH LANDSCAPE ORIENTATIONS
+
+Contexto: remover a implementacao que permitia somente girar para um lado e liberar completamente o uso horizontal.
+Causa: o `Info.plist` havia sido restringido para `UIInterfaceOrientationLandscapeLeft`, bloqueando o outro sentido de landscape.
+Ação: `UIInterfaceOrientationLandscapeRight` foi restaurado em `ios/X32NativeShell/Info.plist`; a constante `APP_MODAL_SUPPORTED_ORIENTATIONS` ja aceitava `landscape`, `landscape-left` e `landscape-right`, entao nao precisou de nova alteracao.
+Resultado: iOS volta a permitir portrait e os dois sentidos horizontais; modais continuam preparados para ambos os landscapes.
+Arquivos: `ios/X32NativeShell/Info.plist`, `src/shared/components/Modal/modalOrientations.ts`, `logs/2026-05-11_21-39-38-ios-unlock-both-landscape-orientations.txt`.
+Validação: `plutil -lint ios/X32NativeShell/Info.plist` OK; `yarn tsc` OK.
+Pontos atenção: como essa alteracao reverteu o `Info.plist` ao estado base esperado, pode nao aparecer como diff final se comparado ao HEAD.

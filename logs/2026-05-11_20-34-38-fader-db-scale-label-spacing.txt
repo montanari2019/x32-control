@@ -1,0 +1,29 @@
+FADER DB SCALE LABEL SPACING
+
+Contexto: a regua lateral dos faders de BusGroups e BusMix precisava de um ajuste visual nos textos.
+
+Causa: os labels negativos exibiam o sinal `-` antes dos numeros e os valores estavam ficando muito proximos da lateral direita do strip.
+
+Ação:
+- Ajustado `FaderDbScale` para exibir os valores negativos sem o sinal, usando o valor absoluto no label.
+- Mantido o `+` apenas no valor positivo `+10`, preservando a diferenca visual entre o topo positivo e o `10` negativo.
+- Reduzida a largura da regua e do label para compactar a leitura.
+- Alterado o deslocamento lateral da regua em BusMix e BusGroups de `spacing.xs` para `spacing.xxs`, aproximando os labels da barra central e afastando-os da lateral direita.
+
+Resultado:
+- Os labels agora aparecem como `60`, `50`, `40`, `30`, `20`, `10`, `0` e `+10`.
+- A regua continua ancorada a direita da barra central sem mover a barra.
+- Os numeros ficam menos colados na lateral direita do componente.
+
+Arquivos:
+- `src/shared/components/FaderDbScale.tsx`
+- `src/features/busMix/components/VerticalFader.tsx`
+- `src/features/busGroups/components/VerticalGroupFader.tsx`
+
+Validação:
+- `yarn tsc` OK.
+- `yarn ios` OK no iPhone 17 Simulator.
+- App compilado, instalado e iniciado com sucesso no simulador.
+
+Pontos atenção:
+- Uma tentativa paralela de `yarn ios` falhou com `build.db` bloqueado porque outro build ainda estava em andamento. A execucao original terminou com sucesso em seguida.

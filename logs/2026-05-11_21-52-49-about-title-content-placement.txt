@@ -1,0 +1,9 @@
+ABOUT TITLE CONTENT PLACEMENT
+
+Contexto: na tela About, remover o titulo do header e colocar `ABOUT` um pouco acima da versao do app, fora dos cards.
+Causa: o titulo estava dentro do `AppHeader`; o pedido foi deixar o header apenas com voltar e tratar `ABOUT` como titulo visual do conteudo.
+Ação: `AboutScreen` passou `title=""` para o `AppHeader`; adicionado `Text` com `ABOUT` dentro do bloco de conteudo, antes do card de versao, com estilo proprio e sem card.
+Resultado: tela About mostra o botao de voltar no topo e o titulo `ABOUT` centralizado acima da versao do app, fora dos cards.
+Arquivos: `src/features/about/screens/AboutScreen.tsx`, `logs/2026-05-11_21-52-49-about-title-content-placement.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: `AboutScreen.tsx` ainda e arquivo novo/untracked no workspace, por isso o diff tradicional nao lista o conteudo completo.

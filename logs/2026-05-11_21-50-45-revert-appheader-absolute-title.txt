@@ -1,0 +1,9 @@
+REVERT APPHEADER ABSOLUTE TITLE
+
+Contexto: desfazer a ultima alteracao do AppHeader porque o resultado visual ficou ruim.
+Causa: o titulo havia sido movido para uma camada absoluta para centralizar em relacao a tela; essa abordagem prejudicou o layout esperado.
+Ação: removido o posicionamento absoluto do bloco de titulo/subtitulo; `titleWrap` voltou a usar `flex: 1` no fluxo horizontal entre os controles laterais.
+Resultado: AppHeader retorna ao comportamento visual anterior, mantendo as melhorias anteriores de modo compacto e `reserveRightSpace`.
+Arquivos: `src/shared/components/AppHeader.tsx`, `logs/2026-05-11_21-50-45-revert-appheader-absolute-title.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: a tela About e o botao de informacao da BusSelection foram preservados.

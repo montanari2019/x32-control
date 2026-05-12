@@ -1,0 +1,9 @@
+MODAL OVERFULLSCREEN LANDSCAPE FIX
+
+Contexto: responder por que o modal de MCA ainda abre como vertical no simulador e reforcar o suporte a landscape nos modais.
+Causa: havia dois fatores provaveis: a mudanca de `Info.plist` exige rebuild/reinstalacao para valer no simulador; alem disso, os modais nativos do React Native estavam com orientacoes restritas demais e sem `presentationStyle`, o que pode fazer iOS apresentar o modal em uma orientacao diferente da tela atual.
+Ação: `APP_MODAL_SUPPORTED_ORIENTATIONS` passou a incluir `portrait`, `landscape`, `landscape-left` e `landscape-right`; `McaChannelSelectionModal`, `PanControlModal` e `Dialog` receberam `presentationStyle="overFullScreen"` junto de `supportedOrientations`; mantido `useWindowDimensions` no modal de MCA para altura responsiva.
+Resultado: o lado React Native ficou tolerante a qualquer orientacao landscape enquanto o app iOS continua limitado pelo `Info.plist`; o modal deve abrir como overlay da tela atual em landscape apos rebuild do app nativo.
+Arquivos: `src/shared/components/Modal/modalOrientations.ts`, `src/features/busGroups/components/McaChannelSelectionModal.tsx`, `src/features/busMix/components/PanControlModal.tsx`, `src/shared/components/Dialog/index.tsx`, `logs/2026-05-11_21-28-38-modal-overfullscreen-landscape-fix.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: se o app ja estava instalado/rodando antes da alteracao no `Info.plist`, e necessario rebuild/reinstalar no simulador; reload do Metro nao atualiza orientacoes nativas.

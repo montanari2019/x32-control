@@ -1,0 +1,9 @@
+MODAL LANDSCAPE ORIENTATION FIX
+
+Contexto: fazer os modais respeitarem a nova orientacao horizontal com notch/camera a direita quando acionados no simulador.
+Causa: os `Modal` nativos do React Native nao declaravam `supportedOrientations`; no iOS isso podia fazer o conteudo do modal abrir preso na orientacao anterior/diferente da tela, aparecendo rotacionado sobre o BusGroups.
+Ação: criada constante compartilhada `APP_MODAL_SUPPORTED_ORIENTATIONS` com `portrait` e `landscape-left`; aplicada em `McaChannelSelectionModal`, `PanControlModal` e `Dialog`, cobrindo tambem o modal de presets que usa Dialog; `McaChannelSelectionModal` passou a calcular altura maxima com `useWindowDimensions` para reagir melhor a orientacao atual.
+Resultado: modais nativos passam a aceitar explicitamente a mesma orientacao horizontal habilitada no app iOS e devem abrir alinhados ao landscape atual, sem rotacionar separado da tela.
+Arquivos: `src/shared/components/Modal/modalOrientations.ts`, `src/features/busGroups/components/McaChannelSelectionModal.tsx`, `src/features/busMix/components/PanControlModal.tsx`, `src/shared/components/Dialog/index.tsx`, `logs/2026-05-11_21-25-51-modal-landscape-orientation-fix.txt`.
+Validação: `yarn tsc` OK; `rg` confirmou que todos os usos diretos de `<Modal` em `src/features` e `src/shared` usam `APP_MODAL_SUPPORTED_ORIENTATIONS`.
+Pontos atenção: Toast nao usa `Modal` nativo; ele e renderizado pelo `ModalProvider` como overlay React, entao acompanha a orientacao da arvore principal.

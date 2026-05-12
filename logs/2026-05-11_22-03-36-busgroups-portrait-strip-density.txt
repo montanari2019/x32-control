@@ -1,0 +1,9 @@
+BUSGROUPS PORTRAIT STRIP DENSITY
+
+Contexto: ajustar o espacamento dos MCAs para que, na orientacao vertical, caibam no minimo quatro MCAs visiveis alem do bus master, e diminuir a largura geral do bus master deixando-o apenas levemente maior que os MCAs.
+Causa: as larguras anteriores (`masterWrapper: 104`, `mcaWrapper: 82`) somadas ao gap faziam poucos grupos caberem na tela vertical.
+Ação: `GroupStrip` passou a usar `mcaWrapper: 62` e `masterWrapper: 72`; o padding horizontal interno do card foi reduzido de `spacing.sm` para `spacing.xs`; o gap horizontal da lista de strips no BusGroups foi reduzido de `spacing.sm` para `spacing.xs`.
+Resultado: em telas verticais com largura atual do projeto, o conjunto bus master + quatro MCAs cabe visualmente com o master ainda um pouco maior que os MCAs.
+Arquivos: `src/features/busGroups/components/GroupStrip.tsx`, `src/features/busGroups/screens/BusGroupsScreen.tsx`, `logs/2026-05-11_22-03-36-busgroups-portrait-strip-density.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: ajuste visual de densidade; se algum label longo ficar apertado em aparelhos muito estreitos, pode ser necessario aplicar reducao de fonte/ellipsis especifica.

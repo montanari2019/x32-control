@@ -1,0 +1,9 @@
+ABOUT VERSION FROM COMMIT COUNT
+
+Contexto: fazer a versao exibida no About seguir o total de commits do projeto, com cada digito separado por ponto, contando tambem o commit deste trabalho ainda pendente.
+Causa: a tela About exibia versao fixa `1.0.0`, mas a regra desejada e derivar a versao do total de commits. Exemplo: 123 commits vira `1.2.3`.
+Ação: consultado `git rev-list --count HEAD`, que retornou 26; somado 1 para contemplar este commit pendente, totalizando 27; `AboutScreen` passou a usar `APP_COMMIT_VERSION = 27` e formatar com `toString().split('').join('.')`, exibindo `2.7`.
+Resultado: About passa a mostrar versao `2.7` conforme a regra atual de commits.
+Arquivos: `src/features/about/screens/AboutScreen.tsx`, `logs/2026-05-11_21-54-51-about-version-from-commit-count.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: como o app mobile nao consegue consultar git em runtime, o valor precisa ser atualizado quando um novo commit/release for preparado, ou automatizado em build script futuramente.

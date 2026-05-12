@@ -1,0 +1,9 @@
+BUSSELECTION REMOVE SETTINGS PLACEHOLDER
+
+Contexto: remover tambem o botao/espaco vazio que ficou no canto superior direito da tela BusSelection depois de tirar o icone de configuracao.
+Causa: `AppHeader` renderizava um placeholder do tamanho do botao direito quando `rightContent` nao era informado, para manter o titulo centralizado.
+Ação: `AppHeader` recebeu a prop opcional `reserveRightSpace`, com padrao `true` para preservar o comportamento das outras telas; `BusSelectionScreen` passou `reserveRightSpace={false}`.
+Resultado: BusSelection nao mostra mais icone nem botao/placeholder vazio no canto superior direito; os demais headers continuam reservando o espaco direito quando nao configurados.
+Arquivos: `src/shared/components/AppHeader.tsx`, `src/features/busSelection/screens/BusSelectionScreen.tsx`, `logs/2026-05-11_21-42-35-busselection-remove-settings-placeholder.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: a centralizacao visual do titulo na BusSelection passa a considerar somente o botao de voltar na esquerda, conforme pedido de remover totalmente o controle da direita.

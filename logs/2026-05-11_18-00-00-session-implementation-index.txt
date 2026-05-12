@@ -12,5 +12,10 @@ Registros:
 - `logs/2026-05-11_18-12-00-mca-eight-groups-colors.txt`: MCAs expandidos de 5 para 8 com novas cores.
 - `logs/2026-05-11_18-18-00-mca-1-7-color-swap.txt`: troca de cores entre MCA 1 e MCA 7.
 - `logs/2026-05-11_18-24-00-modal-safe-area-insets.txt`: modais respeitando safe area por insets.
+- `logs/2026-05-11_18-30-00-fader-db-scale-rulers.txt`: reguas laterais sutis de dB nos faders de BusGroups e BusMix.
+- `logs/2026-05-11_20-34-38-fader-db-scale-label-spacing.txt`: labels da regua sem sinal negativo e mais afastados da lateral direita.
+- `logs/2026-05-11_20-36-53-fader-db-scale-marker-removal.txt`: restaurado sinal negativo dos labels e removido apenas o traco visual da regua.
+- `logs/2026-05-11_20-45-54-busgroups-channels-arrow-icon.txt`: botao Channels usa icone de seta do projeto em vez de `>`.
+- `logs/2026-05-11_21-06-31-landscape-compact-mix-layouts.txt`: layout compacto em landscape para BusGroups e BusMix, com faders de BusGroups ajustados pela altura disponivel.
 Validação geral: `yarn tsc` OK; `yarn ios` OK no iPhone 17 Simulator apos as alteracoes.
 Pontos atenção: `yarn lint --quiet` nao rodou nesta instalacao porque `eslint` nao foi encontrado em `node_modules/.bin`.

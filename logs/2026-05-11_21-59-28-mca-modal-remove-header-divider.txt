@@ -1,0 +1,9 @@
+MCA MODAL REMOVE HEADER DIVIDER
+
+Contexto: remover a faixa/linha que ficava abaixo do botao `Limpar` no modal de MCA.
+Causa: o estilo `header` do modal tinha `borderBottomWidth: 1` e `paddingBottom`, criando uma linha divisoria logo abaixo da area do contador/botao Limpar.
+Ação: removidos `borderBottomWidth` e `paddingBottom` do estilo `header` em `McaChannelSelectionModal`.
+Resultado: o modal de MCA nao mostra mais a linha/faixa inferior abaixo do botao Limpar.
+Arquivos: `src/features/busGroups/components/McaChannelSelectionModal.tsx`, `logs/2026-05-11_21-59-28-mca-modal-remove-header-divider.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: a borda externa do modal e as cores de destaque do MCA foram preservadas.

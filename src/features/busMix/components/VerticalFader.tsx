@@ -7,10 +7,13 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { FaderDbScale } from '@shared/components/FaderDbScale';
 import { colors } from '@shared/theme/colors';
+import { spacing } from '@shared/theme/spacing';
 import { x32DbToRaw } from '@shared/utils/faderDb';
 
 type VerticalFaderProps = {
+  dragSensitivity?: number;
   level: number;
   height: number;
   onChange: (level: number) => void;
@@ -35,6 +38,7 @@ const rawToPosition = (raw: number): number => {
 };
 
 export const VerticalFader = ({
+  dragSensitivity = 1,
   level,
   height,
   onChange,
@@ -50,6 +54,7 @@ export const VerticalFader = ({
   const startY = useRef(0);
   const onChangeRef = useRef(onChange);
   const onChangeEndRef = useRef(onChangeEnd);
+  const dragSensitivityRef = useRef(dragSensitivity);
 
   useEffect(() => {
     availableRef.current = available;
@@ -62,6 +67,10 @@ export const VerticalFader = ({
   useEffect(() => {
     onChangeEndRef.current = onChangeEnd;
   }, [onChangeEnd]);
+
+  useEffect(() => {
+    dragSensitivityRef.current = dragSensitivity;
+  }, [dragSensitivity]);
 
   const updateFromY = useCallback(
     (y: number, emitEnd = false): void => {
@@ -91,10 +100,10 @@ export const VerticalFader = ({
           startY.current = currentY.current;
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
-          updateFromY(startY.current + gestureState.dy);
+          updateFromY(startY.current + gestureState.dy * dragSensitivityRef.current);
         },
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
-          updateFromY(startY.current + gestureState.dy, true);
+          updateFromY(startY.current + gestureState.dy * dragSensitivityRef.current, true);
           isDragging.current = false;
         },
         onPanResponderTerminate: () => {
@@ -133,6 +142,9 @@ export const VerticalFader = ({
       <View style={styles.trackBounds}>
         <View style={styles.track} />
         <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
+        <View style={[styles.dbScale, { height: trackHeight }]}>
+          <FaderDbScale height={trackHeight} />
+        </View>
         <Animated.View style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}>
           <View style={styles.thumbHighlight} />
         </Animated.View>
@@ -149,6 +161,12 @@ const styles = StyleSheet.create({
     paddingVertical: VERTICAL_INSET,
     position: 'relative',
     width: 40,
+  },
+  dbScale: {
+    left: '50%',
+    marginLeft: spacing.xxs,
+    position: 'absolute',
+    top: 0,
   },
   track: {
     backgroundColor: colors.fader.track,

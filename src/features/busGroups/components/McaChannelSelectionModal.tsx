@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
 import {
-  Dimensions,
   Keyboard,
   KeyboardAvoidingView,
   Modal,
@@ -11,11 +10,13 @@ import {
   Text,
   TextInput,
   View,
+  useWindowDimensions,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Icons } from '@assets';
 import { Channel } from '@features/busMix/types/Channel';
 import { ModalRenderProps } from '@shared/components/Modal';
+import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -61,10 +62,10 @@ export const McaChannelSelectionModal = ({
   onToggleChannel,
 }: McaChannelSelectionModalProps): JSX.Element => {
   const insets = useSafeAreaInsets();
+  const { height } = useWindowDimensions();
   const inputRef = useRef<TextInput>(null);
   const closeAfterKeyboardHideRef = useRef(false);
   const closeFallbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const modalBaseHeightRef = useRef(Dimensions.get('screen').height);
   const [displayName, setDisplayName] = useState(mca.name);
   const [draftName, setDraftName] = useState(mca.name);
   const [isEditingName, setIsEditingName] = useState(false);
@@ -73,7 +74,7 @@ export const McaChannelSelectionModal = ({
   );
   const modalMaxHeight = Math.max(
     360,
-    modalBaseHeightRef.current - insets.top - insets.bottom - spacing.lg * 2,
+    height - insets.top - insets.bottom - spacing.lg * 2,
   );
 
   useEffect(() => {
@@ -175,7 +176,14 @@ export const McaChannelSelectionModal = ({
   };
 
   return (
-    <Modal transparent visible={visible} animationType="none" onRequestClose={handleDismiss}>
+    <Modal
+      transparent
+      visible={visible}
+      animationType="none"
+      onRequestClose={handleDismiss}
+      presentationStyle="overFullScreen"
+      supportedOrientations={APP_MODAL_SUPPORTED_ORIENTATIONS}
+    >
       <View style={styles.modalRoot}>
         <Pressable style={styles.dismissBackdrop} onPress={handleDismiss} />
 
@@ -189,6 +197,8 @@ export const McaChannelSelectionModal = ({
               styles.keyboardScrollContent,
               {
                 paddingBottom: insets.bottom + spacing.lg,
+                paddingLeft: insets.left + spacing.lg,
+                paddingRight: insets.right + spacing.lg,
                 paddingTop: insets.top + spacing.lg,
               },
             ]}
@@ -198,7 +208,7 @@ export const McaChannelSelectionModal = ({
             style={styles.keyboardScroll}
           >
             <Pressable
-              style={[styles.card, { maxHeight: modalMaxHeight }]}
+              style={[styles.card, { borderColor: accentColor, maxHeight: modalMaxHeight }]}
               onPress={() => undefined}
             >
               <View style={[styles.header, { borderColor: accentColor }]}>
@@ -216,7 +226,13 @@ export const McaChannelSelectionModal = ({
                         placeholderTextColor={colors.text.tertiary}
                         returnKeyType="done"
                         selectTextOnFocus
-                        style={[styles.titleInput, { color: accentColor }]}
+                        style={[
+                          styles.titleInput,
+                          {
+                            borderColor: accentColor,
+                            color: accentColor,
+                          },
+                        ]}
                         value={draftName}
                       />
                       <Pressable
@@ -225,10 +241,14 @@ export const McaChannelSelectionModal = ({
                         onPress={handleSaveName}
                         style={({ pressed }) => [
                           styles.saveNameButton,
+                          {
+                            backgroundColor: accentColor,
+                            borderColor: accentColor,
+                          },
                           pressed && styles.saveNameButtonPressed,
                         ]}
                       >
-                        <Icons.SaveData color={colors.button.presets.text} width={18} height={18} />
+                        <Icons.SaveData color={colors.background.deep} width={18} height={18} />
                       </Pressable>
                     </View>
                   ) : (
@@ -375,7 +395,7 @@ const styles = StyleSheet.create({
   channelList: {
     flexGrow: 0,
     flexShrink: 1,
-    marginTop: spacing.sm,
+    marginTop: spacing.lg,
   },
   channelName: {
     fontSize: 13,
@@ -426,9 +446,7 @@ const styles = StyleSheet.create({
     rowGap: CHANNEL_CARD_GAP,
   },
   header: {
-    borderBottomWidth: 1,
     gap: spacing.xxs,
-    paddingBottom: spacing.sm,
   },
   headerBottomRow: {
     alignItems: 'center',
@@ -451,7 +469,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: spacing.lg,
   },
   modalRoot: {
     backgroundColor: colors.overlay.backdrop,
@@ -465,8 +482,8 @@ const styles = StyleSheet.create({
   },
   saveNameButton: {
     alignItems: 'center',
-    backgroundColor: colors.accent.primary,
     borderRadius: radius.md,
+    borderWidth: 1,
     height: 44,
     justifyContent: 'center',
     width: 44,

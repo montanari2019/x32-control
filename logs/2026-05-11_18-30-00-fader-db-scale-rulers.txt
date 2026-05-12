@@ -1,0 +1,35 @@
+FADER DB SCALE RULERS
+
+Contexto: os faders de BusGroups e BusMix precisavam exibir uma regua lateral sutil de valores em dB, sem deslocar a barra central do fader.
+
+Causa: as telas tinham faders verticais sem referencia visual de escala. A solicitacao foi adicionar marcacoes de -60dB ate +10dB em passos de 10dB, com baixa agressividade visual e seguindo o padrao estetico do projeto.
+
+Ação:
+- Criado `src/shared/components/FaderDbScale.tsx` como componente compartilhado de escala.
+- A escala usa os tokens existentes `colors.fader.scaleText` e `colors.fader.scaleLine`, com opacidade reduzida para manter o visual discreto.
+- As marcas renderizadas sao `-60`, `-50`, `-40`, `-30`, `-20`, `-10`, `0` e `+10`.
+- A posicao vertical das marcas usa a curva X32 via `x32DbToRaw`, preservando a escala real do mixer.
+- `VerticalFader` em BusMix recebeu a regua ancorada a direita da barra central, usando `left: '50%'` e `spacing.xs`, sem alterar a posicao da barra.
+- `VerticalGroupFader` em BusGroups recebeu a mesma regua compartilhada, tambem ancorada a partir do centro do fader.
+- `DbScale` antigo de BusMix foi mantido como reexport do novo componente compartilhado para preservar compatibilidade.
+
+Resultado:
+- BusMix e BusGroups passam a mostrar uma regua lateral direita nos faders.
+- A barra central do fader nao foi reposicionada.
+- A regua fica dentro do espaco visual do strip, evitando invadir de forma agressiva os elementos vizinhos.
+- A escala ficou discreta, com texto pequeno e linhas curtas.
+
+Arquivos:
+- `src/shared/components/FaderDbScale.tsx`
+- `src/features/busMix/components/VerticalFader.tsx`
+- `src/features/busGroups/components/VerticalGroupFader.tsx`
+- `src/features/busMix/components/DbScale.tsx`
+
+Validação:
+- `yarn tsc` OK.
+- `yarn ios` OK no iPhone 17 Simulator.
+- App compilado, instalado e iniciado com sucesso no simulador.
+- Screenshot pos-build gerado em `/tmp/x32-fader-scale-post-build.png`.
+
+Pontos atenção:
+- A validacao automatizada confirmou build e inicializacao no simulador. A navegacao visual profunda para BusGroups/BusMix nao foi automatizada porque o acesso assistivo do `osascript` nao esta permitido nesta maquina.

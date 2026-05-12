@@ -1,0 +1,9 @@
+LANDSCAPE SIDE PADDING BUTTONS
+
+Contexto: aumentar um pouco o espacamento lateral no modo horizontal para evitar que botoes de header e MUTE fiquem cortados pela curvatura do telefone.
+Causa: o ajuste anterior deixou o layout correto no geral, mas ainda havia pouco respiro nas bordas para elementos interativos maiores, especialmente botoes nas extremidades.
+Ação: nas telas Personal Mix Grupos e Personal Mix Channel, o `screenCompact` passou a usar `paddingHorizontal: spacing.lg`, mantendo o padding vertical compacto ja aprovado.
+Resultado: landscape preserva o aproveitamento de tela, mas adiciona margem lateral simetrica de 20px para proteger botoes nas bordas arredondadas; portrait nao foi alterado.
+Arquivos: `src/features/busGroups/screens/BusGroupsScreen.tsx`, `src/features/busMix/screens/BusMixScreen.tsx`, `logs/2026-05-11_21-19-20-landscape-side-padding-buttons.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: mudanca intencionalmente pequena e limitada ao modo compacto/landscape.

@@ -1,0 +1,9 @@
+BUSMIX PRESETS MODAL LANDSCAPE CENTER
+
+Contexto: centralizar o modal de Presets do BusMix quando aberto em modo horizontal.
+Causa: o modal usava `Dialog` com largura `100%` e dependia apenas do backdrop para posicionamento; no landscape isso podia deixar o container visualmente deslocado em vez de centrado.
+Ação: `BusMixPresetsModal` passou a usar `useWindowDimensions` para detectar landscape; no horizontal calcula largura fixa responsiva entre 320px e 520px usando metade da largura da tela; container recebeu `alignSelf: 'center'`; backdrop passou a usar `alignItems: 'center'` junto de `justifyContent: 'center'`.
+Resultado: no landscape o modal de presets fica alinhado ao centro da tela; no portrait continua ocupando `100%` da largura disponivel como antes.
+Arquivos: `src/features/busMix/components/BusMixPresetsModal.tsx`, `logs/2026-05-11_21-33-20-busmix-presets-modal-landscape-center.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: ajuste limitado ao modal de Presets; os demais modais continuam usando o comportamento padrao do `Dialog` ou seus layouts proprios.

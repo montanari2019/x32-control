@@ -7,8 +7,10 @@ import {
   StyleSheet,
   View,
 } from 'react-native';
+import { FaderDbScale } from '@shared/components/FaderDbScale';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
+import { spacing } from '@shared/theme/spacing';
 import { clamp } from '@shared/utils/clamp';
 import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
@@ -136,6 +138,17 @@ export const VerticalGroupFader = ({
           { marginBottom: TRACK_EDGE_PADDING + THUMB_BOTTOM_GUARD, marginTop: TRACK_EDGE_PADDING },
         ]}
       />
+      <View
+        style={[
+          styles.dbScale,
+          {
+            height: availableHeight,
+            top: TRACK_EDGE_PADDING,
+          },
+        ]}
+      >
+        <FaderDbScale height={availableHeight} />
+      </View>
       <Animated.View
         style={[
           styles.thumb,
@@ -164,12 +177,17 @@ const styles = StyleSheet.create({
   disabled: {
     opacity: 0.4,
   },
+  dbScale: {
+    left: '50%',
+    marginLeft: spacing.xxs,
+    position: 'absolute',
+  },
   masterThumb: {
-    left: 10,
-    right: 10,
+    left: 8,
+    right: 8,
   },
   masterTrack: {
-    width: 6,
+    width: 5,
   },
   mcaThumb: {
     left: 8,

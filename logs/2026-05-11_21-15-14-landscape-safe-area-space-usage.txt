@@ -1,0 +1,9 @@
+LANDSCAPE SAFE AREA SPACE USAGE
+
+Contexto: aproveitar melhor o espaco lateral esquerdo e inferior no modo horizontal das telas Personal Mix Grupos e Personal Mix Channel, sem alterar o comportamento visual do modo vertical.
+Causa: a raiz do app aplicava SafeAreaView com edges `top/right/bottom/left` em todas as orientacoes; no iPhone em landscape isso reservava muito espaco horizontal antes das telas, e as telas compactas ainda tinham padding inferior proprio.
+Ação: App passou a manter todos os edges no portrait e usar somente `top` no landscape; BusGroupsScreen e BusMixScreen passaram a ler `useSafeAreaInsets` e aplicar padding compacto por tela, preservando o lado com maior inset para nao colidir com o indicador do sistema e liberando o lado oposto; padding inferior compacto reduzido para `spacing.xxs`.
+Resultado: modo vertical permanece no fluxo antigo de safe area; no landscape as telas ganham area util lateral e inferior com a protecao do lado do sistema controlada localmente.
+Arquivos: `src/app/App.tsx`, `src/features/busGroups/screens/BusGroupsScreen.tsx`, `src/features/busMix/screens/BusMixScreen.tsx`, `logs/2026-05-11_21-15-14-landscape-safe-area-space-usage.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: workspace ja tinha alteracoes pendentes nesses arquivos de layout; a mudanca foi aplicada por cima do estado atual sem reverter alteracoes anteriores.

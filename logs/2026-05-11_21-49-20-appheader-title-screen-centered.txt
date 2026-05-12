@@ -1,0 +1,9 @@
+APPHEADER TITLE SCREEN CENTERED
+
+Contexto: garantir que o titulo dos headers das telas fique obrigatoriamente centralizado em relacao a tela quando nao existir botao em um dos lados.
+Causa: `AppHeader` usava layout em linha, entao a centralizacao do titulo dependia do equilibrio entre botao esquerdo e espaco/botao direito; quando um lado era removido, o titulo podia ficar centralizado apenas no espaco restante e nao na tela.
+Ação: `AppHeader` passou a renderizar o bloco de titulo/subtitulo em camada absoluta com `left` e `right` simetricos; botoes esquerdo e direito continuam no fluxo normal acima da camada do titulo. Isso centraliza o texto em relacao a largura da tela sem exigir placeholder visivel.
+Resultado: todos os headers compartilhados mantem titulo centralizado na tela, mesmo quando o lado direito nao existe ou quando faltar um controle lateral.
+Arquivos: `src/shared/components/AppHeader.tsx`, `logs/2026-05-11_21-49-20-appheader-title-screen-centered.txt`.
+Validação: `yarn tsc` OK.
+Pontos atenção: o espaco lateral reservado para o texto e simetrico (`56px`, ou `48px` em modo compacto), protegendo o titulo contra os botoes das bordas.
