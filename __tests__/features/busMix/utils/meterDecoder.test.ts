@@ -38,13 +38,22 @@ describe('decodeMeter1BlobForChannel', () => {
     expect(decodeMeter1BlobForChannel(new Uint8Array(7), 1).preFadeDbfs).toBe(-60);
   });
 
-  it('decodes CH17 (digital AES50, index 16) correctly from 96-float blob', () => {
+  it('decodes CH17-CH22 (digital AES50 range, indexes 16-21) correctly from 96-float blob', () => {
     const values = new Array(96).fill(0.001);
     values[16] = 0.35;
+    values[17] = 0.4;
+    values[18] = 0.45;
+    values[19] = 0.5;
+    values[20] = 0.55;
+    values[21] = 0.6;
     const blob = createFloatMeterBlob(values);
 
     expect(decodeMeter1BlobForChannel(blob, 17).preFadeDbfs).toBeCloseTo(-9, 0);
-    expect(decodeMeter1BlobForChannel(blob, 16).preFadeDbfs).toBeCloseTo(-60, 0);
+    expect(decodeMeter1BlobForChannel(blob, 18).preFadeDbfs).toBeCloseTo(-8, 0);
+    expect(decodeMeter1BlobForChannel(blob, 19).preFadeDbfs).toBeCloseTo(-7, 0);
+    expect(decodeMeter1BlobForChannel(blob, 20).preFadeDbfs).toBeCloseTo(-6, 0);
+    expect(decodeMeter1BlobForChannel(blob, 21).preFadeDbfs).toBeCloseTo(-5, 0);
+    expect(decodeMeter1BlobForChannel(blob, 22).preFadeDbfs).toBeCloseTo(-4, 0);
   });
 
   it('does not read count header as a float', () => {
@@ -53,6 +62,12 @@ describe('decodeMeter1BlobForChannel', () => {
     const blob = createFloatMeterBlob(values);
 
     expect(decodeMeter1BlobForChannel(blob, 1).preFadeDbfs).toBeCloseTo(0, 1);
+  });
+
+  it('decodes X32 linear headroom values above unity', () => {
+    const blob = createFloatMeterBlob([2.0]);
+
+    expect(decodeMeter1BlobForChannel(blob, 1).preFadeDbfs).toBeCloseTo(6, 0);
   });
 });
 
