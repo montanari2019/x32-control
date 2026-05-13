@@ -1,0 +1,9 @@
+YARN INSTALL BUNDLER FIX
+
+Contexto: yarn install falhava no postinstall ao rodar husky + npm run pod.
+Causa: Gemfile.lock exigia Ruby 4.0.3/Bundler 4.0.10, incompativel com Ruby local 2.6.10; depois Bundler tentava instalar gems em /Library/Ruby sem permissao.
+Acao: Gemfile.lock regravado com Bundler 2.4.22/Ruby 2.6.10; pod-install.sh define BUNDLE_PATH=vendor/bundle p/ gems locais do projeto; pod install reexecutado.
+Resultado: OK; yarn install completo passa sem --ignore-scripts; CocoaPods 1.15.2 roda via bundle exec.
+Arquivos: Gemfile.lock; pod-install.sh; ios/Podfile.lock.
+Validacao: yarn install OK; cd ios && BUNDLE_PATH=vendor/bundle bundle exec pod --version => 1.15.2; yarn tsc OK.
+Pontos atencao: RubyGems 3.0.3.1 ainda emite warning recomendando gem update --system 3.2.3, mas nao bloqueia install.
