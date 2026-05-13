@@ -162,10 +162,27 @@ describe('useBusGroups', () => {
     saveDcaStateMock.mockResolvedValue(undefined);
   });
 
+  it('starts app MCAs empty when there is no stored device state', async () => {
+    const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    expect(result.current.mcas[0]?.assignedChannels).toEqual([]);
+    expect(result.current.mcas[0]?.assignedChannelIds).toEqual([]);
+    expect(result.current.mcas[0]?.faderRawValue).toBe(MCA_DEFAULT_RAW_VALUE);
+    expect(result.current.mcas[0]?.isMuted).toBe(false);
+
+    unmount();
+  });
+
   it('recalculates the MCA fader immediately when new channels are assigned', async () => {
     const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.toggleMcaChannelAssignment(1, initialChannels[0]!);
+    });
 
     expect(result.current.mcas[0]?.faderRawValue).toBeCloseTo(0.5, 5);
 
@@ -183,6 +200,10 @@ describe('useBusGroups', () => {
     const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.toggleMcaChannelAssignment(1, initialChannels[0]!);
+    });
 
     act(() => {
       result.current.setMcaFader(1, 0.82);
@@ -231,6 +252,10 @@ describe('useBusGroups', () => {
     await waitFor(() => expect(result.current.isLoading).toBe(false));
 
     act(() => {
+      result.current.toggleMcaChannelAssignment(1, initialChannels[0]!);
+    });
+
+    act(() => {
       result.current.clearMcaChannels(1);
     });
 
@@ -262,6 +287,10 @@ describe('useBusGroups', () => {
     const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
 
     await waitFor(() => expect(result.current.isLoading).toBe(false));
+
+    act(() => {
+      result.current.toggleMcaChannelAssignment(1, initialChannels[0]!);
+    });
 
     act(() => {
       result.current.toggleMcaChannelAssignment(1, initialChannels[1]!);

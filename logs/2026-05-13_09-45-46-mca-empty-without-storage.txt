@@ -1,0 +1,9 @@
+MCA EMPTY WITHOUT STORAGE
+
+Contexto: em console real, MCAs do app vinham preenchidos por leitura dos DCA assignments da mesa quando nao havia estado local salvo.
+Causa: useBusGroups usava normalizedState da X32 como base mesmo sem storage; esse state incluia assignedChannels derivados dos DCAs.
+Acao: sem storedState valido, MCAs do app agora iniciam com assignedChannels/assignedChannelIds vazios, nome default e mute false; storage legado sem assignedChannels cai p/ vazio; restore valido segue preservado; About APP_COMMIT_VERSION 35->36.
+Resultado: OK; primeiro uso em aparelho sem storage abre MCAs zerados p/ usuario configurar do zero.
+Arquivos: src/features/busGroups/hooks/useBusGroups.ts; __tests__/features/busGroups/hooks/useBusGroups.test.ts; src/features/about/screens/AboutScreen.tsx.
+Validacao: npx prettier --write arquivos alterados; yarn test __tests__/features/busGroups/hooks/useBusGroups.test.ts --runInBand OK; yarn tsc OK.
+Pontos atencao: validar em console real com storage limpo que MCAs iniciam sem canais, e com storage existente que configuracao local retorna.

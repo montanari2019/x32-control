@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import {
   Animated,
+  LayoutChangeEvent,
   PanResponder,
   PanResponderGestureState,
   PanResponderInstance,
@@ -20,6 +21,8 @@ type VerticalGroupFaderProps = {
   dragSensitivity?: number;
   isMaster?: boolean;
   onFaderChange: (value: number) => void;
+  onInteractionEnd?: () => void;
+  onInteractionStart?: () => void;
   trackHeight?: number;
   value: number;
 };
@@ -27,6 +30,7 @@ type VerticalGroupFaderProps = {
 const THUMB_HEIGHT = 34;
 const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
 const THUMB_BOTTOM_GUARD = 8;
+const TRACK_TOUCH_WIDTH = 24;
 
 export const VerticalGroupFader = ({
   accentColor,
@@ -34,18 +38,31 @@ export const VerticalGroupFader = ({
   dragSensitivity = 1,
   isMaster = false,
   onFaderChange,
+  onInteractionEnd,
+  onInteractionStart,
   trackHeight = 300,
   value,
 }: VerticalGroupFaderProps): JSX.Element => {
   const availableHeight = Math.max(1, trackHeight - THUMB_HEIGHT - THUMB_BOTTOM_GUARD);
   const animatedY = useRef(new Animated.Value(0)).current;
   const currentY = useRef(0);
+  const layoutWidth = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
   const onFaderChangeRef = useRef(onFaderChange);
   useEffect(() => {
     onFaderChangeRef.current = onFaderChange;
   }, [onFaderChange]);
+
+  const onInteractionEndRef = useRef(onInteractionEnd);
+  useEffect(() => {
+    onInteractionEndRef.current = onInteractionEnd;
+  }, [onInteractionEnd]);
+
+  const onInteractionStartRef = useRef(onInteractionStart);
+  useEffect(() => {
+    onInteractionStartRef.current = onInteractionStart;
+  }, [onInteractionStart]);
 
   const availableHeightRef = useRef(availableHeight);
   useEffect(() => {
@@ -61,6 +78,29 @@ export const VerticalGroupFader = ({
   useEffect(() => {
     dragSensitivityRef.current = dragSensitivity;
   }, [dragSensitivity]);
+
+  const handleLayout = useCallback((event: LayoutChangeEvent): void => {
+    layoutWidth.current = event.nativeEvent.layout.width;
+  }, []);
+
+  const isInsideInteractiveArea = useCallback(
+    (x: number, y: number): boolean => {
+      if (disabledRef.current) {
+        return false;
+      }
+
+      const width = layoutWidth.current || 70;
+      const centerX = width / 2;
+      const isOnThumb = y >= currentY.current && y <= currentY.current + THUMB_HEIGHT;
+      const isOnTrack =
+        Math.abs(x - centerX) <= TRACK_TOUCH_WIDTH / 2 &&
+        y >= TRACK_EDGE_PADDING &&
+        y <= trackHeight - TRACK_EDGE_PADDING;
+
+      return isOnThumb || isOnTrack;
+    },
+    [trackHeight],
+  );
 
   const updateFromPosition = useCallback(
     (nextY: number): void => {
@@ -80,12 +120,15 @@ export const VerticalGroupFader = ({
   const responder: PanResponderInstance = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponder: (event) =>
+          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
+        onMoveShouldSetPanResponder: (event) =>
+          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
           startY.current = currentY.current;
+          onInteractionStartRef.current?.();
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
@@ -93,13 +136,15 @@ export const VerticalGroupFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
           isDragging.current = false;
+          onInteractionEndRef.current?.();
         },
         onPanResponderTerminate: () => {
           isDragging.current = false;
+          onInteractionEndRef.current?.();
         },
         onShouldBlockNativeResponder: () => true,
       }),
-    [updateFromPosition],
+    [isInsideInteractiveArea, updateFromPosition],
   );
 
   useEffect(() => {
@@ -128,6 +173,7 @@ export const VerticalGroupFader = ({
   return (
     <View
       style={[styles.container, { height: trackHeight }, disabled ? styles.disabled : undefined]}
+      onLayout={handleLayout}
       {...(disabled ? {} : responder.panHandlers)}
     >
       <View

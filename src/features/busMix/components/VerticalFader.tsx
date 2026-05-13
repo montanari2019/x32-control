@@ -18,6 +18,8 @@ type VerticalFaderProps = {
   height: number;
   onChange: (level: number) => void;
   onChangeEnd: (level: number) => void;
+  onInteractionEnd?: () => void;
+  onInteractionStart?: () => void;
 };
 
 const FADER_MIN_DB = -60;
@@ -26,6 +28,7 @@ const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
 const THUMB_HEIGHT = 36;
 const VERTICAL_INSET = 8;
+const TRACK_TOUCH_WIDTH = 22;
 
 const positionToRaw = (position: number): number => {
   const clamped = Math.max(0, Math.min(1, position));
@@ -43,6 +46,8 @@ export const VerticalFader = ({
   height,
   onChange,
   onChangeEnd,
+  onInteractionEnd,
+  onInteractionStart,
 }: VerticalFaderProps): JSX.Element => {
   const trackHeight = Math.max(1, height - VERTICAL_INSET * 2);
   const available = Math.max(1, trackHeight - THUMB_HEIGHT);
@@ -54,6 +59,8 @@ export const VerticalFader = ({
   const startY = useRef(0);
   const onChangeRef = useRef(onChange);
   const onChangeEndRef = useRef(onChangeEnd);
+  const onInteractionEndRef = useRef(onInteractionEnd);
+  const onInteractionStartRef = useRef(onInteractionStart);
   const dragSensitivityRef = useRef(dragSensitivity);
 
   useEffect(() => {
@@ -69,8 +76,30 @@ export const VerticalFader = ({
   }, [onChangeEnd]);
 
   useEffect(() => {
+    onInteractionEndRef.current = onInteractionEnd;
+  }, [onInteractionEnd]);
+
+  useEffect(() => {
+    onInteractionStartRef.current = onInteractionStart;
+  }, [onInteractionStart]);
+
+  useEffect(() => {
     dragSensitivityRef.current = dragSensitivity;
   }, [dragSensitivity]);
+
+  const isInsideInteractiveArea = useCallback(
+    (x: number, y: number): boolean => {
+      const adjustedY = y - VERTICAL_INSET;
+      const halfTrackTouchWidth = TRACK_TOUCH_WIDTH / 2;
+      const isOnThumb =
+        adjustedY >= currentY.current && adjustedY <= currentY.current + THUMB_HEIGHT;
+      const isOnTrack =
+        Math.abs(x - 20) <= halfTrackTouchWidth && adjustedY >= 0 && adjustedY <= trackHeight;
+
+      return isOnThumb || isOnTrack;
+    },
+    [trackHeight],
+  );
 
   const updateFromY = useCallback(
     (y: number, emitEnd = false): void => {
@@ -92,12 +121,15 @@ export const VerticalFader = ({
   const panResponder: PanResponderInstance = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: () => true,
-        onMoveShouldSetPanResponder: () => true,
+        onStartShouldSetPanResponder: (event) =>
+          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
+        onMoveShouldSetPanResponder: (event) =>
+          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
           startY.current = currentY.current;
+          onInteractionStartRef.current?.();
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
           updateFromY(startY.current + gestureState.dy * dragSensitivityRef.current);
@@ -105,13 +137,15 @@ export const VerticalFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromY(startY.current + gestureState.dy * dragSensitivityRef.current, true);
           isDragging.current = false;
+          onInteractionEndRef.current?.();
         },
         onPanResponderTerminate: () => {
           isDragging.current = false;
+          onInteractionEndRef.current?.();
         },
         onShouldBlockNativeResponder: () => true,
       }),
-    [updateFromY],
+    [isInsideInteractiveArea, updateFromY],
   );
 
   useEffect(() => {

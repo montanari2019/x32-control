@@ -62,6 +62,15 @@ const normalizeStoredMcaName = (
   return normalizedName;
 };
 
+const clearInitialMcaAssignments = (mcas: McaGroup[]): McaGroup[] =>
+  mcas.map((mca) => ({
+    ...mca,
+    assignedChannels: [],
+    assignedChannelIds: [],
+    isMuted: false,
+    name: normalizeMcaName(mca.dcaNumber),
+  }));
+
 type DemoWritableProvider = {
   renameMca?: (dcaNumber: number, name: string) => void;
   setMcaAssignedChannels?: (dcaNumber: number, assignedChannels: McaAssignedChannel[]) => void;
@@ -242,7 +251,10 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
         })),
       };
       const storedState = await secureStoreService.getDcaState(consoleIp);
-      let nextBusGroupsState = normalizedState;
+      let nextBusGroupsState: BusGroupsState = {
+        ...normalizedState,
+        mcas: clearInitialMcaAssignments(normalizedState.mcas),
+      };
 
       if (storedState && storedState.mcas.length > 0) {
         const restoredMcas = normalizedState.mcas.map((mca) => {
@@ -251,7 +263,7 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
             return mca;
           }
 
-          const assignedChannels = storedMca.assignedChannels ?? mca.assignedChannels;
+          const assignedChannels = storedMca.assignedChannels ?? [];
 
           return {
             ...mca,

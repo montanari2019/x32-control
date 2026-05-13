@@ -22,6 +22,8 @@ type Props = NativeStackScreenProps<RootStackParamList, 'BusGroups'>;
 type McaStripItemProps = {
   mca: McaGroup;
   onFaderChange: (value: number) => void;
+  onFaderInteractionEnd: () => void;
+  onFaderInteractionStart: () => void;
   onPress: () => void;
   onToggleMute: () => void;
   stripHeight: number;
@@ -29,11 +31,22 @@ type McaStripItemProps = {
 };
 
 const McaStripItem = React.memo(
-  ({ compact, mca, onFaderChange, onPress, onToggleMute, stripHeight }: McaStripItemProps) => (
+  ({
+    compact,
+    mca,
+    onFaderChange,
+    onFaderInteractionEnd,
+    onFaderInteractionStart,
+    onPress,
+    onToggleMute,
+    stripHeight,
+  }: McaStripItemProps) => (
     <McaStrip
       compact={compact}
       mca={mca}
       onFaderChange={onFaderChange}
+      onFaderInteractionEnd={onFaderInteractionEnd}
+      onFaderInteractionStart={onFaderInteractionStart}
       onPress={onPress}
       onToggleMute={onToggleMute}
       stripHeight={stripHeight}
@@ -48,6 +61,8 @@ const McaStripItem = React.memo(
     prev.stripHeight === next.stripHeight &&
     prev.compact === next.compact &&
     prev.onFaderChange === next.onFaderChange &&
+    prev.onFaderInteractionEnd === next.onFaderInteractionEnd &&
+    prev.onFaderInteractionStart === next.onFaderInteractionStart &&
     prev.onPress === next.onPress &&
     prev.onToggleMute === next.onToggleMute,
 );
@@ -57,6 +72,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { width, height } = useWindowDimensions();
   const { showModal } = useModal();
   const [stripsHeight, setStripsHeight] = useState(0);
+  const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
   const isCompactLayout = width > height;
   const {
     masterFaderRaw,
@@ -97,11 +113,22 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     });
   }, [error, showModal]);
 
-  const handleStripsAreaLayout = useCallback((event: LayoutChangeEvent): void => {
-    const minHeight = isCompactLayout ? 1 : 320;
-    const nextHeight = Math.max(minHeight, Math.floor(event.nativeEvent.layout.height));
-    setStripsHeight((current) => (current === nextHeight ? current : nextHeight));
-  }, [isCompactLayout]);
+  const handleStripsAreaLayout = useCallback(
+    (event: LayoutChangeEvent): void => {
+      const minHeight = isCompactLayout ? 1 : 320;
+      const nextHeight = Math.max(minHeight, Math.floor(event.nativeEvent.layout.height));
+      setStripsHeight((current) => (current === nextHeight ? current : nextHeight));
+    },
+    [isCompactLayout],
+  );
+
+  const handleFaderInteractionStart = useCallback((): void => {
+    setIsFaderInteractionActive(true);
+  }, []);
+
+  const handleFaderInteractionEnd = useCallback((): void => {
+    setIsFaderInteractionActive(false);
+  }, []);
 
   const mcaFaderCallbacks = useMemo(
     () =>
@@ -190,6 +217,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
               overScrollMode="never"
               pagingEnabled={false}
               removeClippedSubviews={false}
+              scrollEnabled={!isFaderInteractionActive}
               scrollEventThrottle={16}
               showsHorizontalScrollIndicator={false}
               style={styles.stripsScroll}
@@ -201,6 +229,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                 dragSensitivity={isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined}
                 isMuted={masterMuted}
                 onFaderChange={setMasterFader}
+                onFaderInteractionEnd={handleFaderInteractionEnd}
+                onFaderInteractionStart={handleFaderInteractionStart}
                 onToggleMute={toggleMasterMute}
                 stripHeight={stripsHeight}
                 value={masterFaderRaw}
@@ -212,6 +242,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                   compact={isCompactLayout}
                   mca={mca}
                   onFaderChange={mcaFaderCallbacks.get(mca.dcaNumber)!}
+                  onFaderInteractionEnd={handleFaderInteractionEnd}
+                  onFaderInteractionStart={handleFaderInteractionStart}
                   onPress={mcaPressCallbacks.get(mca.dcaNumber)!}
                   onToggleMute={mcaMuteCallbacks.get(mca.dcaNumber)!}
                   stripHeight={stripsHeight}

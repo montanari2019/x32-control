@@ -47,6 +47,8 @@ type BusMixChannelItemProps = {
   ) => () => void;
   onChangeLevel: (channelNumber: number, level: number) => void;
   onChangeLevelEnd: (channelNumber: number, level: number) => void;
+  onFaderInteractionEnd: () => void;
+  onFaderInteractionStart: () => void;
   onOpenPan: (channelNumber: number) => void;
   onToggleMute: (channelNumber: number) => void;
 };
@@ -59,6 +61,8 @@ const BusMixChannelItemComponent = ({
   registerMeterListener,
   onChangeLevel,
   onChangeLevelEnd,
+  onFaderInteractionEnd,
+  onFaderInteractionStart,
   onOpenPan,
   onToggleMute,
 }: BusMixChannelItemProps): JSX.Element => {
@@ -89,6 +93,8 @@ const BusMixChannelItemComponent = ({
       onToggleMute={handleToggleMute}
       onFaderChange={handleFaderChange}
       onFaderChangeEnd={handleFaderChangeEnd}
+      onFaderInteractionEnd={onFaderInteractionEnd}
+      onFaderInteractionStart={onFaderInteractionStart}
       onPressBadge={handlePressBadge}
     />
   );
@@ -113,6 +119,8 @@ const BusMixChannelItem = React.memo(
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onChangeLevel === next.onChangeLevel &&
     prev.onChangeLevelEnd === next.onChangeLevelEnd &&
+    prev.onFaderInteractionEnd === next.onFaderInteractionEnd &&
+    prev.onFaderInteractionStart === next.onFaderInteractionStart &&
     prev.onOpenPan === next.onOpenPan &&
     prev.onToggleMute === next.onToggleMute,
 );
@@ -143,6 +151,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
   const faderDragSensitivity = isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined;
   const [faderHeight, setFaderHeight] = useState(240);
+  const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
   const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
   const viewabilityConfig = useRef<ViewabilityConfig>({
     itemVisiblePercentThreshold: 10,
@@ -207,6 +216,14 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [setLevel],
   );
 
+  const handleFaderInteractionStart = useCallback((): void => {
+    setIsFaderInteractionActive(true);
+  }, []);
+
+  const handleFaderInteractionEnd = useCallback((): void => {
+    setIsFaderInteractionActive(false);
+  }, []);
+
   const handleToggleMute = useCallback(
     (channelNumber: number): void => {
       toggleOn(channelNumber).catch(() => undefined);
@@ -232,14 +249,14 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [],
   );
 
-  const handleListLayout = useCallback((event: LayoutChangeEvent): void => {
-    const fixedOverhead = isCompactLayout ? STRIP_FIXED_OVERHEAD_COMPACT : STRIP_FIXED_OVERHEAD;
-    const nextHeight = Math.max(
-      120,
-      Math.floor(event.nativeEvent.layout.height) - fixedOverhead,
-    );
-    setFaderHeight((current) => (current === nextHeight ? current : nextHeight));
-  }, [isCompactLayout]);
+  const handleListLayout = useCallback(
+    (event: LayoutChangeEvent): void => {
+      const fixedOverhead = isCompactLayout ? STRIP_FIXED_OVERHEAD_COMPACT : STRIP_FIXED_OVERHEAD;
+      const nextHeight = Math.max(120, Math.floor(event.nativeEvent.layout.height) - fixedOverhead);
+      setFaderHeight((current) => (current === nextHeight ? current : nextHeight));
+    },
+    [isCompactLayout],
+  );
 
   const renderChannel = useCallback(
     ({ item }: ListRenderItemInfo<Channel>) => (
@@ -252,12 +269,16 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         onToggleMute={handleToggleMute}
         onChangeLevel={handleFaderChange}
         onChangeLevelEnd={handleFaderChangeEnd}
+        onFaderInteractionEnd={handleFaderInteractionEnd}
+        onFaderInteractionStart={handleFaderInteractionStart}
         onOpenPan={openPanModal}
       />
     ),
     [
       handleFaderChange,
       handleFaderChangeEnd,
+      handleFaderInteractionEnd,
+      handleFaderInteractionStart,
       handleToggleMute,
       faderDragSensitivity,
       faderHeight,
@@ -306,6 +327,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
         data={channels}
         keyExtractor={keyExtractor}
         horizontal
+        scrollEnabled={!isFaderInteractionActive}
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.list, isCompactLayout && styles.listCompact]}
         renderItem={renderChannel}
