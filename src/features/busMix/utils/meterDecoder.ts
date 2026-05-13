@@ -102,7 +102,7 @@ export const decodeMeter1BlobForChannel = (
         return makeSilence();
       }
 
-      const db = view.getFloat32(8 + index * 4, false);
+      const db = view.getFloat32(8 + index * 4, true);
       return makeValues(decodeFloatDbValue(db));
     }
   }
@@ -174,13 +174,13 @@ export const decodeMeter13BlobForChannel = (
     index >= 0 &&
     index < floatCount
   ) {
-    const linear = view.getFloat32(8 + index * 4, false);
+    const linear = view.getFloat32(8 + index * 4, true);
     return makeValues(decodeFloatDbValue(linear));
   }
 
   const rawCount = Math.floor(blob.byteLength / 4);
   if (index >= 0 && index < rawCount) {
-    const linear = view.getFloat32(index * 4, false);
+    const linear = view.getFloat32(index * 4, true);
     return makeValues(decodeFloatDbValue(linear));
   }
 
