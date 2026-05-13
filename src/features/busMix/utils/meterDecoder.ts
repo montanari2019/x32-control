@@ -76,77 +76,18 @@ export const decodeMeter1BlobForChannel = (
   blob: Uint8Array,
   channelId: number,
 ): ChannelMeterValues => {
-  if (blob.byteLength < 4) {
-    return makeSilence();
-  }
-
-  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
   const index = channelId - 1;
   if (index < 0) {
     return makeSilence();
   }
 
-  const countHeaderLe = view.getInt32(0, true);
-  const countHeaderBe = view.getInt32(0, false);
-
-  if (blob.byteLength >= 8) {
-    const floatCountBe = view.getInt32(4, false);
-    if (
-      countHeaderBe > 0 &&
-      floatCountBe > 0 &&
-      floatCountBe <= 256 &&
-      countHeaderBe === floatCountBe * 4 &&
-      blob.byteLength === 8 + floatCountBe * 4
-    ) {
-      if (index >= floatCountBe) {
-        return makeSilence();
-      }
-
-      const db = view.getFloat32(8 + index * 4, true);
-      return makeValues(decodeFloatDbValue(db));
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+  if (blob.byteLength >= 4 && blob.byteLength % 4 === 0) {
+    const floatCount = blob.byteLength / 4;
+    if (index < floatCount) {
+      const linear = view.getFloat32(index * 4, true);
+      return makeValues(decodeFloatDbValue(linear));
     }
-  }
-
-  if (countHeaderLe > 0 && countHeaderLe <= 512 && blob.byteLength === 4 + countHeaderLe * 2) {
-    if (index >= countHeaderLe) {
-      return makeSilence();
-    }
-
-    const db = view.getInt16(4 + index * 2, true) / 256.0;
-    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
-  }
-
-  if (countHeaderBe > 0 && countHeaderBe <= 512 && blob.byteLength === 4 + countHeaderBe * 2) {
-    if (index >= countHeaderBe) {
-      return makeSilence();
-    }
-
-    const db = view.getInt16(4 + index * 2, true) / 256.0;
-    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
-  }
-
-  if (countHeaderLe > 0 && countHeaderLe <= 256 && blob.byteLength === 4 + countHeaderLe * 4) {
-    if (index >= countHeaderLe) {
-      return makeSilence();
-    }
-
-    const value = view.getFloat32(4 + index * 4, true);
-    return makeValues(decodeFloatDbValue(value));
-  }
-
-  if (countHeaderBe > 0 && countHeaderBe <= 256 && blob.byteLength === 4 + countHeaderBe * 4) {
-    if (index >= countHeaderBe) {
-      return makeSilence();
-    }
-
-    const value = view.getFloat32(4 + index * 4, true);
-    return makeValues(decodeFloatDbValue(value));
-  }
-
-  const rawCount = Math.floor(blob.byteLength / 2);
-  if (index < rawCount) {
-    const db = view.getInt16(index * 2, true) / 256.0;
-    return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
   }
 
   return makeSilence();
@@ -156,32 +97,18 @@ export const decodeMeter13BlobForChannel = (
   blob: Uint8Array,
   channelId: number,
 ): ChannelMeterValues => {
-  if (blob.byteLength < 8) {
+  const index = channelId - 1;
+  if (index < 0) {
     return makeSilence();
   }
 
   const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-  const byteCount = view.getInt32(0, false);
-  const floatCount = view.getInt32(4, false);
-  const index = channelId - 1;
-
-  if (
-    byteCount > 0 &&
-    floatCount > 0 &&
-    floatCount <= 256 &&
-    byteCount === floatCount * 4 &&
-    blob.byteLength === 8 + floatCount * 4 &&
-    index >= 0 &&
-    index < floatCount
-  ) {
-    const linear = view.getFloat32(8 + index * 4, true);
-    return makeValues(decodeFloatDbValue(linear));
-  }
-
-  const rawCount = Math.floor(blob.byteLength / 4);
-  if (index >= 0 && index < rawCount) {
-    const linear = view.getFloat32(index * 4, true);
-    return makeValues(decodeFloatDbValue(linear));
+  if (blob.byteLength >= 4 && blob.byteLength % 4 === 0) {
+    const floatCount = blob.byteLength / 4;
+    if (index < floatCount) {
+      const linear = view.getFloat32(index * 4, true);
+      return makeValues(decodeFloatDbValue(linear));
+    }
   }
 
   return makeSilence();
