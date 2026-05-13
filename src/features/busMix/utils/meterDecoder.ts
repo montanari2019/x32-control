@@ -102,7 +102,7 @@ export const decodeMeter1BlobForChannel = (
         return makeSilence();
       }
 
-      const db = view.getFloat32(8 + index * 4, true);
+      const db = view.getFloat32(8 + index * 4, false);
       return makeValues(decodeFloatDbValue(db));
     }
   }
@@ -147,6 +147,41 @@ export const decodeMeter1BlobForChannel = (
   if (index < rawCount) {
     const db = view.getInt16(index * 2, true) / 256.0;
     return makeValues(clamp(db, METER_MIN_DBFS, METER_MAX_DBFS));
+  }
+
+  return makeSilence();
+};
+
+export const decodeMeter13BlobForChannel = (
+  blob: Uint8Array,
+  channelId: number,
+): ChannelMeterValues => {
+  if (blob.byteLength < 8) {
+    return makeSilence();
+  }
+
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+  const byteCount = view.getInt32(0, false);
+  const floatCount = view.getInt32(4, false);
+  const index = channelId - 1;
+
+  if (
+    byteCount > 0 &&
+    floatCount > 0 &&
+    floatCount <= 256 &&
+    byteCount === floatCount * 4 &&
+    blob.byteLength === 8 + floatCount * 4 &&
+    index >= 0 &&
+    index < floatCount
+  ) {
+    const linear = view.getFloat32(8 + index * 4, false);
+    return makeValues(decodeFloatDbValue(linear));
+  }
+
+  const rawCount = Math.floor(blob.byteLength / 4);
+  if (index >= 0 && index < rawCount) {
+    const linear = view.getFloat32(index * 4, false);
+    return makeValues(decodeFloatDbValue(linear));
   }
 
   return makeSilence();
