@@ -10,17 +10,13 @@ import { spacing } from '@shared/theme/spacing';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'About'>;
 
-const APP_COMMIT_VERSION = 27;
+const APP_COMMIT_VERSION = 34;
 const APP_VERSION = APP_COMMIT_VERSION.toString().padEnd(3, '0').split('').join('.');
 const CURRENT_YEAR = new Date().getFullYear();
 
 export const AboutScreen = ({ navigation }: Props): JSX.Element => (
   <Screen style={styles.screen}>
-    <AppHeader
-      title=""
-      onBack={() => navigation.goBack()}
-      reserveRightSpace={false}
-    />
+    <AppHeader title="" onBack={() => navigation.goBack()} reserveRightSpace={false} />
 
     <View style={styles.content}>
       <Text style={styles.title}>ABOUT</Text>
