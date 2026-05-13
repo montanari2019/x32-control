@@ -1,0 +1,9 @@
+MOBILE FADER SCROLL LOCK
+
+Contexto: iOS permitia scroll horizontal da lista ao arrastar faders verticais com leve desvio lateral do dedo.
+Causa: PanResponder do fader nao avisava lista pai p/ travar scroll e aceitava gesto em toda area do fader.
+Acao: add callbacks inicio/fim interacao nos faders BusMix/BusGroups; listas usam scrollEnabled=false durante drag; area ativa limitada ao thumb/trilho central; About APP_COMMIT_VERSION 34->35.
+Resultado: OK; impl usa APIs RN cross-platform sem Platform.OS; scroll convencional segue ativo fora do thumb/trilho e fica bloqueado temporariamente durante drag real do fader.
+Arquivos: src/features/busMix/components/VerticalFader.tsx; src/features/busMix/screens/BusMixScreen.tsx; src/features/busGroups/components/VerticalGroupFader.tsx; src/features/busGroups/screens/BusGroupsScreen.tsx; src/features/about/screens/AboutScreen.tsx.
+Validacao: npx prettier --write arquivos alterados; yarn tsc OK.
+Pontos atencao: validar manualmente em iPhone e Android fisico/simulador o gesto lateral durante drag em BusMix, Bus Master e MCAs.

@@ -10,7 +10,7 @@ import { spacing } from '@shared/theme/spacing';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'About'>;
 
-const APP_COMMIT_VERSION = 34;
+const APP_COMMIT_VERSION = 36;
 const APP_VERSION = APP_COMMIT_VERSION.toString().padEnd(3, '0').split('').join('.');
 const CURRENT_YEAR = new Date().getFullYear();
 

@@ -8,6 +8,8 @@ type MasterStripProps = {
   dragSensitivity?: number;
   isMuted: boolean;
   onFaderChange: (value: number) => void;
+  onFaderInteractionEnd?: () => void;
+  onFaderInteractionStart?: () => void;
   onToggleMute: () => void;
   stripHeight?: number;
   value: number;
@@ -20,6 +22,8 @@ export const MasterStrip = ({
   dragSensitivity,
   isMuted,
   onFaderChange,
+  onFaderInteractionEnd,
+  onFaderInteractionStart,
   onToggleMute,
   stripHeight,
   value,
@@ -33,6 +37,8 @@ export const MasterStrip = ({
     label={`BUS ${busId.toString().padStart(2, '0')}`}
     name={busName}
     onFaderChange={onFaderChange}
+    onFaderInteractionEnd={onFaderInteractionEnd}
+    onFaderInteractionStart={onFaderInteractionStart}
     onToggleMute={onToggleMute}
     stripHeight={stripHeight}
     value={value}

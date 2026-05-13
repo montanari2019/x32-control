@@ -8,6 +8,8 @@ type McaStripProps = {
   compact?: boolean;
   mca: McaGroup;
   onFaderChange: (value: number) => void;
+  onFaderInteractionEnd?: () => void;
+  onFaderInteractionStart?: () => void;
   onPress: () => void;
   onToggleMute: () => void;
   stripHeight?: number;
@@ -17,6 +19,8 @@ export const McaStrip = ({
   compact = false,
   mca,
   onFaderChange,
+  onFaderInteractionEnd,
+  onFaderInteractionStart,
   onPress,
   onToggleMute,
   stripHeight,
@@ -31,6 +35,8 @@ export const McaStrip = ({
     label="MCA"
     name={mca.name}
     onFaderChange={onFaderChange}
+    onFaderInteractionEnd={onFaderInteractionEnd}
+    onFaderInteractionStart={onFaderInteractionStart}
     onPress={onPress}
     onToggleMute={onToggleMute}
     stripHeight={stripHeight}

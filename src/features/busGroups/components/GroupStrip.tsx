@@ -18,6 +18,8 @@ type GroupStripProps = {
   label: string;
   name: string;
   onFaderChange: (value: number) => void;
+  onFaderInteractionEnd?: () => void;
+  onFaderInteractionStart?: () => void;
   onPress?: () => void;
   onToggleMute: () => void;
   stripHeight?: number;
@@ -35,6 +37,8 @@ export const GroupStrip = ({
   label,
   name,
   onFaderChange,
+  onFaderInteractionEnd,
+  onFaderInteractionStart,
   onPress,
   onToggleMute,
   stripHeight,
@@ -105,6 +109,8 @@ export const GroupStrip = ({
             dragSensitivity={dragSensitivity}
             isMaster={isMaster}
             onFaderChange={onFaderChange}
+            onInteractionEnd={onFaderInteractionEnd}
+            onInteractionStart={onFaderInteractionStart}
             trackHeight={measuredFaderHeight}
             value={value}
           />

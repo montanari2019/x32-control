@@ -24,6 +24,8 @@ type ChannelStripProps = {
   onToggleMute: () => void;
   onFaderChange: (value: number) => void;
   onFaderChangeEnd: (value: number) => void;
+  onFaderInteractionEnd?: () => void;
+  onFaderInteractionStart?: () => void;
   onPressBadge: () => void;
 };
 
@@ -47,6 +49,8 @@ const ChannelStripComponent = ({
   onToggleMute,
   onFaderChange,
   onFaderChangeEnd,
+  onFaderInteractionEnd,
+  onFaderInteractionStart,
   onPressBadge,
 }: ChannelStripProps): JSX.Element => {
   const [displayLevel, setDisplayLevel] = useState(channel.localFaderRaw);
@@ -109,6 +113,8 @@ const ChannelStripComponent = ({
             height={faderHeight}
             onChange={handleFaderChange}
             onChangeEnd={handleFaderChangeEnd}
+            onInteractionEnd={onFaderInteractionEnd}
+            onInteractionStart={onFaderInteractionStart}
           />
         </View>
       </View>
@@ -140,6 +146,8 @@ export const ChannelStrip = React.memo(
     prev.onToggleMute === next.onToggleMute &&
     prev.onFaderChange === next.onFaderChange &&
     prev.onFaderChangeEnd === next.onFaderChangeEnd &&
+    prev.onFaderInteractionEnd === next.onFaderInteractionEnd &&
+    prev.onFaderInteractionStart === next.onFaderInteractionStart &&
     prev.onPressBadge === next.onPressBadge,
 );
 
