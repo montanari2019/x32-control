@@ -19,6 +19,8 @@ export const METER_GREEN_MAX_DB = -2;
 export const METER_YELLOW_MAX_DB = 8;
 export const SILENCE_DBFS = METER_MIN_DBFS;
 
+const X32_BLOB_COUNT_HEADER_SIZE = 4;
+
 const linearToDb = (linear: number): number => {
   if (!Number.isFinite(linear) || linear <= 0) {
     return METER_MIN_DBFS;
@@ -81,16 +83,25 @@ export const decodeMeter1BlobForChannel = (
     return makeSilence();
   }
 
-  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-  if (blob.byteLength >= 4 && blob.byteLength % 4 === 0) {
-    const floatCount = blob.byteLength / 4;
-    if (index < floatCount) {
-      const linear = view.getFloat32(index * 4, true);
-      return makeValues(decodeFloatDbValue(linear));
-    }
+  const dataOffset = X32_BLOB_COUNT_HEADER_SIZE;
+  const minBlobSize = dataOffset + 4;
+  if (blob.byteLength < minBlobSize) {
+    return makeSilence();
   }
 
-  return makeSilence();
+  const dataBytes = blob.byteLength - dataOffset;
+  if (dataBytes % 4 !== 0) {
+    return makeSilence();
+  }
+
+  const floatCount = dataBytes / 4;
+  if (index >= floatCount) {
+    return makeSilence();
+  }
+
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+  const linear = view.getFloat32(dataOffset + index * 4, true);
+  return makeValues(decodeFloatDbValue(linear));
 };
 
 export const decodeMeter13BlobForChannel = (
@@ -102,16 +113,25 @@ export const decodeMeter13BlobForChannel = (
     return makeSilence();
   }
 
-  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-  if (blob.byteLength >= 4 && blob.byteLength % 4 === 0) {
-    const floatCount = blob.byteLength / 4;
-    if (index < floatCount) {
-      const linear = view.getFloat32(index * 4, true);
-      return makeValues(decodeFloatDbValue(linear));
-    }
+  const dataOffset = X32_BLOB_COUNT_HEADER_SIZE;
+  const minBlobSize = dataOffset + 4;
+  if (blob.byteLength < minBlobSize) {
+    return makeSilence();
   }
 
-  return makeSilence();
+  const dataBytes = blob.byteLength - dataOffset;
+  if (dataBytes % 4 !== 0) {
+    return makeSilence();
+  }
+
+  const floatCount = dataBytes / 4;
+  if (index >= floatCount) {
+    return makeSilence();
+  }
+
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+  const linear = view.getFloat32(dataOffset + index * 4, true);
+  return makeValues(decodeFloatDbValue(linear));
 };
 
 export const clampMeterValue = (dbfs: number): number =>
