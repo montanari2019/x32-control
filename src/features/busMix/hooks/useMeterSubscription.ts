@@ -5,7 +5,11 @@ import { OscMessage } from '@shared/osc/OscMessage';
 import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
 import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
-import { ChannelMeterValues, decodeMeter1BlobForChannel } from '../utils/meterDecoder';
+import {
+  ChannelMeterValues,
+  decodeMeter1BlobForChannel,
+  decodeMeter13BlobForChannel,
+} from '../utils/meterDecoder';
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
@@ -91,7 +95,7 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
           listenersRef.current.forEach((listeners, channelId) => {
             if (channelId < 33 || channelId > 48) return;
             if (listeners.size === 0) return;
-            const values = decodeMeter1BlobForChannel(blob, channelId);
+            const values = decodeMeter13BlobForChannel(blob, channelId);
             listeners.forEach((listener) => listener(values));
           });
         });

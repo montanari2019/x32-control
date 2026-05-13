@@ -1,0 +1,40 @@
+Implementacao: BusMix AUX/FX Return input meter via /meters/13
+Data: 2026-05-12 20:09 America/Cuiaba
+
+Resumo
+- Adicionado decoder dedicado decodeMeter13BlobForChannel em src/features/busMix/utils/meterDecoder.ts.
+- O decoder valida blob com header int32 big-endian count=48 e floats little-endian.
+- Mantidos fallbacks para header little-endian count=48 e blob sem header com 48 floats diretos.
+- useMeterSubscription.ts agora usa decodeMeter13BlobForChannel apenas na callback de /meters/13.
+- /meters/1 continua usando decodeMeter1BlobForChannel.
+- Adicionados testes para blob canonico de /meters/13 e blob invalido curto.
+- Nao foi aplicado fallback opcional de poll com type tag, pois os testes nao falharam por esse motivo.
+
+Arquivos alterados
+- src/features/busMix/utils/meterDecoder.ts
+- src/features/busMix/hooks/useMeterSubscription.ts
+- __tests__/features/busMix/utils/meterDecoder.test.ts
+- logs/2026-05-12_20-09-07-busmix-meter13-aux-fx-decoder.txt
+
+Validacao executada
+1. npm test -- --runInBand
+   Resultado: PASS
+   Test Suites: 12 passed, 12 total
+   Tests: 38 passed, 38 total
+
+2. npx prettier --check src/features/busMix/utils/meterDecoder.ts src/features/busMix/hooks/useMeterSubscription.ts __tests__/features/busMix/utils/meterDecoder.test.ts
+   Resultado: PASS
+   All matched files use Prettier code style.
+
+3. npm run tsc
+   Resultado: PASS
+   tsc --noEmit concluiu sem erros.
+
+4. npx prettier --check "src/**/*.ts" "src/**/*.tsx"
+   Resultado: FAIL preexistente fora do escopo
+   Observacao: o check global ainda aponta 79 arquivos src fora do escopo desta correcao.
+   Os arquivos tocados nesta implementacao nao aparecem mais na lista global de warnings.
+
+Observacao de ambiente
+- Os comandos Node falharam inicialmente no sandbox com EPERM em C:\Users\ikaro.montanari.
+- Os comandos foram rerodados fora do sandbox com permissao escalada.
