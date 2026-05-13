@@ -1,0 +1,68 @@
+Implementacao: BusMix real X32 meter protocol fix
+Data: 2026-05-12 20:50 America/Cuiaba
+
+Problema investigado
+- Meter visual zerado no console real X32 para CH01-32, AUX01-08 e FX Return 01-08.
+- Demo/mock continuava funcionando porque nao depende de OSC blob real.
+- Canais CH17-22 foram tratados explicitamente no teste como faixa digital/AES50 comum dentro do /meters/1.
+
+Fontes consultadas
+- X32/M32 OSC Remote Protocol, Patrick-Gilles Maillot, v4.06:
+  https://x32ram.com/wp-content/uploads/download-files/X32-OSC.pdf
+  - /meters e enviado como comando OSC /meters com o meter id como string.
+  - Respostas de meter sao blobs OSC.
+  - O blob retornado contem int1 BE de tamanho OSC, int2 LE de count e nativefloat LE.
+  - /meters/1 retorna 96 floats: 32 inputs, 32 gate GR, 32 dyn GR.
+  - /meters/13 retorna 48 floats: 32 inputs, 8 aux returns, 4x2 FX returns.
+- StackOverflow "How to access meters on Behringer X32?":
+  https://stackoverflow.com/questions/79628962/how-to-access-meters-on-behringer-x32
+  - Enviar /meters com parametro string /meters/1 e renovar periodicamente.
+  - Alternativa documentada: /batchsubscribe para meter data.
+
+Causa raiz encontrada
+- useMeterSubscription enviava sendRaw('/meters/1') e sendRaw('/meters/13').
+- A documentacao mostra que a X32 espera o comando /meters com argumento string, por exemplo /meters ,s /meters/1.
+- O decoder tambem precisava preservar o offset de 4 bytes do count header LE dentro do payload entregue pelo OscDecoder.
+
+Mudancas
+- src/features/busMix/hooks/useMeterSubscription.ts
+  - Substituido polling cru por request documentado:
+    client.send('/meters', ['/meters/1'])
+    client.send('/meters', ['/meters/13'])
+  - Renovacao a cada 8000ms, abaixo do timeout aproximado de 10s da X32.
+  - Ao registrar listener, dispara request imediato do stream correspondente.
+  - /meters/1 continua atendendo CH01-32.
+  - /meters/13 atende AUX01-08 e FX Return 01-08.
+
+- src/features/busMix/utils/meterDecoder.ts
+  - Mantido parser de payload [int32 LE count][float32 LE x count].
+  - Leitura usa offset 4 + index*4.
+  - Valores lineares >= 0 agora sao convertidos por 20*log10, cobrindo headroom acima de 1.0.
+
+- __tests__/features/busMix/hooks/useMeterSubscription.test.ts
+  - Adicionado teste garantindo que CH17 solicita /meters com /meters/1.
+  - Adicionado teste garantindo que AUX solicita /meters com /meters/13.
+  - Protege contra regressao para sendRaw('/meters/1').
+
+- __tests__/features/busMix/utils/meterDecoder.test.ts
+  - Mantidos testes do count header LE.
+  - Adicionado teste explicito para CH17-CH22.
+  - Adicionado teste de headroom linear acima de unity.
+
+Validacao executada
+1. npm test -- --runInBand
+   Resultado: PASS
+   Test Suites: 13 passed, 13 total
+   Tests: 44 passed, 44 total
+
+2. npx prettier --check nos arquivos alterados
+   Resultado: PASS
+   All matched files use Prettier code style.
+
+3. npm run tsc
+   Resultado: PASS
+   tsc --noEmit concluiu sem erros.
+
+Observacao
+- Nao foi possivel ler diretamente os meters do console real a partir deste workspace, porque o runtime do app/dispositivo e a rede da mesa nao estao expostos aqui como um socket de diagnostico controlavel.
+- A correcao aplicada segue o formato documentado da X32 e cobre os canais CH17-22 por indice dentro do /meters/1.

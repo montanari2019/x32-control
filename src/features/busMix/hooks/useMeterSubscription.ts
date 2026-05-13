@@ -13,8 +13,8 @@ import {
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
-// Poll around 12.5fps. Perceptually equivalent to 15fps for VU meters, 17% less UDP traffic.
-const POLL_INTERVAL_MS = 80;
+const METER_RENEW_INTERVAL_MS = 8000;
+const METER_REQUEST_THROTTLE_MS = 1000;
 
 const getBlobArg = (message: OscMessage): Uint8Array | null => {
   const [first] = message.args;
@@ -33,6 +33,27 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
   const isPolling13Ref = useRef(false);
   const pollInterval13Ref = useRef<ReturnType<typeof setInterval> | null>(null);
   const unsubscribeOsc13Ref = useRef<(() => void) | null>(null);
+  const lastMeters1RequestAtRef = useRef(0);
+  const lastMeters13RequestAtRef = useRef(0);
+
+  const requestMeterStream = useCallback((meterPath: string): void => {
+    const client = clientRef.current;
+    if (!client) {
+      return;
+    }
+
+    const lastRequestAtRef =
+      meterPath === X32Protocol.getMeters13Path()
+        ? lastMeters13RequestAtRef
+        : lastMeters1RequestAtRef;
+    const now = Date.now();
+    if (now - lastRequestAtRef.current < METER_REQUEST_THROTTLE_MS) {
+      return;
+    }
+
+    lastRequestAtRef.current = now;
+    client.send(X32Protocol.getMetersSubscribePath(), [meterPath]).catch(() => undefined);
+  }, []);
 
   useEffect(() => {
     if (!enabled || isMock) {
@@ -55,6 +76,16 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
         clientRef.current = client;
         client.startXRemoteKeepAlive();
 
+        const requestActiveMeterStreams = (): void => {
+          const activeChannelIds = [...listenersRef.current.keys()];
+          if (activeChannelIds.some((channelId) => channelId >= 1 && channelId <= 32)) {
+            requestMeterStream(X32Protocol.getMeters1Path());
+          }
+          if (activeChannelIds.some((channelId) => channelId >= 33 && channelId <= 48)) {
+            requestMeterStream(X32Protocol.getMeters13Path());
+          }
+        };
+
         // Listen for /meters/1 responses
         unsubscribeOscRef.current = client.subscribe(X32Protocol.getMeters1Path(), (message) => {
           const blob = getBlobArg(message);
@@ -69,21 +100,19 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
           });
         });
 
-        // Poll: send /meters/1 (no args) at fixed interval.
-        // The X32 responds immediately with a blob containing all channel levels.
-        // This avoids the 10-second subscription timeout and renewal complexity.
+        // Meter requests are sent to /meters with the requested meter id as a string.
+        // The X32 streams responses for about 10s, so renew before that timeout.
         pollIntervalRef.current = setInterval(() => {
-          if (listenersRef.current.size === 0) return;
+          const hasChannelListeners = [...listenersRef.current.keys()].some(
+            (channelId) => channelId >= 1 && channelId <= 32,
+          );
+          if (!hasChannelListeners) return;
           if (isPollingRef.current) return;
 
           isPollingRef.current = true;
-          client
-            .sendRaw(X32Protocol.getMeters1Path())
-            .catch(() => undefined)
-            .finally(() => {
-              isPollingRef.current = false;
-            });
-        }, POLL_INTERVAL_MS);
+          requestMeterStream(X32Protocol.getMeters1Path());
+          isPollingRef.current = false;
+        }, METER_RENEW_INTERVAL_MS);
 
         // Listen for /meters/13 responses (AUX 01-08 + FX Return 01-08, channelIds 33-48)
         unsubscribeOsc13Ref.current = client.subscribe(X32Protocol.getMeters13Path(), (message) => {
@@ -109,13 +138,11 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
           if (isPolling13Ref.current) return;
 
           isPolling13Ref.current = true;
-          client
-            .sendRaw(X32Protocol.getMeters13Path())
-            .catch(() => undefined)
-            .finally(() => {
-              isPolling13Ref.current = false;
-            });
-        }, POLL_INTERVAL_MS);
+          requestMeterStream(X32Protocol.getMeters13Path());
+          isPolling13Ref.current = false;
+        }, METER_RENEW_INTERVAL_MS);
+
+        requestActiveMeterStreams();
       } catch {
         // Keep silent; connection errors handled by main flow.
       }
@@ -143,13 +170,15 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
 
       isPollingRef.current = false;
       isPolling13Ref.current = false;
+      lastMeters1RequestAtRef.current = 0;
+      lastMeters13RequestAtRef.current = 0;
       clientRef.current?.stopXRemoteKeepAlive();
       clientLeaseRef.current?.release();
       clientLeaseRef.current = null;
       clientRef.current = null;
       listeners.clear();
     };
-  }, [consoleIp, enabled, isMock]);
+  }, [consoleIp, enabled, isMock, requestMeterStream]);
 
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
@@ -165,6 +194,12 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
       listeners.add(listener);
       listenersRef.current.set(channelId, listeners);
 
+      requestMeterStream(
+        channelId >= 33 && channelId <= 48
+          ? X32Protocol.getMeters13Path()
+          : X32Protocol.getMeters1Path(),
+      );
+
       return () => {
         const current = listenersRef.current.get(channelId);
         if (!current) return;
@@ -174,7 +209,7 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
         }
       };
     },
-    [enabled, isMock, mockProvider],
+    [enabled, isMock, mockProvider, requestMeterStream],
   );
 
   return { registerMeterListener };

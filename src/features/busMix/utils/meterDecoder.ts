@@ -30,7 +30,7 @@ const linearToDb = (linear: number): number => {
 };
 
 const decodeFloatDbValue = (value: number): number => {
-  if (value >= 0 && value <= 1) {
+  if (value >= 0) {
     return linearToDb(value);
   }
 
