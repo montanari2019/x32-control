@@ -23,7 +23,10 @@ const getBlobArg = (message: OscMessage): Uint8Array | null => {
 
 export const useMeterSubscription = (consoleIp: string, enabled = true) => {
   const isMock = isMockConsoleIp(consoleIp);
-  const mockProvider = useMemo(() => getMockProviderForIp(consoleIp), [consoleIp]);
+  const mockProvider = useMemo(
+    () => (isMock ? getMockProviderForIp(consoleIp) : null),
+    [consoleIp, isMock],
+  );
   const clientRef = useRef<OscClient | null>(null);
   const clientLeaseRef = useRef<SharedOscClientLease | null>(null);
   const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -182,7 +185,7 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
 
   const registerMeterListener = useCallback(
     (channelId: number, listener: MeterListener): (() => void) => {
-      if (isMock) {
+      if (isMock && mockProvider) {
         return mockProvider.subscribeMeter(channelId, listener);
       }
 
