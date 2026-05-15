@@ -14,9 +14,14 @@ const DEMO_DEVICE: ConsoleDevice = {
   firmware: 'demo-1.0',
 };
 
+const getInitialDevices = (): ConsoleDevice[] => (__DEV__ ? [DEMO_DEVICE] : []);
+
+const appendDevelopmentDevices = (devices: ConsoleDevice[]): ConsoleDevice[] =>
+  __DEV__ ? [...devices, DEMO_DEVICE] : devices;
+
 export const useConsoleDiscovery = () => {
   const service = useMemo(() => new ConsoleDiscoveryService(), []);
-  const [devices, setDevices] = useState<ConsoleDevice[]>([DEMO_DEVICE]);
+  const [devices, setDevices] = useState<ConsoleDevice[]>(getInitialDevices);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -26,13 +31,13 @@ export const useConsoleDiscovery = () => {
 
     try {
       const found = await service.scan();
-      setDevices(found.length > 0 ? [...found, DEMO_DEVICE] : [DEMO_DEVICE]);
+      setDevices(appendDevelopmentDevices(found));
       if (found.length === 0) {
         setError('Nenhuma X32/M32 respondeu ao broadcast. Verifique a rede e tente novamente.');
       }
     } catch (scanError) {
       setError(getErrorMessage(scanError));
-      setDevices([DEMO_DEVICE]);
+      setDevices(getInitialDevices());
     } finally {
       setIsSearching(false);
     }

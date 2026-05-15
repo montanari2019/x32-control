@@ -31,7 +31,7 @@
 		00E356EE1AD99517003FC87E /* X32NativeShellTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = X32NativeShellTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		00E356F11AD99517003FC87E /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		00E356F21AD99517003FC87E /* X32NativeShellTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = X32NativeShellTests.m; sourceTree = "<group>"; };
-		13B07F961A680F5B00A75B9A /* X32NativeShell.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = X32NativeShell.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		13B07F961A680F5B00A75B9A /* Tacimix.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tacimix.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		13B07FAF1A68108700A75B9A /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = AppDelegate.h; path = X32NativeShell/AppDelegate.h; sourceTree = "<group>"; };
 		13B07FB01A68108700A75B9A /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = AppDelegate.mm; path = X32NativeShell/AppDelegate.mm; sourceTree = "<group>"; };
 		13B07FB51A68108700A75B9A /* Images.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; name = Images.xcassets; path = X32NativeShell/Images.xcassets; sourceTree = "<group>"; };
@@ -134,7 +134,7 @@
 		83CBBA001A601CBA00E9B192 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				13B07F961A680F5B00A75B9A /* X32NativeShell.app */,
+				13B07F961A680F5B00A75B9A /* Tacimix.app */,
 				00E356EE1AD99517003FC87E /* X32NativeShellTests.xctest */,
 			);
 			name = Products;
@@ -193,7 +193,7 @@
 			);
 			name = X32NativeShell;
 			productName = X32NativeShell;
-			productReference = 13B07F961A680F5B00A75B9A /* X32NativeShell.app */;
+			productReference = 13B07F961A680F5B00A75B9A /* Tacimix.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -435,9 +435,9 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.x32control.busauxcontrol.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tacimix.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/X32NativeShell.app/X32NativeShell";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tacimix.app/Tacimix";
 			};
 			name = Debug;
 		};
@@ -461,9 +461,9 @@
 					"-lc++",
 					"$(inherited)",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.x32control.busauxcontrol.tests;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tacimix.app.tests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/X32NativeShell.app/X32NativeShell";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Tacimix.app/Tacimix";
 			};
 			name = Release;
 		};
@@ -474,7 +474,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UCHLXG2VK9;
 				ENABLE_BITCODE = NO;
 				INFOPLIST_FILE = X32NativeShell/Info.plist;
@@ -488,8 +488,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.x32control.busauxcontrol;
-				PRODUCT_NAME = X32NativeShell;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tacimix.app;
+				PRODUCT_NAME = Tacimix;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
@@ -503,7 +503,7 @@
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_STYLE = Automatic;
-				CURRENT_PROJECT_VERSION = 1;
+				CURRENT_PROJECT_VERSION = 2;
 				DEVELOPMENT_TEAM = UCHLXG2VK9;
 				INFOPLIST_FILE = X32NativeShell/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -516,8 +516,8 @@
 					"-ObjC",
 					"-lc++",
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.x32control.busauxcontrol;
-				PRODUCT_NAME = X32NativeShell;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tacimix.app;
+				PRODUCT_NAME = Tacimix;
 				SWIFT_VERSION = 5.0;
 				VERSIONING_SYSTEM = "apple-generic";
 			};
