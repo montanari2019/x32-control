@@ -1,7 +1,9 @@
 import { Buffer } from 'buffer';
+import { NativeModules } from 'react-native';
 import { AppError } from '@shared/errors/AppError';
 
 type UdpSocket = {
+  _id?: number;
   bind: (port: number) => void;
   close: () => void;
   send: (
@@ -20,6 +22,10 @@ type DgramModule = {
   createSocket: (options: { type: 'udp4'; reusePort: boolean }) => UdpSocket;
 };
 
+type UdpSocketsNativeModule = {
+  setBroadcast?: (socketId: number, enabled: boolean, callback: (error?: unknown) => void) => void;
+};
+
 type BindOptions = {
   broadcast?: boolean;
 };
@@ -33,7 +39,7 @@ export type UdpMessage = {
 export type UdpMessageHandler = (message: UdpMessage) => void;
 export type UdpErrorHandler = (error: AppError) => void;
 
-const SEND_TIMEOUT_MS = 200;
+const SEND_TIMEOUT_MS = 1000;
 
 export class UdpTransport {
   private socket?: UdpSocket;
@@ -68,10 +74,7 @@ export class UdpTransport {
 
       this.socket.on('listening', () => {
         this.isBound = true;
-        if (options.broadcast) {
-          this.configureBroadcastOnce();
-        }
-        resolve();
+        this.configureBroadcastOnce(options.broadcast).then(resolve).catch(reject);
       });
 
       this.socket.on('message', (payload: unknown, remote: unknown) => {
@@ -139,13 +142,30 @@ export class UdpTransport {
     this.socket = undefined;
   }
 
-  private configureBroadcastOnce(): void {
-    if (this.broadcastConfigured || !this.socket?.setBroadcast) {
+  private async configureBroadcastOnce(enabled?: boolean): Promise<void> {
+    if (!enabled || this.broadcastConfigured || !this.socket?.setBroadcast) {
       return;
     }
 
     this.broadcastConfigured = true;
     try {
+      const socketId = this.socket._id;
+      const nativeUdpSockets = NativeModules.UdpSockets as UdpSocketsNativeModule | undefined;
+
+      if (typeof socketId === 'number' && nativeUdpSockets?.setBroadcast) {
+        await new Promise<void>((resolve, reject) => {
+          nativeUdpSockets.setBroadcast?.(socketId, true, (error) => {
+            if (error) {
+              reject(error);
+              return;
+            }
+
+            resolve();
+          });
+        });
+        return;
+      }
+
       this.socket.setBroadcast(true);
     } catch (error) {
       const appError = new AppError(
@@ -154,6 +174,7 @@ export class UdpTransport {
         error,
       );
       this.errorHandlers.forEach((handler) => handler(appError));
+      throw appError;
     }
   }
 

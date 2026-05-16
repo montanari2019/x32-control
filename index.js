@@ -6,4 +6,4 @@ import { disableProductionLogs } from './src/shared/utils/disableProductionLogs'
 
 global.Buffer = global.Buffer || Buffer;
 disableProductionLogs();
-AppRegistry.registerComponent('X32BusAuxControl', () => App);
+AppRegistry.registerComponent('Tacimix', () => App);

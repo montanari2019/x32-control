@@ -1,0 +1,37 @@
+Correção da descoberta de consoles no iOS
+Data: 2026-05-15 19:42:45
+
+Contexto
+- O fluxo "buscar redes"/ConsoleDiscover não estava encontrando consoles no build iOS.
+- No Android o mesmo fluxo funcionava antes, então a investigação ficou focada no comportamento de rede local do iOS.
+
+Causa provável
+- O scanner enviava discovery UDP somente para 255.255.255.255.
+- No iOS esse broadcast global pode não sair corretamente pela interface Wi-Fi ativa, mesmo com setBroadcast habilitado.
+- O pacote OSC /info era enviado com typetag vazio. Para discovery de consoles X32/M32, o formato mais compatível é enviar apenas o endereço OSC /info alinhado em 4 bytes.
+- O tempo máximo de espera era curto para o primeiro scan no iOS, especialmente quando o sistema precisa pedir permissão de rede local.
+- Havia uma limpeza incompleta de timers quando o timeout máximo encerrava o scan.
+
+Alterações realizadas
+- Criado ios/Tacimix/TacimixNetworkInfo.m, um módulo nativo React Native que usa getifaddrs para listar os endereços de broadcast IPv4 das interfaces ativas.
+- Criado src/shared/network/NativeNetworkInterfaces.ts para expor esses broadcasts ao JavaScript apenas no iOS.
+- Atualizado src/shared/network/NetworkScanner.ts para:
+  - enviar /info para os broadcasts direcionados da rede Wi-Fi e manter 255.255.255.255 como fallback;
+  - usar payload OSC de address-only para /info;
+  - tolerar falha em um destino se outro broadcast funcionar;
+  - aumentar a janela de resposta para até 1800ms;
+  - limpar corretamente todos os timers do scan.
+- Atualizado ios/Tacimix/Info.plist para declarar o serviço Bonjour como _osc._udp.
+- Corrigida a referência do arquivo TacimixNetworkInfo.m no projeto Xcode para o caminho ios/Tacimix/TacimixNetworkInfo.m.
+
+Validações executadas
+- npx prettier --write src/shared/network/NetworkScanner.ts src/shared/network/NativeNetworkInterfaces.ts: OK.
+- plutil -lint ios/Tacimix/Info.plist ios/Tacimix/PrivacyInfo.xcprivacy: OK.
+- xcodebuild -list -workspace ios/Tacimix.xcworkspace: OK.
+- yarn tsc: OK.
+- xcodebuild build -workspace ios/Tacimix.xcworkspace -scheme Tacimix -configuration Release -destination 'generic/platform=iOS': OK, BUILD SUCCEEDED.
+
+Observações para teste em aparelho real
+- No primeiro uso, aceite a permissão "Local Network" do iOS.
+- Se a permissão tiver sido negada antes, reative em Ajustes > Privacidade e Seguranca > Rede Local > Tacimix.
+- Teste com o iPhone na mesma rede Wi-Fi da mesa/console.

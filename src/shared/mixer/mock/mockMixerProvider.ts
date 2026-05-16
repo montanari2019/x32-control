@@ -546,7 +546,7 @@ export const mockMixerProvider = new MockMixerProvider();
 export const isDemoConsoleIp = (consoleIp: string): boolean => consoleIp === DEMO_CONSOLE_IP;
 
 export const isMockConsoleIp = (consoleIp: string): boolean =>
-  __DEV__ && (consoleIp === DEV_MOCK_CONSOLE_IP || isDemoConsoleIp(consoleIp));
+  isDemoConsoleIp(consoleIp) || (__DEV__ && consoleIp === DEV_MOCK_CONSOLE_IP);
 
 /**
  * Retorna o provider mock correto baseado no IP.

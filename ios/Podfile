@@ -14,7 +14,7 @@ if linkage != nil
   use_frameworks! :linkage => linkage.to_sym
 end
 
-target 'X32NativeShell' do
+target 'Tacimix' do
   config = use_native_modules!
 
   use_react_native!(
@@ -24,7 +24,7 @@ target 'X32NativeShell' do
     :app_path => "#{Pod::Config.instance.installation_root}/.."
   )
 
-  target 'X32NativeShellTests' do
+  target 'TacimixTests' do
     inherit! :complete
     # Pods for testing
   end

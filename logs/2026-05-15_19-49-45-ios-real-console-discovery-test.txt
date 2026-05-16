@@ -1,0 +1,45 @@
+Teste e correção da descoberta iOS com console real
+Data: 2026-05-15 19:49:45
+
+Contexto
+- No iPhone real, a tela de descoberta mostrava: "Falha ao enviar broadcast de descoberta."
+- A mesa real estava ligada e na rede durante o teste.
+
+Causa encontrada no código
+- O app chamava setBroadcast(true), mas nao esperava o callback nativo do react-native-udp antes de enviar o /info.
+- No iOS isso cria uma corrida: o pacote pode ser enviado antes do SO_BROADCAST estar habilitado no socket.
+- O timeout de envio UDP era 200ms, curto demais para callback nativo em aparelho real.
+- Quando todos os envios retornavam timeout/erro, o NetworkScanner abortava antes mesmo de aguardar respostas.
+
+Alterações realizadas
+- src/shared/network/UdpTransport.ts:
+  - passou a aguardar NativeModules.UdpSockets.setBroadcast concluir antes de resolver bind(..., { broadcast: true });
+  - aumentou SEND_TIMEOUT_MS de 200ms para 1000ms;
+  - propaga erro real ao falhar habilitando broadcast.
+- src/shared/network/NetworkScanner.ts:
+  - considera UDP_TIMEOUT de envio como tentativa aceita para discovery, pois broadcast UDP e callback de envio no iOS podem ser assíncronos o bastante para atrasar;
+  - continua falhando quando todos os envios retornam erro real de transporte.
+- __tests__/shared/network/NetworkScanner.test.ts:
+  - cobre envio para broadcast direcionado + fallback;
+  - cobre o caso de timeout de callback de envio sem abortar discovery;
+  - cobre erro real de transporte em todos os broadcasts.
+
+Teste de rede real feito a partir do Mac
+- Broadcast enviado para 255.255.255.255:10023: OK.
+- Broadcast enviado para 192.168.88.255:10023: OK.
+- Respostas recebidas: 2.
+- Console respondendo em 192.168.88.250:10023.
+- Resposta /info identificou modelo X32 e firmware 4.02.
+
+Validações executadas
+- yarn jest __tests__/shared/network/NetworkScanner.test.ts --runInBand: OK, 3 testes passaram.
+- yarn jest --runInBand: OK, 14 suites / 48 testes passaram.
+- yarn tsc: OK.
+- xcrun xctrace list devices: encontrou iPhone de Ikaro em 00008140-000A222401B8801C.
+- xcodebuild build -workspace ios/Tacimix.xcworkspace -scheme Tacimix -configuration Debug -destination 'id=00008140-000A222401B8801C': OK, BUILD SUCCEEDED.
+- xcrun devicectl device install app --device D00ED63B-A724-51B7-9A88-758379CCDB04 .../Tacimix.app: OK, app instalado com bundle com.tacimix.app.
+- xcrun devicectl device process launch --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app: OK, app aberto.
+
+Observação
+- A validação automatizada confirmou que a mesa real responde na rede e que o app iOS compila, instala e abre no iPhone.
+- A etapa que ainda precisa de toque físico é pressionar "Buscar mesas na rede" no iPhone e aceitar/confirmar permissao de Rede Local se o iOS pedir.
