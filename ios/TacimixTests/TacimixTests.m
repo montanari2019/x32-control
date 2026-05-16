@@ -7,11 +7,11 @@
 #define TIMEOUT_SECONDS 600
 #define TEXT_TO_LOOK_FOR @"Welcome to React"
 
-@interface X32NativeShellTests : XCTestCase
+@interface TacimixTests : XCTestCase
 
 @end
 
-@implementation X32NativeShellTests
+@implementation TacimixTests
 
 - (BOOL)findSubviewInView:(UIView *)view matching:(BOOL (^)(UIView *view))test
 {

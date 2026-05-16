@@ -21,7 +21,7 @@
   self.bridge = [[RCTBridge alloc] initWithDelegate:self launchOptions:launchOptions];
 
   RCTRootView *rootView = [[RCTRootView alloc] initWithBridge:self.bridge
-                                                   moduleName:@"X32BusAuxControl"
+                                                   moduleName:@"Tacimix"
                                             initialProperties:nil];
   rootView.backgroundColor = [UIColor colorWithRed:0.01568627451
                                              green:0.0431372549

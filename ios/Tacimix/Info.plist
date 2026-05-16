@@ -36,7 +36,7 @@
 	<string>O app precisa encontrar e controlar consoles X32/M32 na rede local.</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_osc._udp</string>
+		<string>_osc._udp.</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>

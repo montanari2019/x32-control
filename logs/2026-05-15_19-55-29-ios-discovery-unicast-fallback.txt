@@ -1,0 +1,43 @@
+Correção adicional: fallback unicast para descoberta iOS
+Data: 2026-05-15 19:55:29
+
+Contexto
+- Depois da primeira correção, o erro mudou: o app iOS deixou de falhar ao enviar broadcast, mas ainda nao listava a mesa real.
+- A mensagem passou a ser: "Nenhuma X32/M32 respondeu ao broadcast."
+- Isso indica que o envio UDP aconteceu, mas nenhuma resposta chegou ao listener do app dentro da janela de discovery.
+
+Achado importante
+- O teste externo feito no Mac confirmou que a mesa real responde ao /info:
+  - IP da mesa: 192.168.88.250
+  - Porta: 10023
+  - Modelo: X32
+  - Firmware: 4.02
+- Portanto o problema nao era o payload OSC nem a mesa desligada.
+- O caso mais provavel no iOS é a resposta ao broadcast UDP nao chegar de volta ao app por comportamento do iOS, roteador/AP, isolamento de broadcast ou timing de rede local.
+
+Solução aplicada
+- Mantido o broadcast direcionado e o fallback 255.255.255.255.
+- Adicionado fallback por unicast:
+  - o modulo iOS agora retorna address, netmask e broadcast das interfaces IPv4 ativas;
+  - se o broadcast nao retornar nenhum console, o NetworkScanner calcula os hosts da sub-rede local;
+  - o app envia /info diretamente para os IPs da sub-rede em lotes de 32;
+  - para redes muito grandes, limita a varredura ao /24 do aparelho para evitar scan agressivo.
+- Esse modelo é mais robusto em iOS porque nao depende da resposta de broadcast voltar corretamente.
+
+Arquivos alterados
+- ios/Tacimix/TacimixNetworkInfo.m
+- src/shared/network/NativeNetworkInterfaces.ts
+- src/shared/network/NetworkScanner.ts
+- __tests__/shared/network/NetworkScanner.test.ts
+
+Validações executadas
+- yarn jest __tests__/shared/network/NetworkScanner.test.ts --runInBand: OK, 4 testes passaram.
+- yarn tsc: OK.
+- xcodebuild build -workspace ios/Tacimix.xcworkspace -scheme Tacimix -configuration Debug -destination 'id=00008140-000A222401B8801C': OK, BUILD SUCCEEDED.
+- xcrun devicectl device install app --device D00ED63B-A724-51B7-9A88-758379CCDB04 .../Tacimix.app: OK.
+- xcrun devicectl device process launch --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app: OK.
+- yarn jest --runInBand: OK, 14 suites / 49 testes passaram.
+
+Observação para teste manual
+- A versão nova ja foi instalada e aberta no iPhone.
+- Toque em "Buscar mesas na rede"; se o broadcast nao encontrar a mesa, a tela deve aguardar um pouco mais e o fallback unicast deve encontrar 192.168.88.250.

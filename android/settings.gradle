@@ -10,5 +10,5 @@ reactSettings {
     autolinkLibrariesFromCommand()
 }
 
-rootProject.name = "X32BusAuxControl"
+rootProject.name = "Tacimix"
 include(":app")
