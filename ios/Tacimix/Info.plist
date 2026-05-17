@@ -33,10 +33,13 @@
 		<true/>
 	</dict>
 	<key>NSLocalNetworkUsageDescription</key>
-	<string>O app precisa encontrar e controlar consoles X32/M32 na rede local.</string>
+	<string>Este app precisa acessar a rede local para se conectar à mesa de som X32/M32 via OSC/UDP.</string>
 	<key>NSBonjourServices</key>
 	<array>
-		<string>_osc._udp.</string>
+		<string>_osc._udp</string>
+		<string>_x32._udp</string>
+		<string>_m32._udp</string>
+		<string>_preflight_check._tcp</string>
 	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
