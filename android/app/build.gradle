@@ -97,9 +97,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdkVersion rootProject.ext.compileSdkVersion
 
-    namespace "com.x32control.busauxcontrol"
+    namespace "com.tacimix.app"
     defaultConfig {
-        applicationId "com.x32control.busauxcontrol"
+        applicationId "com.tacimix.app"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
@@ -129,13 +129,11 @@ android {
     productFlavors {
         develop {
             dimension "environment"
-            applicationIdSuffix ".develop"
             versionNameSuffix "-develop"
             signingConfig signingConfigs.debug
         }
         homolog {
             dimension "environment"
-            applicationIdSuffix ".homolog"
             versionNameSuffix "-homolog"
             signingConfig signingConfigs.homolog
         }
@@ -165,4 +163,3 @@ dependencies {
         implementation jscFlavor
     }
 }
-

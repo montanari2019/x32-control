@@ -1,4 +1,4 @@
-package com.x32control.busauxcontrol
+package com.tacimix.app
 
 import android.app.Application
 import com.facebook.react.PackageList

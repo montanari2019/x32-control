@@ -14,14 +14,14 @@ Root Cause:
 Task Details:
 - Investiguei o `adb logcat` e confirmei o crash em `ReactNativeFeatureFlagsCxxInterop`.
 - Verifiquei que o APK empacotava `libreactnative.so` e nao a `.so` separada.
-- Atualizei `android/app/src/main/java/com/x32control/busauxcontrol/MainApplication.kt` para usar:
+- Atualizei `android/app/src/main/java/com/tacimix/app/MainApplication.kt` para usar:
   `SoLoader.init(this, OpenSourceMergedSoMapping)`
 - Reinstalei o app no dispositivo e repeti a validacao.
 
 Validation:
 - `adb logcat`
-- `adb shell am start -n com.x32control.busauxcontrol.develop/com.x32control.busauxcontrol.MainActivity`
-- `adb shell dumpsys activity top | findstr com.x32control.busauxcontrol.develop`
+- `adb shell am start -n com.tacimix.app/com.tacimix.app.MainActivity`
+- `adb shell dumpsys activity top | findstr com.tacimix.app`
 - `cmd /c gradlew.bat app:installDevelopDebug -PreactNativeDevServerPort=8081`
 
 Outcome:

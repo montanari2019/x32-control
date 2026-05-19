@@ -1,10 +1,18 @@
+#import <Foundation/Foundation.h>
 #import <React/RCTBridgeModule.h>
 
 #include <arpa/inet.h>
 #include <ifaddrs.h>
 #include <net/if.h>
 
-@interface TacimixNetworkInfo : NSObject <RCTBridgeModule>
+static NSTimeInterval const TacimixLocalNetworkPromptTimeout = 8.0;
+
+@interface TacimixNetworkInfo : NSObject <RCTBridgeModule, NSNetServiceBrowserDelegate>
+
+@property (nonatomic, strong) NSNetServiceBrowser *localNetworkBrowser;
+@property (nonatomic, strong) NSTimer *localNetworkTimer;
+@property (nonatomic, copy) RCTPromiseResolveBlock localNetworkResolve;
+
 @end
 
 @implementation TacimixNetworkInfo
@@ -14,6 +22,26 @@ RCT_EXPORT_MODULE();
 + (BOOL)requiresMainQueueSetup
 {
   return NO;
+}
+
+RCT_REMAP_METHOD(requestLocalNetworkAccess,
+                 requestLocalNetworkAccessWithResolver:(RCTPromiseResolveBlock)resolve
+                 rejecter:(__unused RCTPromiseRejectBlock)reject)
+{
+  dispatch_async(dispatch_get_main_queue(), ^{
+    [self finishLocalNetworkRequestWithGranted:NO];
+
+    self.localNetworkResolve = resolve;
+    self.localNetworkBrowser = [NSNetServiceBrowser new];
+    self.localNetworkBrowser.delegate = self;
+    self.localNetworkTimer = [NSTimer scheduledTimerWithTimeInterval:TacimixLocalNetworkPromptTimeout
+                                                              target:self
+                                                            selector:@selector(localNetworkRequestTimedOut)
+                                                            userInfo:nil
+                                                             repeats:NO];
+
+    [self.localNetworkBrowser searchForServicesOfType:@"_osc._udp." inDomain:@"local."];
+  });
 }
 
 RCT_REMAP_METHOD(getBroadcastAddresses,
@@ -107,6 +135,50 @@ RCT_REMAP_METHOD(getNetworkInterfaces,
 
   freeifaddrs(interfaces);
   resolve(networkInterfaces);
+}
+
+- (void)netServiceBrowserWillSearch:(__unused NSNetServiceBrowser *)browser
+{
+  [self finishLocalNetworkRequestWithGranted:YES];
+}
+
+- (void)netServiceBrowser:(__unused NSNetServiceBrowser *)browser
+             didNotSearch:(__unused NSDictionary<NSString *, NSNumber *> *)errorDict
+{
+  [self finishLocalNetworkRequestWithGranted:NO];
+}
+
+- (void)netServiceBrowser:(__unused NSNetServiceBrowser *)browser
+           didFindService:(__unused NSNetService *)service
+               moreComing:(__unused BOOL)moreComing
+{
+  [self finishLocalNetworkRequestWithGranted:YES];
+}
+
+- (void)localNetworkRequestTimedOut
+{
+  [self finishLocalNetworkRequestWithGranted:NO];
+}
+
+- (void)finishLocalNetworkRequestWithGranted:(BOOL)granted
+{
+  if (self.localNetworkTimer) {
+    [self.localNetworkTimer invalidate];
+    self.localNetworkTimer = nil;
+  }
+
+  if (self.localNetworkBrowser) {
+    self.localNetworkBrowser.delegate = nil;
+    [self.localNetworkBrowser stop];
+    self.localNetworkBrowser = nil;
+  }
+
+  RCTPromiseResolveBlock resolve = self.localNetworkResolve;
+  self.localNetworkResolve = nil;
+
+  if (resolve) {
+    resolve(@(granted));
+  }
 }
 
 @end

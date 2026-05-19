@@ -7,16 +7,16 @@ Pedido
 
 Limpeza feita no iPhone fisico
 - Removido com sucesso: com.tacimix.app
-- Removido com sucesso: com.x32control.busauxcontrol
-- Removido com sucesso: x32control.busauxcontrol
+- Removido com sucesso: com.tacimix.app
+- Removido com sucesso: com.tacimix.app
 - A listagem de apps do device nao retornou mais Tacimix/X32/BusAux/Control depois da limpeza.
 - Reinstalado limpo: com.tacimix.app
 - App aberto no iPhone fisico apos reinstalacao limpa.
 
 Comandos principais
 - xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
-- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.x32control.busauxcontrol
-- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 x32control.busauxcontrol
+- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
+- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
 - xcrun devicectl device install app --device D00ED63B-A724-51B7-9A88-758379CCDB04 .../Debug-iphoneos/Tacimix.app
 - xcrun devicectl device process launch --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
 
