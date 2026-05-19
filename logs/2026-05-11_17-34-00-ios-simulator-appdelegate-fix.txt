@@ -3,7 +3,7 @@ IOS SIMULATOR APPDELEGATE FIX
 Contexto: continuar a estabilizacao iOS usando sempre o iPhone 17 Simulator aberto antes de considerar device fisico.
 Causa: `yarn ios --simulator "iPhone 17"` falhava em Debug com `React/RCTAppSetupUtils.h file not found`; depois, ao apontar o header, o target do app nao recebia `USE_HERMES` como macro C/C++ e `RCTAppSetupUtils.h` tentava importar `React/JSCExecutorFactory.h`, inexistente neste build Hermes/RN 0.78.
 Ação: mantido old architecture no Podfile; AppDelegate convertido para bootstrap old-arch manual com `RCTBridge`/`RCTRootView`, sem depender de `RCTAppSetupUtils.h`; `idleTimerDisabled` configurado diretamente em DEBUG; script `ios` agora fixa `--simulator "iPhone 17"` e foi adicionado alias `ios:simulator`.
-Resultado: OK. Build Debug no iPhone 17 Simulator compilou, instalou e iniciou `com.x32control.busauxcontrol`.
+Resultado: OK. Build Debug no iPhone 17 Simulator compilou, instalou e iniciou `com.tacimix.app`.
 Arquivos: `ios/X32NativeShell/AppDelegate.h`, `ios/X32NativeShell/AppDelegate.mm`, `package.json`, `logs/2026-05-11_17-34-00-ios-simulator-appdelegate-fix.txt`.
 Validação: `yarn ios --simulator "iPhone 17"` terminou com `success Successfully built the app` e `success Successfully launched the app`; screenshot do simulator mostrou tela inicial X32/M32 renderizada; processo `X32NativeShell.app/X32NativeShell` permaneceu ativo; logs dos ultimos 20s nao mostraram `NSException`/crash.
 Pontos atenção: manter `:new_arch_enabled => false` ate revisar compatibilidade de RN 0.78.1 com `react-native-screens`/Fabric; para device fisico, `yarn ios:device` segue separado.

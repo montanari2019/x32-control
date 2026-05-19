@@ -1,4 +1,4 @@
-package com.x32control.busauxcontrol
+package com.tacimix.app
 
 import com.facebook.react.ReactActivity
 import com.facebook.react.ReactActivityDelegate

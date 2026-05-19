@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import { NativeModules } from 'react-native';
 import { AppError } from '@shared/errors/AppError';
+import { ensureLocalNetworkAccess } from './LocalNetworkAccess';
 
 type UdpSocket = {
   _id?: number;
@@ -62,6 +63,8 @@ export class UdpTransport {
 
     this.isClosing = false;
     this.boundPort = localPort;
+
+    await ensureLocalNetworkAccess();
 
     const dgram = require('react-native-udp') as DgramModule;
     this.socket = dgram.createSocket({ type: 'udp4', reusePort: true });
