@@ -33,7 +33,9 @@ export const useConsoleDiscovery = () => {
       const found = await service.scan();
       setDevices(appendDemoDevice(found));
       if (found.length === 0) {
-        setError('Nenhuma X32/M32 respondeu na rede. Verifique o Wi-Fi e tente novamente.');
+        setError(
+          'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o iPhone está no mesmo Wi-Fi da mesa e se a permissão de Rede Local está ativa.',
+        );
       }
     } catch (scanError) {
       setError(getErrorMessage(scanError));

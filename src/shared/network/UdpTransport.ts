@@ -1,7 +1,8 @@
 import { Buffer } from 'buffer';
-import { NativeModules } from 'react-native';
+import { NativeModules, Platform } from 'react-native';
 import { AppError } from '@shared/errors/AppError';
-import { ensureLocalNetworkAccess } from './LocalNetworkAccess';
+import { ensureLocalNetworkPermission } from './LocalNetworkPermission';
+import { logUdpDiagnostic, toUdpAppError } from './UdpDiagnostics';
 
 type UdpSocket = {
   _id?: number;
@@ -40,7 +41,8 @@ export type UdpMessage = {
 export type UdpMessageHandler = (message: UdpMessage) => void;
 export type UdpErrorHandler = (error: AppError) => void;
 
-const SEND_TIMEOUT_MS = 1000;
+const SEND_TIMEOUT_MS = 5000;
+const IOS_BROADCAST_DELAY_MS = 500;
 
 export class UdpTransport {
   private socket?: UdpSocket;
@@ -64,7 +66,7 @@ export class UdpTransport {
     this.isClosing = false;
     this.boundPort = localPort;
 
-    await ensureLocalNetworkAccess();
+    await ensureLocalNetworkPermission();
 
     const dgram = require('react-native-udp') as DgramModule;
     this.socket = dgram.createSocket({ type: 'udp4', reusePort: true });
@@ -95,7 +97,11 @@ export class UdpTransport {
         this.isBound = false;
         this.socket?.close();
         this.socket = undefined;
-        const appError = new AppError('UDP_TRANSPORT_ERROR', 'Erro no transporte UDP.', error);
+        logUdpDiagnostic({
+          event: 'socket_error',
+          nativeError: error,
+        });
+        const appError = toUdpAppError('UDP_TRANSPORT_ERROR', 'Erro no transporte UDP.', error);
         this.errorHandlers.forEach((handler) => handler(appError));
         reject(appError);
       });
@@ -146,14 +152,28 @@ export class UdpTransport {
   }
 
   private async configureBroadcastOnce(enabled?: boolean): Promise<void> {
-    if (!enabled || this.broadcastConfigured || !this.socket?.setBroadcast) {
+    const socket = this.socket;
+    const setBroadcast = socket?.setBroadcast;
+
+    if (!enabled || this.broadcastConfigured || !socket || !setBroadcast) {
       return;
     }
 
     this.broadcastConfigured = true;
     try {
-      const socketId = this.socket._id;
+      const socketId = socket._id;
       const nativeUdpSockets = NativeModules.UdpSockets as UdpSocketsNativeModule | undefined;
+      const delayMs = Platform.OS === 'ios' ? IOS_BROADCAST_DELAY_MS : 0;
+
+      if (delayMs > 0) {
+        await new Promise<void>((resolve) => {
+          setTimeout(resolve, delayMs);
+        });
+      }
+
+      if (this.isClosing || socket !== this.socket) {
+        return;
+      }
 
       if (typeof socketId === 'number' && nativeUdpSockets?.setBroadcast) {
         await new Promise<void>((resolve, reject) => {
@@ -166,12 +186,27 @@ export class UdpTransport {
             resolve();
           });
         });
+        logUdpDiagnostic({
+          event: 'broadcast_enabled',
+          socketId,
+          broadcast: true,
+        });
         return;
       }
 
-      this.socket.setBroadcast(true);
+      setBroadcast.call(socket, true);
+      logUdpDiagnostic({
+        event: 'broadcast_enabled',
+        socketId,
+        broadcast: true,
+      });
     } catch (error) {
-      const appError = new AppError(
+      logUdpDiagnostic({
+        event: 'broadcast_enable_error',
+        broadcast: true,
+        nativeError: error,
+      });
+      const appError = toUdpAppError(
         'UDP_TRANSPORT_ERROR',
         'Falha ao habilitar broadcast UDP.',
         error,
@@ -195,7 +230,17 @@ export class UdpTransport {
         }
 
         settled = true;
-        reject(new AppError('UDP_TIMEOUT', `Timeout ao enviar pacote UDP para ${ip}:${port}.`));
+        const appError = new AppError(
+          'UDP_TIMEOUT',
+          `Timeout ao enviar pacote UDP para ${ip}:${port}.`,
+        );
+        logUdpDiagnostic({
+          event: 'send_timeout',
+          host: ip,
+          port,
+          timeoutMs: SEND_TIMEOUT_MS,
+        });
+        reject(appError);
       }, SEND_TIMEOUT_MS);
 
       this.socket.send(data, 0, data.length, port, ip, (error) => {
@@ -207,7 +252,13 @@ export class UdpTransport {
         clearTimeout(timeout);
 
         if (error) {
-          reject(new AppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
+          logUdpDiagnostic({
+            event: 'send_error',
+            host: ip,
+            port,
+            nativeError: error,
+          });
+          reject(toUdpAppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
           return;
         }
 
