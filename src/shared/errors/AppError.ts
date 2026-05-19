@@ -1,4 +1,5 @@
 export type AppErrorCode =
+  | 'LOCAL_NETWORK_PERMISSION_DENIED'
   | 'UDP_TIMEOUT'
   | 'INVALID_IP'
   | 'CONSOLE_NOT_FOUND'
