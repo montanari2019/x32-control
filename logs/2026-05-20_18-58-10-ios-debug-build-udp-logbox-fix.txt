@@ -1,0 +1,9 @@
+IOS DEBUG BUILD UDP LOGBOX FIX
+
+Contexto: build iOS dev no iPhone fisico + warnings LogBox ao tocar Buscar mesas na rede.
+Causa: `logUdpDiagnostic` usava `console.warn` p/ eventos UDP esperados em __DEV__; LogBox mostrava preflight rede local e broadcast habilitado como aviso.
+Ação: `UdpDiagnostics` classifica eventos reais de erro (`socket_error`, `broadcast_enable_error`, `send_error`) e usa `console.info` p/ diagnosticos normais em dev; prod silencia diagnosticos nao-erro. Add teste unitario p/ impedir regressao. Build Debug instalada no `iPhone de Ikaro` via `yarn ios:device`; app lançado via `devicectl`.
+Resultado: OK; diagnosticos normais nao disparam LogBox warning; build Debug instalada/aberta com Metro em 8081.
+Arquivos: `src/shared/network/UdpDiagnostics.ts`; `__tests__/shared/network/UdpDiagnostics.test.ts`; `logs/2026-05-20_18-58-10-ios-debug-build-udp-logbox-fix.txt`.
+Validação: `yarn jest __tests__/shared/network/UdpDiagnostics.test.ts --runInBand` OK; `yarn tsc` OK; `yarn jest __tests__/shared/network/NetworkScanner.test.ts --runInBand --testTimeout=10000` OK; `yarn ios:device` OK; `curl 127.0.0.1:8081/status` => `packager-status:running`.
+Pontos atenção: `NetworkScanner.test.ts` estoura com timeout Jest default 5000ms porque casos broadcast+unicast levam ~5.2s; validado com `--testTimeout=10000`. Workspace ja tinha mudanças iOS locais em `project.pbxproj` e `Tacimix.entitlements`, preservadas.
