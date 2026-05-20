@@ -26,6 +26,8 @@ export type UdpDiagnosticContext = {
   nativeError?: unknown;
 };
 
+const UDP_ERROR_EVENTS = new Set(['socket_error', 'broadcast_enable_error', 'send_error']);
+
 const stringifyUnknown = (value: unknown, depth = 0): string => {
   if (value == null || depth > 3) {
     return '';
@@ -85,11 +87,18 @@ export const logUdpDiagnostic = (context: UdpDiagnosticContext): void => {
   };
 
   if (__DEV__) {
-    console.warn('[Tacimix UDP]', details);
+    if (UDP_ERROR_EVENTS.has(context.event)) {
+      console.error('[Tacimix UDP]', details);
+      return;
+    }
+
+    console.info('[Tacimix UDP]', details);
     return;
   }
 
-  console.error('[Tacimix UDP]', details);
+  if (UDP_ERROR_EVENTS.has(context.event)) {
+    console.error('[Tacimix UDP]', details);
+  }
 };
 
 export const getLocalNetworkPermissionMessage = (): string => LOCAL_NETWORK_PERMISSION_MESSAGE;
