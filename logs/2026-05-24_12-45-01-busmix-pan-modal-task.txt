@@ -1,0 +1,58 @@
+BUSMIX PAN MODAL TASK
+
+Contexto
+- O usuario pediu, seguindo docs/skills/tlc-spec-driven, a criacao de uma task extremamente detalhada para corrigir o modal de controle de pan em BusMix.
+- Problema relatado: quando o pan esta 100% a esquerda, o botao central usado para controlar o pan aparece no meio, mas deveria aparecer na extrema esquerda.
+- Problema adicional: o modal mostra um texto lateral ao lado do valor principal; o comportamento desejado e manter somente um valor numerico unico, indo de -100 na extrema esquerda ate +100 na extrema direita, com 0 sempre no centro.
+
+Analise realizada
+- Referencias da skill consultadas:
+  - docs/skills/tlc-spec-driven/references/specify.md
+  - docs/skills/tlc-spec-driven/references/tasks.md
+- Arquivos funcionais analisados:
+  - src/features/busMix/components/PanControlModal.tsx
+  - src/features/busMix/screens/BusMixScreen.tsx
+  - src/features/busMix/hooks/useBusMix.ts
+  - src/shared/x32/pan.ts
+  - src/shared/utils/pan.ts
+- Estado local analisado:
+  - src/features/busMix/.specs/STATE.md
+
+Decisoes de especificacao
+- A correcao foi planejada como feature Medium, pois tem escopo funcional claro, impacto localizado em BusMix e exige validacao de conversao de valores e exibicao visual.
+- A pasta da feature segue o padrao co-located da skill:
+  - src/features/busMix/.specs/feature/pan-modal-correct-scale/
+- Nao houve alteracao de codigo funcional nesta etapa; foram criados somente os documentos de especificacao e tasks.
+
+Arquivos criados/atualizados
+- Criado:
+  - src/features/busMix/.specs/feature/pan-modal-correct-scale/spec.md
+  - src/features/busMix/.specs/feature/pan-modal-correct-scale/tasks.md
+- Atualizado:
+  - src/features/busMix/.specs/STATE.md
+
+Conteudo planejado
+- T-001: Correct pan value normalization for modal opening
+  - Garante que a escala interna do X32 0..1 seja convertida corretamente para a escala visual -100..+100.
+  - Casos obrigatorios: 0 -> -100, 0.5 -> 0, 1 -> +100.
+  - Deve evitar que hard-left abra o modal com o controle visual no centro.
+- T-002: Replace pan modal dual text with a single signed numeric readout
+  - Remove o texto semantico lateral como C, L 100, R 100.
+  - Mantem somente um valor principal assinado: -100, 0, +100.
+  - O valor textual deve refletir exatamente a posicao visual do controle.
+- T-003: Perform BusMix pan modal manual validation and update local state
+  - Define roteiro de validacao manual para esquerda total, centro, direita total e valores intermediarios.
+  - Exige atualizacao do STATE.md local ao final da implementacao.
+
+Validacao desta etapa
+- Confirmado que os documentos foram criados:
+  - spec.md com 107 linhas
+  - tasks.md com 74 linhas
+- O tasks.md foi relido apos criacao para conferir estrutura, rastreabilidade e criterios de aceite.
+
+Pontos de atencao para implementacao futura
+- Validar a fonte real do valor de pan antes de alterar UI:
+  - se o valor vem do X32 em escala 0..1, ele deve passar por x32PanToPercent antes de chegar ao modal.
+  - se em algum fluxo o valor ja chega em -100..+100, nao deve ser convertido novamente.
+- Remover o uso de formatPanLabel no modal somente se nao houver outro requisito visual dependente dele.
+- Criar ou atualizar testes unitarios de conversao em src/shared/x32/pan.ts, se o projeto ja permitir esse tipo de teste.

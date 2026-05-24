@@ -1,0 +1,76 @@
+BUSMIX FEATURE TASKS IMPLEMENTATION
+
+Contexto
+- O usuario pediu a implementacao das tasks em src/features/busMix/.specs/feature seguindo docs/skills/tlc-spec-driven.
+- Features implementadas nesta passagem:
+  - fader-thumb-only-interaction
+  - pan-modal-correct-scale
+
+Arquivos de codigo alterados
+- src/features/busMix/components/VerticalFader.tsx
+- src/features/busMix/components/PanControlModal.tsx
+- src/shared/x32/pan.ts
+
+Arquivos de teste criados
+- __tests__/shared/x32/pan.test.ts
+
+Arquivos de especificacao/estado atualizados
+- src/features/busMix/.specs/feature/fader-thumb-only-interaction/tasks.md
+- src/features/busMix/.specs/feature/pan-modal-correct-scale/tasks.md
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Implementacao - fader-thumb-only-interaction
+- Removida a area interativa do trilho central do VerticalFader.
+- O PanResponder agora e concedido somente quando o toque inicial esta dentro dos limites verticais atuais do thumb.
+- A ativacao por movimento foi desabilitada para impedir que um toque iniciado no trilho visual capture o fader depois.
+- O fluxo de drag iniciado no thumb foi preservado:
+  - updateFromY permanece igual;
+  - conversao raw/db permanece igual;
+  - onChange/onChangeEnd permanecem iguais;
+  - onInteractionStart/onInteractionEnd permanecem iguais para drags validos no thumb.
+
+Implementacao - pan-modal-correct-scale
+- Adicionado clampPanPercent em src/shared/x32/pan.ts.
+- percentToX32Pan agora reutiliza clampPanPercent.
+- Adicionado formatSignedPanValue para exibir valores no padrao:
+  - -100 para hard left;
+  - 0 para centro;
+  - +100 para hard right.
+- PanControlModal agora:
+  - clampa o valor inicial recebido;
+  - clampa alteracoes do slider antes de atualizar estado e chamar onChange;
+  - renderiza somente um valor principal assinado;
+  - remove o texto secundario ao lado do valor principal;
+  - remove o uso de formatPanLabel no modal.
+
+Testes e verificacoes
+- yarn jest __tests__/shared/x32/pan.test.ts --runInBand
+  - PASS
+  - 1 suite
+  - 6 tests
+- yarn jest __tests__/features/busMix --runInBand
+  - PASS
+  - 4 suites
+  - 18 tests
+- yarn tsc
+  - PASS
+- yarn lint
+  - FAIL/BLOCKED
+  - Motivo: /bin/sh: eslint: command not found
+  - O script existe no package.json, mas o binario eslint nao esta instalado/resolvivel no node_modules atual.
+
+Validacao manual
+- Nao executada nesta passagem de terminal.
+- Permanece recomendada no Demo console em simulator/device para confirmar:
+  - thumb do fader ainda arrasta normalmente;
+  - trilho central do fader nao altera volume;
+  - lista horizontal nao trava quando o toque comeca no trilho visual;
+  - pan hard-left abre no extremo esquerdo;
+  - pan center abre no centro;
+  - pan hard-right abre no extremo direito;
+  - modal de pan mostra somente um valor assinado.
+
+SPEC_DEVIATION
+- Nenhum desvio intencional de implementacao.
+- Apenas a task de validacao manual permanece aberta por exigir simulator/device.
