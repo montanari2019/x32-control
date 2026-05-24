@@ -1,0 +1,70 @@
+BUSMIX AUX/FX METER STABILITY PLANNING
+
+Contexto
+- O usuario pediu uma nova analise/tarefa seguindo docs/skills/tlc-spec-driven.
+- Problema: meters dos 32 canais padrao da X32 estao perfeitos e devem ser mantidos sem regressao.
+- Problema especifico: meters de AUX e FX Returns piscam/alternam de forma instavel.
+- Resultado esperado: AUX e FX Returns devem ter o mesmo comportamento visual estavel dos CH 01..32.
+- Nao ha console fisico conectado nesta sessao, entao a etapa foi planejamento tecnico com pesquisa externa.
+
+Arquivos locais analisados
+- src/features/busMix/hooks/useMeterSubscription.ts
+- src/features/busMix/utils/meterDecoder.ts
+- src/features/busMix/components/ChannelVuMeter.tsx
+- src/features/busMix/components/MeterSegments.tsx
+- __tests__/features/busMix/utils/meterDecoder.test.ts
+- src/features/busMix/services/BusMixService.ts
+
+Pesquisa externa consultada
+- Unofficial X32/M32 OSC Remote Protocol:
+  - https://x32ram.com/wp-content/uploads/download-files/X32-OSC.pdf
+  - Pontos usados:
+    - /meters/1 retorna 32 input channels + 32 gate gain reductions + 32 dynamics gain reductions = 96 floats.
+    - /meters/13 retorna 32 input channels + 8 aux returns + 4x2 stereo fx returns = 48 floats.
+    - /meters/5 tem modo aux/fx returns para surface VU, mas nao e o caminho atual do app.
+    - /meters/9 retorna effect send/return meters dos FX slots, diferente do objetivo atual de strips AUX/FX Return.
+- Versao espelhada do X32-OSC:
+  - https://tostibroeders.nl/wp-content/uploads/2020/02/X32-OSC.pdf
+  - Pontos usados:
+    - /meters/3 retorna a pagina METERS/aux/fx com 6 aux sends + 8 aux returns + 4x2 stereo fx returns = 22 floats.
+    - /meters/3 e fallback possivel, mas tem offsets diferentes de /meters/13.
+- Stack Overflow - Decoding X32 Behringer mixer response:
+  - https://stackoverflow.com/questions/79307380/decoding-x32-behringer-mixer-response
+  - Pontos usados:
+    - blobs de meter da X32 sao payloads binarios com floats little-endian e formato diferente de respostas OSC escalares comuns.
+- Stack Overflow - How to access meters on Behringer X32:
+  - https://stackoverflow.com/questions/79628962/how-to-access-meters-on-behringer-x32
+  - Pontos usados:
+    - /xremote nao retorna meter data; meters exigem mecanismo /meters e renovacao/subscription separados.
+
+Hipotese tecnica principal
+- O handler de /meters/1 em useMeterSubscription itera todos os listeners registrados.
+- AUX/FX listeners ficam no mesmo listenersRef dos canais CH.
+- Portanto AUX 01, com channelId=33, pode receber /meters/1 e chamar decodeMeter1BlobForChannel(blob, 33).
+- Em /meters/1, o indice 32 nao e AUX 01; ele pertence a regiao de gate/dynamics do payload de 96 floats.
+- Em seguida /meters/13 tambem chega com o valor correto de AUX 01.
+- Resultado visual provavel: alternancia entre valor errado e valor correto, causando flicker.
+
+Arquivos criados
+- src/features/busMix/.specs/feature/aux-fx-meter-stability/spec.md
+- src/features/busMix/.specs/feature/aux-fx-meter-stability/design.md
+- src/features/busMix/.specs/feature/aux-fx-meter-stability/tasks.md
+
+Arquivos atualizados
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Decisoes de planejamento
+- Proteger CH 01..32 como baseline obrigatorio.
+- Corrigir primeiro isolamento de dispatch:
+  - /meters/1 somente para channelIds 1..32.
+  - /meters/13 somente para channelIds 33..48.
+- Nao mudar ChannelVuMeter inicialmente.
+- Nao adicionar smoothing visual antes de provar que os dados estao corretos.
+- Nao trocar para /meters/3 sem evidencia de console real e testes de offsets.
+- Manter essa feature separada de realtime-console-reactivity, pois meters usam mecanismo proprio na X32.
+
+Validacao desta etapa
+- Planejamento/documentacao apenas.
+- Nenhum codigo funcional foi alterado.
+- Real-console UAT foi marcado como pendente.

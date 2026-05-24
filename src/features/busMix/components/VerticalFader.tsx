@@ -28,7 +28,6 @@ const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
 const THUMB_HEIGHT = 36;
 const VERTICAL_INSET = 8;
-const TRACK_TOUCH_WIDTH = 22;
 
 const positionToRaw = (position: number): number => {
   const clamped = Math.max(0, Math.min(1, position));
@@ -87,20 +86,6 @@ export const VerticalFader = ({
     dragSensitivityRef.current = dragSensitivity;
   }, [dragSensitivity]);
 
-  const isInsideInteractiveArea = useCallback(
-    (x: number, y: number): boolean => {
-      const adjustedY = y - VERTICAL_INSET;
-      const halfTrackTouchWidth = TRACK_TOUCH_WIDTH / 2;
-      const isOnThumb =
-        adjustedY >= currentY.current && adjustedY <= currentY.current + THUMB_HEIGHT;
-      const isOnTrack =
-        Math.abs(x - 20) <= halfTrackTouchWidth && adjustedY >= 0 && adjustedY <= trackHeight;
-
-      return isOnThumb || isOnTrack;
-    },
-    [trackHeight],
-  );
-
   const updateFromY = useCallback(
     (y: number, emitEnd = false): void => {
       const currentAvailable = availableRef.current;
@@ -121,10 +106,8 @@ export const VerticalFader = ({
   const panResponder: PanResponderInstance = useMemo(
     () =>
       PanResponder.create({
-        onStartShouldSetPanResponder: (event) =>
-          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
-        onMoveShouldSetPanResponder: (event) =>
-          isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
+        onStartShouldSetPanResponder: () => true,
+        onMoveShouldSetPanResponder: () => true,
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
@@ -145,7 +128,7 @@ export const VerticalFader = ({
         },
         onShouldBlockNativeResponder: () => true,
       }),
-    [isInsideInteractiveArea, updateFromY],
+    [updateFromY],
   );
 
   useEffect(() => {
@@ -172,14 +155,17 @@ export const VerticalFader = ({
   }, [animatedY, available, level]);
 
   return (
-    <View style={[styles.container, { height }]} {...panResponder.panHandlers}>
+    <View style={[styles.container, { height }]}>
       <View style={styles.trackBounds}>
         <View style={styles.track} />
         <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
         <View style={[styles.dbScale, { height: trackHeight }]}>
           <FaderDbScale height={trackHeight} />
         </View>
-        <Animated.View style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}>
+        <Animated.View
+          style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}
+          {...panResponder.panHandlers}
+        >
           <View style={styles.thumbHighlight} />
         </Animated.View>
       </View>
