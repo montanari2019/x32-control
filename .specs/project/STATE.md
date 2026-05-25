@@ -31,7 +31,7 @@ Last updated: 2026-05-24
 - BusMix fader thumb-only interaction has been implemented and corrected after user validation: the `VerticalFader` gesture handler is attached directly to the thumb, leaving the central fader track visual-only.
 - BusMix pan modal display has been implemented with a single signed numeric `-100..+100` readout and focused pan conversion tests.
 - BusMix realtime console reactivity has been planned as a future implementation spec. The plan is to preserve app-to-console sends while improving console-to-app updates and linked-channel visual consistency.
-- BusMix AUX/FX meter stability has been planned as a future implementation spec. CH 01..32 meters are the protected baseline; AUX/FX flicker is suspected to come from receiving the wrong X32 meter stream.
+- BusMix AUX/FX meter stability has been implemented for stream isolation. CH 01..32 meters remain the protected baseline; AUX/FX listeners now consume only the `/meters/13` stream instead of also receiving `/meters/1`.
 
 ## Cross-Feature Decisions
 
@@ -59,7 +59,7 @@ Last updated: 2026-05-24
 - Stronger storage naming/security story.
 - Release checklist linked to iOS/Android build artifacts.
 - Real-console UAT for BusMix realtime linked-channel reactivity once X32/M32 hardware is available.
-- Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available.
+- Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available; automated stream isolation is already implemented.
 
 ## Recent Session Notes
 
@@ -71,3 +71,4 @@ Last updated: 2026-05-24
 - 2026-05-24: Corrected `fader-thumb-only-interaction` after user validation showed the coordinate-based hit-test blocked normal thumb dragging. The responder now lives directly on the thumb.
 - 2026-05-24: Planned BusMix spec `realtime-console-reactivity` using local code analysis and external X32/OSC research. Key decision: do not regress the existing send path; use `/xremote` and current shared OSC transport, add linked-peer visual reflection for level/on, keep pan independent, and keep meters separate.
 - 2026-05-24: Planned BusMix spec `aux-fx-meter-stability` using local meter code analysis and external X32 meter docs. Key decision: protect `/meters/1` CH behavior and isolate AUX/FX to the correct meter stream before considering visual smoothing or `/meters/3`.
+- 2026-05-24: Implemented BusMix spec `aux-fx-meter-stability` stream isolation. Added `meterStreamRouting` helpers, dispatch isolation tests, AUX/FX offset tests, and preserved current meter request/renew intervals. Real-console UAT remains pending.

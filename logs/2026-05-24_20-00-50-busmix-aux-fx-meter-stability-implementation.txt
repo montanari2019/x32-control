@@ -1,0 +1,60 @@
+BUSMIX AUX/FX METER STABILITY IMPLEMENTATION
+
+Contexto
+- O usuario pediu implementar a spec src/features/busMix/.specs/feature/aux-fx-meter-stability seguindo docs/skills/tlc-spec-driven.
+- Objetivo: manter CH 01..32 exatamente como baseline e corrigir flicker de AUX/FX Returns.
+
+Hipotese implementada
+- O flicker era provavelmente causado por contaminacao entre streams:
+  - /meters/1 deve atualizar somente CH 01..32.
+  - /meters/13 deve atualizar somente AUX 01..08 e FX Return 01..08.
+- Antes, o handler de /meters/1 iterava todos os listeners, incluindo AUX/FX IDs 33..48.
+
+Arquivos de codigo alterados/criados
+- src/features/busMix/hooks/useMeterSubscription.ts
+- src/features/busMix/utils/meterStreamRouting.ts
+
+Arquivos de teste alterados/criados
+- __tests__/features/busMix/utils/meterDecoder.test.ts
+- __tests__/features/busMix/utils/meterStreamRouting.test.ts
+
+Arquivos de specs/estado atualizados
+- src/features/busMix/.specs/feature/aux-fx-meter-stability/tasks.md
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Implementacao
+- Criado meterStreamRouting com:
+  - isInputChannelMeterId
+  - isAuxFxMeterId
+  - getMeterStreamForChannelId
+  - decodeMeterStreamBlobForChannel
+  - dispatchMeterStreamBlob
+- useMeterSubscription agora:
+  - roteia /meters/1 somente para IDs 1..32.
+  - roteia /meters/13 somente para IDs 33..48.
+  - mantem request inicial e renew por familia de listener.
+  - preserva METER_RENEW_INTERVAL_MS=8000.
+  - preserva METER_REQUEST_THROTTLE_MS=1000.
+- Nenhuma alteracao foi feita em ChannelVuMeter, escala visual, cores, segmentos, fader, mute, pan, presets ou BusGroups.
+- /meters/3 nao foi implementado, pois deve permanecer fallback dependente de evidencia em console real.
+
+Testes executados
+- yarn jest __tests__/features/busMix/utils/meterDecoder.test.ts __tests__/features/busMix/utils/meterStreamRouting.test.ts --runInBand
+  - PASS
+  - 2 suites
+  - 16 tests
+- yarn jest __tests__/features/busMix --runInBand
+  - PASS
+  - 5 suites
+  - 24 tests
+- yarn tsc
+  - PASS
+
+Validacao real
+- Nao executada nesta sessao porque nao ha X32/M32 fisica conectada.
+- T-008 permanece aberta para UAT real.
+
+SPEC_DEVIATION
+- Nenhum desvio intencional.
+- T-006 (/meters/3 fallback) permanece pendente por design; trocar stream sem evidencia real seria risco de regressao.
