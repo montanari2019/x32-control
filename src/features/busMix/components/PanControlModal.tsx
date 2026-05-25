@@ -5,7 +5,7 @@ import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
-import { formatPanLabel } from '@shared/x32/pan';
+import { clampPanPercent, formatSignedPanValue } from '@shared/x32/pan';
 import { ModalRenderProps } from '@shared/components/Modal';
 import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
 
@@ -30,10 +30,10 @@ export const PanControlModal = ({
   const [isModalVisible, setIsModalVisible] = useState(visible);
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(visible ? 1 : 0.98)).current;
-  const [localValue, setLocalValue] = useState(value);
+  const [localValue, setLocalValue] = useState(() => clampPanPercent(value));
 
   useEffect(() => {
-    setLocalValue(value);
+    setLocalValue(clampPanPercent(value));
   }, [value]);
 
   useEffect(() => {
@@ -76,8 +76,9 @@ export const PanControlModal = ({
   }, [onDismissEnd, opacity, scale, visible]);
 
   const handleValueChange = (nextValue: number): void => {
-    setLocalValue(nextValue);
-    onChange(nextValue);
+    const clampedValue = clampPanPercent(nextValue);
+    setLocalValue(clampedValue);
+    onChange(clampedValue);
   };
 
   const handleCenterPress = (): void => {
@@ -116,8 +117,7 @@ export const PanControlModal = ({
               </View>
 
               <View style={styles.panValueRow}>
-                <Text style={styles.panValueLabel}>{formatPanLabel(localValue)}</Text>
-                <Text style={styles.panValueNumber}>{localValue}</Text>
+                <Text style={styles.panValueLabel}>{formatSignedPanValue(localValue)}</Text>
               </View>
 
               <View style={styles.axis}>
@@ -130,7 +130,7 @@ export const PanControlModal = ({
                 minimumValue={-100}
                 maximumValue={100}
                 step={1}
-                value={localValue}
+                value={clampPanPercent(localValue)}
                 onValueChange={handleValueChange}
                 minimumTrackTintColor={colors.pan.indicator}
                 maximumTrackTintColor={colors.pan.axis}
@@ -245,11 +245,6 @@ const styles = StyleSheet.create({
     color: colors.text.primary,
     fontSize: 20,
     fontWeight: '900',
-  },
-  panValueNumber: {
-    color: colors.text.secondary,
-    fontSize: 14,
-    fontWeight: '700',
   },
   panValueRow: {
     alignItems: 'center',

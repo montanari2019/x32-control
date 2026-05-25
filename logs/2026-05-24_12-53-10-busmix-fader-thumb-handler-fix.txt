@@ -1,0 +1,48 @@
+BUSMIX FADER THUMB HANDLER FIX
+
+Contexto
+- O usuario reportou que, apos a implementacao de fader-thumb-only-interaction, o botao do fader deixou de funcionar.
+- O requisito original continua sendo:
+  - a barra central/track do fader deve ser somente visual;
+  - o botao/thumb do fader deve continuar aumentando e abaixando volume perfeitamente.
+
+Causa provavel
+- A primeira implementacao manteve o PanResponder no container externo do fader e tentou restringir o inicio do gesto por coordenada Y.
+- Em React Native, a coordenada do evento pode variar conforme o alvo tocado/filho visual, e isso tornou o hit-test fragil para o thumb em posicoes normais.
+
+Correcao aplicada
+- Removido o hit-test manual por coordenada.
+- Removidos os panHandlers do container externo.
+- Os panHandlers foram aplicados diretamente ao Animated.View do thumb.
+- Como somente o thumb possui PanResponder, a barra central nao inicia gesto algum.
+- Depois que o gesto comeca no thumb, o fluxo original foi preservado:
+  - startY usa currentY.current;
+  - updateFromY continua calculando o volume pelo dy;
+  - onChange, onChangeEnd, onInteractionStart e onInteractionEnd continuam sendo chamados normalmente.
+
+Arquivos alterados
+- src/features/busMix/components/VerticalFader.tsx
+- src/features/busMix/.specs/feature/fader-thumb-only-interaction/tasks.md
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Verificacao
+- yarn tsc
+  - PASS
+- yarn jest __tests__/features/busMix --runInBand
+  - PASS
+  - 4 suites
+  - 18 tests
+
+Validacao manual recomendada
+- Abrir Demo console.
+- Entrar em BusMix.
+- Arrastar diretamente o thumb do fader para cima e para baixo:
+  - volume deve mudar normalmente.
+- Arrastar a barra central fora do thumb:
+  - volume nao deve mudar.
+- Conferir que a lista horizontal nao fica travada ao tocar no track visual.
+
+SPEC_DEVIATION
+- Nenhum desvio do requisito.
+- A estrategia tecnica foi ajustada para ficar mais robusta: handler direto no thumb em vez de hit-test manual no container.

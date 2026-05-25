@@ -1,0 +1,79 @@
+Tacimix - validacao iOS 14+/26 de descoberta da mesa X32/M32
+Data: 2026-05-15 20:18:52 America/Porto_Velho
+
+Pedido
+- Validar se a forma atual de descoberta funciona em iOS 14+ / iOS 26.
+- Comparar com simulador para eliminar problema basico de build/runtime.
+- Investigar se o problema era TypeScript/app ou algo especifico do iOS.
+
+Contexto confirmado
+- App iOS: Tacimix
+- Bundle ID: com.tacimix.app
+- Dispositivo fisico: iPhone de Ikaro
+- Mesa real testada anteriormente na rede via Mac: 192.168.88.250:10023 respondeu a /info com modelo X32 e firmware 4.02.
+- Permissao "Rede Local" esta habilitada no iPhone, conforme screenshot do aparelho.
+
+Evidencias externas consultadas
+- GitHub react-native-udp issue #139 relata problema de Local Network Privacy / broadcast no iOS 14:
+  https://github.com/tradle/react-native-udp/issues/139
+- Apple Developer Forums thread 673062 relata falhas de UDP broadcast/multicast no iOS 14.5 e Apple DTS orienta verificar entitlement com.apple.developer.networking.multicast:
+  https://developer.apple.com/forums/thread/673062
+- StackOverflow relata react-native-udp enviando no Android e falhando no iOS:
+  https://stackoverflow.com/questions/66679553/react-native-udp-does-not-send-any-messages-from-ios-anybody-made-it-working
+- StackOverflow relata listener UDP instavel no iOS 14:
+  https://stackoverflow.com/questions/64095031/udp-listener-on-ios-14
+
+Diagnostico
+- Nao era somente configuracao do iOS. Havia risco real no codigo TS:
+  1. O scanner aguardava callbacks de envio UDP antes de esperar respostas. Em iOS, callbacks de send podem demorar ou nao voltar como esperado, bloqueando a descoberta.
+  2. O broadcast dependia de comportamento sensivel do iOS 14+ e do react-native-udp.
+  3. A tela nao tinha caminho manual de conexao por IP, embora o servico ja tivesse validacao manual.
+- A configuracao iOS basica esta presente:
+  - NSLocalNetworkUsageDescription
+  - NSBonjourServices com _osc._udp.
+  - NSAllowsLocalNetworking habilitado
+- O app assinado no dispositivo nao tem entitlement com.apple.developer.networking.multicast.
+  Isso pode tornar broadcast/multicast menos confiavel em iOS 14+ dependendo da rede, do perfil e da revisao da Apple.
+
+Alteracoes aplicadas
+- src/shared/network/UdpTransport.ts
+  - Aumentado timeout de envio para 1000ms.
+  - Broadcast agora e configurado via modulo nativo NativeModules.UdpSockets.setBroadcast quando disponivel, aguardando o SO_BROADCAST antes de resolver o bind.
+- ios/Tacimix/TacimixNetworkInfo.m
+  - Modulo nativo agora expõe interfaces IPv4 ativas com address, netmask e broadcast.
+- src/shared/network/NativeNetworkInterfaces.ts
+  - Novo wrapper TS para getNativeBroadcastAddresses e getNativeNetworkInterfaces.
+- src/shared/network/NetworkScanner.ts
+  - Descoberta envia /info para broadcasts nativos e 255.255.255.255.
+  - Adicionado fallback unicast varrendo a sub-rede local, priorizando IPs comuns de consoles como .250.
+  - Envios de descoberta passaram a ser best-effort/fire-and-forget; o scanner espera respostas separadamente.
+  - Falhas individuais de envio nao abortam mais o scan.
+- src/features/consoleDiscovery/hooks/useConsoleDiscovery.ts
+  - Demo mantida no app de producao.
+  - Adicionada conexao manual por IP usando validateManualIp.
+- src/features/consoleDiscovery/screens/ConsoleDiscoveryScreen.tsx
+  - Adicionado campo "Conectar por IP" com placeholder 192.168.88.250 e botao Entrar.
+- __tests__/shared/network/NetworkScanner.test.ts
+  - Adicionados testes para broadcast nativo, fallback unicast, callbacks pendentes, timeouts e falhas individuais de envio.
+
+Validacoes executadas
+- yarn jest --runInBand
+  Resultado: PASS, 14 suites, 50 testes.
+- yarn tsc
+  Resultado: OK em validacao anterior desta rodada.
+- xcodebuild build -workspace ios/Tacimix.xcworkspace -scheme Tacimix -configuration Debug -destination id=00008140-000A222401B8801C
+  Resultado: BUILD SUCCEEDED.
+- Instalado e aberto no iPhone fisico via devicectl:
+  Resultado: App installed e Launched application with com.tacimix.app.
+- xcodebuild build -workspace ios/Tacimix.xcworkspace -scheme Tacimix -configuration Debug -destination id=1285EF31-E461-4361-A06A-8DE0242CFCC8
+  Resultado: BUILD SUCCEEDED no simulador iPhone 17 / iOS 26.4.1.
+- Instalado e aberto no simulador:
+  Resultado: com.tacimix.app: 70007.
+
+Conclusao
+- O problema nao parece ser "permissao desligada", porque a permissao de Rede Local esta habilitada.
+- Tambem nao era somente iOS: havia um problema no fluxo TS que podia impedir a descoberta ao depender dos callbacks de send UDP.
+- Como o Mac enxerga a mesa em 192.168.88.250, o app agora tem o caminho manual para desbloquear o uso mesmo se o broadcast/unicast automatico continuar bloqueado pela rede ou pelo comportamento de UDP no iOS.
+- Se a descoberta automatica ainda nao listar a mesa, testar imediatamente o campo manual com 192.168.88.250.
+- Se o IP manual tambem falhar, o proximo ponto nao e mais descoberta: passa a ser recepcao/resposta UDP no device ou isolamento real entre iPhone e console.
+- Para depender 100% de broadcast/multicast no iOS 14+, considerar solicitar e configurar o entitlement com.apple.developer.networking.multicast na Apple Developer Account e no provisioning profile.

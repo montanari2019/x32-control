@@ -1,0 +1,9 @@
+IOS INFOPLIST APPSTORE FIX
+
+Contexto: preparar Info.plist iOS p/ submissao App Store Connect.
+Causa: faltava chave export compliance; NSBonjourServices tinha entradas invalidas `_udp._tcp` e `_tcp._tcp`; app precisa declarar modo background audio conforme requisito do prompt.
+Acao: add `ITSAppUsesNonExemptEncryption=false`; manter apenas `_osc._udp` em `NSBonjourServices`; add `UIBackgroundModes` c/ `audio`; preservar ATS local network e string de permissao rede local.
+Resultado: OK; plist valido e diff restrito as secoes solicitadas.
+Arquivos: `ios/Tacimix/Info.plist`; `logs/2026-05-20_20-27-40-ios-infoplist-appstore-fix.txt`.
+Validacao: `plutil -lint ios/Tacimix/Info.plist` OK; `git diff -- ios/Tacimix/Info.plist` revisado.
+Pontos atencao: `UIBackgroundModes=audio` deve permanecer somente se uso em background for justificavel p/ App Review.

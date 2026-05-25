@@ -1,0 +1,39 @@
+Tacimix - limpeza do dispositivo fisico e diagnostico simulador vs iPhone
+Data: 2026-05-15 20:26 America/Porto_Velho
+
+Pedido
+- Remover cache/instalacao antiga do app no iPhone fisico.
+- Entender por que o simulador conecta perfeitamente, mas o dispositivo fisico nao lista/conecta na mesa.
+
+Limpeza feita no iPhone fisico
+- Removido com sucesso: com.tacimix.app
+- Removido com sucesso: com.tacimix.app
+- Removido com sucesso: com.tacimix.app
+- A listagem de apps do device nao retornou mais Tacimix/X32/BusAux/Control depois da limpeza.
+- Reinstalado limpo: com.tacimix.app
+- App aberto no iPhone fisico apos reinstalacao limpa.
+
+Comandos principais
+- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
+- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
+- xcrun devicectl device uninstall app --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
+- xcrun devicectl device install app --device D00ED63B-A724-51B7-9A88-758379CCDB04 .../Debug-iphoneos/Tacimix.app
+- xcrun devicectl device process launch --device D00ED63B-A724-51B7-9A88-758379CCDB04 com.tacimix.app
+
+Diagnostico de rede do Mac/simulador
+- route -n get 192.168.88.250 mostrou interface en0.
+- ifconfig mostrou o Mac em 192.168.88.40/24, broadcast 192.168.88.255.
+- nc UDP para 192.168.88.250:10023 retornou sucesso.
+
+Conclusao tecnica
+- O simulador usa a pilha de rede do Mac. Como o Mac esta em 192.168.88.40 e alcanca a mesa em 192.168.88.250, o simulador consegue conectar.
+- O iPhone fisico nao usa a rede do Mac pelo USB para falar com a X32. Ele precisa estar diretamente na mesma rede Wi-Fi/VLAN/sub-rede da mesa.
+- Se o iPhone estiver em outro SSID, outra VLAN, hotspot, rede convidado, com isolamento de cliente, ou usando dados celulares para parte do trafego, a descoberta/conexao pode falhar mesmo com "Rede Local" habilitado.
+- A limpeza de app/cache do device foi feita. Se continuar falhando no iPhone, a causa mais provavel passa a ser ambiente de rede do aparelho fisico, nao cache do bundle antigo.
+
+Checklist recomendado no iPhone
+- Verificar em Ajustes > Wi-Fi > info da rede se o IP do iPhone tambem esta em 192.168.88.x.
+- Desligar temporariamente Dados Celulares para o teste.
+- Desativar VPN/iCloud Private Relay se estiver ativo.
+- Confirmar que o Wi-Fi nao e rede convidado e nao tem "AP/client isolation".
+- Se necessario, em Ajustes > Geral > Transferir ou Redefinir iPhone > Redefinir > Redefinir Localizacao e Privacidade para forcar novo prompt de Rede Local.

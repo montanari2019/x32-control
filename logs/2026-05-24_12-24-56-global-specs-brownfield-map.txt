@@ -1,0 +1,9 @@
+GLOBAL SPECS BROWNFIELD MAP
+
+Contexto: usuario pediu aplicar tlc-spec-driven p/ criar .specs global e scaffolds locais das features atuais.
+Causa: projeto tinha logs/docs, mas nao tinha memoria persistente .specs com visao, roadmap, arquitetura, stack, testes, integracoes e concerns.
+Ação: criado .specs/project, .specs/codebase e .specs/quick; criados STATE.md locais e feature/.gitkeep em about, consoleDiscovery, busSelection, busGroups e busMix.
+Resultado: OK; app mapeado como React Native mobile standalone c/ specs co-localizadas por feature.
+Arquivos: .specs/project/*.md; .specs/codebase/*.md; .specs/quick/.gitkeep; src/features/*/.specs/STATE.md; src/features/*/.specs/feature/.gitkeep.
+Validação: find confirmou 11 arquivos globais e 10 arquivos locais de feature; wc totalizou 2412 linhas de docs/spec state.
+Pontos atenção: nao foram criados specs formais de features; pasta feature/ ficou vazia por design, pronta p/ futuros feature specs.

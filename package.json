@@ -1,5 +1,5 @@
 {
-  "name": "x32-bus-aux-control",
+  "name": "tacimix",
   "version": "1.0.0",
   "private": true,
   "scripts": {
@@ -11,6 +11,7 @@
     "ios": "react-native run-ios --mode Debug --simulator \"iPhone 17\"",
     "ios:simulator": "react-native run-ios --mode Debug --simulator \"iPhone 17\"",
     "ios:device": "react-native run-ios --mode Debug --device \"iPhone de Ikaro\"",
+    "ios:devicerenan": "react-native run-ios --mode Debug --device \"iPhone de Renan\"",
     "start": "react-native start",
     "pod": "bash ./pod-install.sh",
     "postinstall": "husky && npm run pod",

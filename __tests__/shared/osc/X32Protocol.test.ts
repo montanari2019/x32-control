@@ -9,8 +9,18 @@ describe('X32Protocol', () => {
     expect(X32Protocol.getBusNamePath(3)).toBe('/bus/03/config/name');
     expect(X32Protocol.getBusColorPath(3)).toBe('/bus/03/config/color');
     expect(X32Protocol.getBusSendLevelPath(1, 3)).toBe('/ch/01/mix/03/level');
+    expect(X32Protocol.getBusSendLevelPath(17, 1)).toBe('/ch/17/mix/01/level');
+    expect(X32Protocol.getChannelFaderPath(17)).toBe('/ch/17/mix/fader');
     expect(X32Protocol.getBusSendOnPath(2, 16)).toBe('/ch/02/mix/16/on');
     expect(X32Protocol.getBusMasterFaderPath(7)).toBe('/bus/07/mix/fader');
+  });
+
+  it('builds X32 scalar subscription command paths', () => {
+    expect(X32Protocol.getSubscribePath()).toBe('/subscribe');
+    expect(X32Protocol.getRenewPath()).toBe('/renew');
+    expect(X32Protocol.getUnsubscribePath()).toBe('/unsubscribe');
+    expect(X32Protocol.defaultScalarSubscriptionTimeFactor).toBeGreaterThan(0);
+    expect(X32Protocol.defaultScalarSubscriptionRenewIntervalMs).toBeLessThan(10000);
   });
 
   it('rejects out of range channels and buses', () => {
