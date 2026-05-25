@@ -8,18 +8,60 @@ import { BusMixService } from '../services/BusMixService';
 import { channelStructureCache } from '../services/ChannelStructureCache';
 import { Channel } from '../types/Channel';
 import { BusMixPreset, BusMixPresetChannel } from '../types/BusMixPreset';
+import {
+  BusMixRemoteFaderSubscriptionHealthUpdate,
+  useBusMixRemoteFaderSubscription,
+} from './useBusMixRemoteFaderSubscription';
+import {
+  applyLinkedLocalLevelUpdate,
+  applyLinkedOnUpdate,
+  applyLinkedRemoteLevelUpdate,
+  applyPanUpdate,
+  getLinkedPeerNumber,
+} from '../utils/linkedChannelSync';
 
 const FADER_SEND_INTERVAL_MS = 30;
 const LOCAL_PROTECTION_WINDOW_MS = 250;
 const BACKGROUND_SYNC_INTERVAL_MS = 30000;
 const BACKGROUND_SYNC_JITTER_MS = 5000;
+const REALTIME_SUBSCRIPTION_STALE_MS = 15000;
+const FADER_SUBSCRIPTION_STALE_MS = 12000;
+const EMPTY_VISIBLE_CHANNEL_IDS = new Set<string>();
+
+type BusMixRealtimeSubscriptionHealth = {
+  levelEventCount: number;
+  onEventCount: number;
+  panEventCount: number;
+  faderSubscriptionEventCount: number;
+  staleAfterMs: number;
+  faderSubscriptionStaleAfterMs: number;
+  subscribedFaderPathCount: number;
+  subscribedAt?: number;
+  lastEventAt?: number;
+  lastLevelOrOnEventAt?: number;
+  lastPanEventAt?: number;
+  lastFaderSubscriptionSetAt?: number;
+  lastFaderSubscribeCommandAt?: number;
+  lastFaderSubscribeRenewAt?: number;
+  lastSubscribedFaderEventAt?: number;
+};
+
+type UseBusMixOptions = {
+  realtimeVisibleChannelIds?: ReadonlySet<string>;
+};
 
 const waitForNextFrame = (): Promise<void> =>
   new Promise((resolve) => {
     requestAnimationFrame(() => resolve());
   });
 
-export const useBusMix = (consoleIp: string, busNumber: number) => {
+export const useBusMix = (
+  consoleIp: string,
+  busNumber: number,
+  options: UseBusMixOptions = {},
+) => {
+  const realtimeVisibleChannelIds =
+    options.realtimeVisibleChannelIds ?? EMPTY_VISIBLE_CHANNEL_IDS;
   const service = useMemo(() => new BusMixService(), []);
   const presetService = useMemo(() => new BusMixPresetService(), []);
   const [channels, setChannels] = useState<Channel[]>(() =>
@@ -38,6 +80,15 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const faderFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const channelsRef = useRef<Channel[]>([]);
   const channelLinkMapRef = useRef(new Map<number, number>());
+  const realtimeHealthRef = useRef<BusMixRealtimeSubscriptionHealth>({
+    levelEventCount: 0,
+    onEventCount: 0,
+    panEventCount: 0,
+    faderSubscriptionEventCount: 0,
+    staleAfterMs: REALTIME_SUBSCRIPTION_STALE_MS,
+    faderSubscriptionStaleAfterMs: FADER_SUBSCRIPTION_STALE_MS,
+    subscribedFaderPathCount: 0,
+  });
   const backgroundSyncDelayRef = useRef(
     BACKGROUND_SYNC_INTERVAL_MS + Math.floor(Math.random() * BACKGROUND_SYNC_JITTER_MS),
   );
@@ -62,9 +113,9 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const reconcileRemoteOn = useCallback(
     (channelNumber: number, remoteOn: boolean): void => {
       updateSharedChannels((current) =>
-        current.map((channel) =>
-          channel.number === channelNumber ? { ...channel, on: remoteOn } : channel,
-        ),
+        applyLinkedOnUpdate(current, channelNumber, remoteOn, {
+          linkMap: channelLinkMapRef.current,
+        }),
       );
     },
     [updateSharedChannels],
@@ -73,42 +124,102 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const reconcileRemoteFader = useCallback(
     (channelNumber: number, remoteLevel: number): void => {
       const now = Date.now();
-      const faderDb = x32RawToDb(remoteLevel);
 
       updateSharedChannels((current) =>
-        current.map((channel) => {
-          if (channel.number !== channelNumber) {
-            return channel;
-          }
-
-          const lastLocalChangeAt = Math.max(
-            channel.lastLocalChangeAt,
-            pendingLocalChangeAtRef.current.get(channelNumber) ?? 0,
-          );
-          const recentlyChanged = now - lastLocalChangeAt < LOCAL_PROTECTION_WINDOW_MS;
-
-          if (recentlyChanged) {
-            return {
-              ...channel,
-              faderRaw: channel.localFaderRaw,
-              remoteFaderRaw: remoteLevel,
-            };
-          }
-
-          return {
-            ...channel,
-            faderRaw: remoteLevel,
-            faderDb,
-            localFaderRaw: remoteLevel,
-            remoteFaderRaw: remoteLevel,
-            level: remoteLevel,
-            isDirty: false,
-          };
+        applyLinkedRemoteLevelUpdate(current, channelNumber, remoteLevel, {
+          linkMap: channelLinkMapRef.current,
+          localProtectionWindowMs: LOCAL_PROTECTION_WINDOW_MS,
+          now,
+          pendingLocalChangeAt: pendingLocalChangeAtRef.current,
         }),
       );
     },
     [updateSharedChannels],
   );
+
+  const reconcileRemotePan = useCallback(
+    (channelNumber: number, remotePan: number): void => {
+      updateSharedChannels((current) => applyPanUpdate(current, channelNumber, remotePan));
+    },
+    [updateSharedChannels],
+  );
+
+  const markRealtimeEvent = useCallback((type: 'level' | 'on' | 'pan'): void => {
+    const now = Date.now();
+    const current = realtimeHealthRef.current;
+
+    realtimeHealthRef.current = {
+      ...current,
+      lastEventAt: now,
+      lastLevelOrOnEventAt:
+        type === 'level' || type === 'on' ? now : current.lastLevelOrOnEventAt,
+      lastPanEventAt: type === 'pan' ? now : current.lastPanEventAt,
+      levelEventCount: current.levelEventCount + (type === 'level' ? 1 : 0),
+      onEventCount: current.onEventCount + (type === 'on' ? 1 : 0),
+      panEventCount: current.panEventCount + (type === 'pan' ? 1 : 0),
+    };
+  }, []);
+
+  const markRemoteFaderSubscriptionHealth = useCallback(
+    (update: BusMixRemoteFaderSubscriptionHealthUpdate): void => {
+      const current = realtimeHealthRef.current;
+
+      if (update.type === 'set') {
+        realtimeHealthRef.current = {
+          ...current,
+          subscribedFaderPathCount: update.subscribedPathCount,
+          lastFaderSubscriptionSetAt: update.at,
+        };
+        return;
+      }
+
+      if (update.type === 'subscribe') {
+        realtimeHealthRef.current = {
+          ...current,
+          lastFaderSubscribeCommandAt: update.at,
+        };
+        return;
+      }
+
+      if (update.type === 'renew') {
+        realtimeHealthRef.current = {
+          ...current,
+          lastFaderSubscribeRenewAt: update.at,
+        };
+        return;
+      }
+
+      realtimeHealthRef.current = {
+        ...current,
+        lastEventAt: update.at,
+        lastLevelOrOnEventAt: update.at,
+        lastSubscribedFaderEventAt: update.at,
+        levelEventCount: current.levelEventCount + 1,
+        faderSubscriptionEventCount: current.faderSubscriptionEventCount + 1,
+      };
+    },
+    [],
+  );
+
+  const getRealtimeSubscriptionHealth = useCallback((): BusMixRealtimeSubscriptionHealth & {
+    isStale: boolean;
+    isFaderSubscriptionStale: boolean;
+  } => {
+    const current = realtimeHealthRef.current;
+    const referenceTime = current.lastEventAt ?? current.subscribedAt;
+    const faderReferenceTime =
+      current.lastSubscribedFaderEventAt ??
+      current.lastFaderSubscribeCommandAt ??
+      current.lastFaderSubscriptionSetAt;
+    return {
+      ...current,
+      isStale: referenceTime ? Date.now() - referenceTime > current.staleAfterMs : false,
+      isFaderSubscriptionStale:
+        current.subscribedFaderPathCount > 0 && faderReferenceTime !== undefined
+          ? Date.now() - faderReferenceTime > current.faderSubscriptionStaleAfterMs
+          : false,
+    };
+  }, []);
 
   const buildPresetChannels = useCallback(
     (sourceChannels: Channel[]): BusMixPresetChannel[] =>
@@ -184,10 +295,22 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
   const sendLevelOnly = useCallback(
     (channelNumber: number, level: number): void => {
-      pendingLocalChangeAtRef.current.set(channelNumber, Date.now());
+      const now = Date.now();
+      const linkedPeerNumber = getLinkedPeerNumber(channelNumber, channelLinkMapRef.current);
+      pendingLocalChangeAtRef.current.set(channelNumber, now);
+      if (linkedPeerNumber !== undefined) {
+        pendingLocalChangeAtRef.current.set(linkedPeerNumber, now);
+      }
+      updateSharedChannels((current) =>
+        applyLinkedLocalLevelUpdate(current, channelNumber, level, {
+          linkMap: channelLinkMapRef.current,
+          markDirty: true,
+          now,
+        }),
+      );
       enqueueFaderSend(channelNumber, level);
     },
-    [enqueueFaderSend],
+    [enqueueFaderSend, updateSharedChannels],
   );
 
   const syncRemoteFaders = useCallback(async (): Promise<void> => {
@@ -265,17 +388,39 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
   useEffect(() => {
     const currentChannels = [...channelsRef.current];
+    realtimeHealthRef.current = {
+      ...realtimeHealthRef.current,
+      subscribedAt: Date.now(),
+    };
     const unsubscribers = currentChannels.flatMap((channel) => [
-      service.onLevel(channel, busNumber, (returnedLevel) => {
-        reconcileRemoteFader(channel.number, returnedLevel);
-      }),
       service.onOn(channel, busNumber, (returnedOn) => {
+        markRealtimeEvent('on');
         reconcileRemoteOn(channel.number, returnedOn);
+      }),
+      service.onPan(channel, busNumber, (returnedPan) => {
+        markRealtimeEvent('pan');
+        reconcileRemotePan(channel.number, returnedPan);
       }),
     ]);
 
     return () => unsubscribers.forEach((unsubscribe) => unsubscribe());
-  }, [busNumber, channelSourcesKey, reconcileRemoteFader, reconcileRemoteOn, service]);
+  }, [
+    busNumber,
+    channelSourcesKey,
+    markRealtimeEvent,
+    reconcileRemoteOn,
+    reconcileRemotePan,
+    service,
+  ]);
+
+  useBusMixRemoteFaderSubscription({
+    busNumber,
+    channels,
+    visibleChannelIds: realtimeVisibleChannelIds,
+    service,
+    onRemoteLevel: reconcileRemoteFader,
+    onHealthChange: markRemoteFaderSubscriptionHealth,
+  });
 
   useEffect(() => {
     const timer = setInterval(() => {
@@ -288,22 +433,17 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const applyCommittedLevel = useCallback(
     (channelNumber: number, level: number, markPendingChanges = true): void => {
       const now = Date.now();
-      const faderDb = x32RawToDb(level);
+      const linkedPeerNumber = getLinkedPeerNumber(channelNumber, channelLinkMapRef.current);
       pendingLocalChangeAtRef.current.delete(channelNumber);
+      if (linkedPeerNumber !== undefined) {
+        pendingLocalChangeAtRef.current.delete(linkedPeerNumber);
+      }
       updateSharedChannels((current) =>
-        current.map((channel) =>
-          channel.number === channelNumber
-            ? {
-                ...channel,
-                faderRaw: level,
-                faderDb,
-                localFaderRaw: level,
-                level,
-                isDirty: markPendingChanges,
-                lastLocalChangeAt: now,
-              }
-            : channel,
-        ),
+        applyLinkedLocalLevelUpdate(current, channelNumber, level, {
+          linkMap: channelLinkMapRef.current,
+          markDirty: markPendingChanges,
+          now,
+        }),
       );
 
       if (markPendingChanges) {
@@ -329,13 +469,9 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
         return;
       }
 
-      const linkedNumber = channelLinkMapRef.current.get(channelNumber);
       updateSharedChannels((current) =>
-        current.map((item) => {
-          if (item.number === channelNumber) return { ...item, on: nextOn };
-          if (linkedNumber !== undefined && item.number === linkedNumber)
-            return { ...item, on: nextOn };
-          return item;
+        applyLinkedOnUpdate(current, channelNumber, nextOn, {
+          linkMap: channelLinkMapRef.current,
         }),
       );
 
@@ -347,11 +483,8 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
         await service.setChannelOn(channel, busNumber, nextOn);
       } catch (toggleError) {
         updateSharedChannels((current) =>
-          current.map((item) => {
-            if (item.number === channelNumber) return { ...item, on: channel.on };
-            if (linkedNumber !== undefined && item.number === linkedNumber)
-              return { ...item, on: channel.on };
-            return item;
+          applyLinkedOnUpdate(current, channelNumber, channel.on, {
+            linkMap: channelLinkMapRef.current,
           }),
         );
         setError(getErrorMessage(toggleError));
@@ -381,11 +514,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
       }
 
       const nextPan = percentToX32Pan(pan);
-      updateSharedChannels((current) =>
-        current.map((channel) =>
-          channel.number === channelNumber ? { ...channel, pan: nextPan } : channel,
-        ),
-      );
+      updateSharedChannels((current) => applyPanUpdate(current, channelNumber, nextPan));
       setHasPendingChanges(true);
       service.setChannelPan(channel, busNumber, nextPan).catch((sendError) => {
         setError(getErrorMessage(sendError));
@@ -508,6 +637,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
     toggleOn,
     setPan,
     getPanPercent: (value: number) => x32PanToPercent(value),
+    getRealtimeSubscriptionHealth,
     save,
     createPreset,
     overwritePreset,

@@ -103,7 +103,7 @@ async function main() {
   const iosDir = path.join(
     root,
     'ios',
-    'X32NativeShell',
+    'Tacimix',
     'Images.xcassets',
     'AppIcon.appiconset',
   );
@@ -117,7 +117,7 @@ async function main() {
   const launchLogoDir = path.join(
     root,
     'ios',
-    'X32NativeShell',
+    'Tacimix',
     'Images.xcassets',
     'LaunchLogo.imageset',
   );

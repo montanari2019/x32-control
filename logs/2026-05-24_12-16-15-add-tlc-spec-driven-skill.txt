@@ -1,0 +1,9 @@
+ADD TLC SPEC DRIVEN SKILL
+
+Contexto: usuario pediu adicionar skill tlc-spec-driven ao catalogo docs/skills.
+Causa: nova skill segue fluxo Specify/Design/Tasks/Execute e precisava entrar no padrao Agent Skills usado no repo.
+Ação: criado docs/skills/tlc-spec-driven/SKILL.md; movidos license/author/version p/ corpo; add references/*.md p/ links citados; index atualizado.
+Resultado: OK; catalogo agora tem 21 skills validas.
+Arquivos: docs/skills/tlc-spec-driven/SKILL.md; docs/skills/tlc-spec-driven/references/*.md; docs/skills/00-skill-index.md.
+Validação: script Node local checou 21 skills, frontmatter name/description, nome kebab-case e description <=1024 chars.
+Pontos atenção: description foi compactada p/ limite/padrao Claude; conteudo principal e workflow foram preservados com referencias enxutas.

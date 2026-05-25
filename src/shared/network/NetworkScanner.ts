@@ -1,11 +1,107 @@
 import { AppError } from '@shared/errors/AppError';
 import { OscClient } from '@shared/osc/OscClient';
 import { OscDecoder } from '@shared/osc/OscDecoder';
-import { OscEncoder } from '@shared/osc/OscEncoder';
 import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
+import { Buffer } from 'buffer';
+import {
+  getNativeBroadcastAddresses,
+  getNativeNetworkInterfaces,
+  NativeNetworkInterface,
+} from './NativeNetworkInterfaces';
 import { UdpTransport } from './UdpTransport';
+
+const FALLBACK_BROADCAST_ADDRESS = '255.255.255.255';
+const DISCOVERY_MIN_WAIT_MS = 500;
+const BROADCAST_RESPONSE_WAIT_MS = 2000;
+const UNICAST_RESPONSE_WAIT_MS = 3000;
+const UNICAST_BATCH_SIZE = 32;
+const UNICAST_BATCH_GAP_MS = 25;
+const MAX_UNICAST_DISCOVERY_HOSTS = 512;
+
+const pad4 = (length: number): number => (4 - (length % 4)) % 4;
+
+const encodeAddressOnly = (address: string): Buffer => {
+  const content = Buffer.from(`${address}\0`, 'utf8');
+  return Buffer.concat([content, Buffer.alloc(pad4(content.length))]);
+};
+
+const getDiscoveryBroadcastAddresses = async (): Promise<string[]> => {
+  const nativeBroadcasts = await getNativeBroadcastAddresses();
+  return [...new Set([...nativeBroadcasts, FALLBACK_BROADCAST_ADDRESS])];
+};
+
+const ipv4ToNumber = (ip: string): number =>
+  ip.split('.').reduce((acc, part) => ((acc << 8) + Number(part)) >>> 0, 0);
+
+const numberToIpv4 = (value: number): string =>
+  [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join('.');
+
+const getSame24Addresses = (networkInterface: NativeNetworkInterface): string[] => {
+  const octets = networkInterface.address.split('.');
+  const prefix = octets.slice(0, 3).join('.');
+  return sortLikelyConsoleAddresses(
+    Array.from({ length: 254 }, (_, index) => `${prefix}.${index + 1}`).filter(
+      (address) => address !== networkInterface.address && address !== networkInterface.broadcast,
+    ),
+  );
+};
+
+const getInterfaceHostAddresses = (networkInterface: NativeNetworkInterface): string[] => {
+  const address = ipv4ToNumber(networkInterface.address);
+  const netmask = ipv4ToNumber(networkInterface.netmask);
+  const network = (address & netmask) >>> 0;
+  const broadcast = ipv4ToNumber(networkInterface.broadcast);
+  const hostCount = Math.max(0, broadcast - network - 1);
+
+  if (hostCount <= 0) {
+    return [];
+  }
+
+  if (hostCount > MAX_UNICAST_DISCOVERY_HOSTS) {
+    return getSame24Addresses(networkInterface);
+  }
+
+  const addresses: string[] = [];
+  for (let host = network + 1; host < broadcast; host += 1) {
+    const hostAddress = numberToIpv4(host);
+    if (hostAddress !== networkInterface.address) {
+      addresses.push(hostAddress);
+    }
+  }
+
+  return sortLikelyConsoleAddresses(addresses);
+};
+
+const getUnicastDiscoveryAddresses = async (): Promise<string[]> => {
+  const networkInterfaces = await getNativeNetworkInterfaces();
+  return [...new Set(networkInterfaces.flatMap(getInterfaceHostAddresses))];
+};
+
+const sleep = (delayMs: number): Promise<void> =>
+  new Promise((resolve) => {
+    setTimeout(resolve, delayMs);
+  });
+
+const sortLikelyConsoleAddresses = (addresses: string[]): string[] => {
+  const priorityOctets = new Map([
+    [250, 0],
+    [251, 1],
+    [252, 2],
+    [253, 3],
+    [254, 4],
+    [1, 5],
+  ]);
+
+  return [...addresses].sort((left, right) => {
+    const leftOctet = Number(left.split('.')[3]);
+    const rightOctet = Number(right.split('.')[3]);
+    const leftPriority = priorityOctets.get(leftOctet) ?? leftOctet + 10;
+    const rightPriority = priorityOctets.get(rightOctet) ?? rightOctet + 10;
+    return leftPriority - rightPriority;
+  });
+};
 
 const parseInfo = (ip: string, port: number, response: OscMessage): ConsoleDevice => {
   const values = response.args.map(String);
@@ -50,32 +146,16 @@ export class NetworkScanner {
     });
 
     try {
-      await transport.send(
-        OscEncoder.encode({ address: X32Protocol.getInfoPath(), args: [] }),
-        '255.255.255.255',
-        X32Protocol.defaultPort,
-      );
+      const payload = encodeAddressOnly(X32Protocol.getInfoPath());
+      const broadcasts = await getDiscoveryBroadcastAddresses();
+      this.sendDiscoveryBatch(payload, transport, broadcasts);
 
-      await new Promise<void>((resolve) => {
-        // Resolve assim que ao menos 1 console for encontrado E o mínimo de 400ms tiver passado.
-        // Fallback: sempre resolve em 900ms.
-        let minPassed = false;
-        const minTimer = setTimeout(() => {
-          minPassed = true;
-          if (devices.size > 0) resolve();
-        }, 400);
-        const maxTimer = setTimeout(() => {
-          clearTimeout(minTimer);
-          resolve();
-        }, 900);
-        const checkInterval = setInterval(() => {
-          if (minPassed && devices.size > 0) {
-            clearTimeout(maxTimer);
-            clearInterval(checkInterval);
-            resolve();
-          }
-        }, 50);
-      });
+      await this.waitForResponses(devices, BROADCAST_RESPONSE_WAIT_MS);
+
+      if (devices.size === 0) {
+        await this.sendUnicastDiscovery(payload, transport, devices);
+        await this.waitForResponses(devices, UNICAST_RESPONSE_WAIT_MS);
+      }
     } finally {
       unsubscribe();
       transport.close();
@@ -84,7 +164,7 @@ export class NetworkScanner {
     return [...devices.values()];
   }
 
-  async validateConsole(ip: string, timeoutMs = 1200): Promise<ConsoleDevice> {
+  async validateConsole(ip: string, timeoutMs = 5000): Promise<ConsoleDevice> {
     const client = this.clientFactory();
 
     try {
@@ -96,9 +176,75 @@ export class NetworkScanner {
         throw error;
       }
 
-      throw new AppError('CONSOLE_NOT_FOUND', 'Mesa não encontrada neste IP.', error);
+      throw new AppError(
+        'CONSOLE_NOT_FOUND',
+        'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o iPhone está no mesmo Wi-Fi da mesa e se a permissão de Rede Local está ativa.',
+        error,
+      );
     } finally {
       client.disconnect();
     }
+  }
+
+  private async sendUnicastDiscovery(
+    payload: Buffer,
+    transport: UdpTransport,
+    devices: Map<string, ConsoleDevice>,
+  ): Promise<void> {
+    const addresses = await getUnicastDiscoveryAddresses();
+
+    for (let index = 0; index < addresses.length; index += UNICAST_BATCH_SIZE) {
+      if (devices.size > 0) {
+        return;
+      }
+
+      const batch = addresses.slice(index, index + UNICAST_BATCH_SIZE);
+      this.sendDiscoveryBatch(payload, transport, batch);
+      await sleep(UNICAST_BATCH_GAP_MS);
+    }
+  }
+
+  private sendDiscoveryBatch(payload: Buffer, transport: UdpTransport, addresses: string[]): void {
+    addresses.forEach((address) => {
+      transport.send(payload, address, X32Protocol.defaultPort).catch(() => undefined);
+    });
+  }
+
+  private async waitForResponses(
+    devices: Map<string, ConsoleDevice>,
+    maxWaitMs: number,
+  ): Promise<void> {
+    await new Promise<void>((resolve) => {
+      // iOS can spend part of the first scan waiting for the Local Network permission prompt.
+      let isSettled = false;
+      let minTimer: ReturnType<typeof setTimeout>;
+      let maxTimer: ReturnType<typeof setTimeout>;
+      let checkInterval: ReturnType<typeof setInterval>;
+      let minPassed = false;
+
+      const settle = (): void => {
+        if (isSettled) {
+          return;
+        }
+
+        isSettled = true;
+        clearTimeout(minTimer);
+        clearTimeout(maxTimer);
+        clearInterval(checkInterval);
+        resolve();
+      };
+
+      minTimer = setTimeout(() => {
+        minPassed = true;
+        if (devices.size > 0) settle();
+      }, DISCOVERY_MIN_WAIT_MS);
+
+      maxTimer = setTimeout(settle, maxWaitMs);
+      checkInterval = setInterval(() => {
+        if (minPassed && devices.size > 0) {
+          settle();
+        }
+      }, 50);
+    });
   }
 }

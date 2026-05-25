@@ -1,0 +1,9 @@
+BUSMIX FADER THUMB ONLY TASK
+
+Contexto: usuario pediu criar task tlc-spec-driven p/ tornar barra central do fader BusMix visual-only.
+Causa: VerticalFader aceita gesto no thumb ou no track central via isOnThumb || isOnTrack.
+Ação: criado spec/task em src/features/busMix/.specs/feature/fader-thumb-only-interaction; atualizado STATE local busMix.
+Resultado: OK; task T-001 descreve escopo, requisitos, done when, testes, gate e validação manual.
+Arquivos: src/features/busMix/.specs/feature/fader-thumb-only-interaction/spec.md; tasks.md; src/features/busMix/.specs/STATE.md.
+Validação: find confirmou spec.md/tasks.md; leitura tasks.md OK.
+Pontos atenção: nenhum código foi alterado; implementação deve focar VerticalFader.tsx e preservar thumb drag/visuals.

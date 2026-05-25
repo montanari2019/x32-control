@@ -1,0 +1,84 @@
+BUSMIX REALTIME CONSOLE REACTIVITY IMPLEMENTATION
+
+Contexto
+- O usuario pediu implementar src/features/busMix/.specs/feature/realtime-console-reactivity seguindo docs/skills/tlc-spec-driven.
+- Console real e emulador estao na mesma rede, mas esta execucao foi feita por codigo/testes; UAT visual no app permanece para o usuario validar no emulador.
+
+Arquivos de codigo criados/alterados
+- src/features/busMix/utils/linkedChannelSync.ts
+- src/features/busMix/hooks/useBusMix.ts
+- src/features/busMix/services/BusMixService.ts
+
+Arquivos de teste criados
+- __tests__/features/busMix/utils/linkedChannelSync.test.ts
+
+Arquivos de spec/estado atualizados
+- src/features/busMix/.specs/feature/realtime-console-reactivity/design.md
+- src/features/busMix/.specs/feature/realtime-console-reactivity/tasks.md
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Implementacao
+- Criado linkedChannelSync com reducers puros para:
+  - resolver peer linkado;
+  - refletir level local para canal tocado + peer linkado;
+  - refletir level remoto para canal recebido + peer linkado;
+  - proteger faders com mudanca local recente contra eco remoto antigo;
+  - refletir mute/on para peer linkado;
+  - aplicar pan somente no canal enderecado, sem mirror.
+- useBusMix agora:
+  - reflete fader drag local em ambos os peers visuais;
+  - mantem o envio OSC do fader somente para o canal tocado;
+  - reflete commit final de fader em ambos os peers visuais;
+  - reflete mute/on local e remoto em ambos os peers visuais;
+  - assina level/on/pan por canal;
+  - recebe pan remoto sem espelhar para canal linkado;
+  - mantem meters fora desta feature;
+  - mantem background sync existente;
+  - expoe getRealtimeSubscriptionHealth() para diagnostico manual/debug.
+- BusMixService agora possui onPan(channel, bus, listener).
+
+Decisoes preservadas
+- Nao foi alterado o throttle de fader: 30 ms.
+- Nao foi alterado o final send imediato de fader.
+- Nao foi alterado /xremote keepalive.
+- Nao foi alterado SharedOscClient.
+- Nao foi alterado useMeterSubscription.
+- Nao foram adicionados comandos duplicados para o peer linkado por padrao.
+- AUX/FX link-map nao foi implementado sem verificacao do protocolo no console real.
+- Polling focado de pares linkados nao foi implementado sem evidencia de drift apos o novo caminho.
+
+Testes executados
+- yarn jest __tests__/features/busMix/utils/linkedChannelSync.test.ts --runInBand
+  - PASS
+  - 1 suite
+  - 8 tests
+- yarn jest __tests__/features/busMix --runInBand
+  - PASS
+  - 6 suites
+  - 32 tests
+- yarn jest __tests__/features/busGroups --runInBand
+  - PASS
+  - 2 suites
+  - 10 tests
+- yarn tsc
+  - PASS
+
+Validacao real pendente
+- Abrir o app no emulador conectado a mesma rede da mesa.
+- Selecionar console real.
+- Entrar em BusMix.
+- Validar par CH linkado, como guitarra L/R:
+  - mover fader L no app deve mover visualmente L e R;
+  - mover fader R no app deve mover visualmente R e L;
+  - mutar L deve refletir L e R;
+  - mutar R deve refletir R e L;
+  - pan L nao deve alterar pan R;
+  - pan R nao deve alterar pan L;
+  - mover/mutar na superficie da mesa deve refletir visualmente os peers no app.
+
+SPEC_DEVIATION
+- Nenhum desvio do requisito principal.
+- T-007 permanece CH-only por seguranca: AUX/FX link maps nao foram adicionados sem verificacao real do protocolo.
+- T-008 nao foi implementada porque polling focado so deve entrar se a validacao real ainda mostrar drift.
+- T-010 permanece pendente ate UAT manual no console real.

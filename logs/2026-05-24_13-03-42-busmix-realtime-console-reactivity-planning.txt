@@ -1,0 +1,57 @@
+BUSMIX REALTIME CONSOLE REACTIVITY PLANNING
+
+Contexto
+- O usuario pediu, seguindo docs/skills/tlc-spec-driven, a criacao de tasks para resolver a baixa reatividade visual do app ao receber mudancas da X32/M32.
+- Problema principal: canais linkados na mesa soam corretos, mas a interface pode mostrar um lado atualizado e outro lado stale.
+- O envio app -> mesa deve ser mantido sem regressao.
+- Meters, presets, pan, BusGroups e demais fluxos devem permanecer estaveis.
+- Nao ha console fisico conectado nesta sessao, entao a etapa foi de planejamento tecnico com pesquisa externa.
+
+Pesquisa externa consultada
+- Mixing Station X32/M32 docs:
+  - https://dev-core.org/ms-docs/mixers/behringer/x32/
+  - Pontos usados: OSC via UDP, UDP pode perder pacotes, /subscribe envia valores repetidos por ~10s, /xremote envia eventos por ~10s, apps robustos combinam eventos com sync periodico.
+- Unofficial X32/M32 OSC Remote Protocol:
+  - https://www.z80ne.com/behringer/docs/X32-OSC%20v.4.0.pdf
+  - Pontos usados: /xremote precisa renovacao, /subscribe, /formatsubscribe, /batchsubscribe e /renew existem para updates regulares.
+- Janis Streib - X32 OSC quirks:
+  - https://janis-streib.de/post/behringer-x32-osc-is-quirky/
+  - Pontos usados: /xremote precisa envio periodico; algumas mudancas causadas por OSC podem nao ecoar como esperado, exigindo reflexao local.
+- wrodie/behringer-mixer:
+  - https://github.com/wrodie/behringer-mixer
+  - Pontos usados: padrao de callback para mudancas do mixer e health check de subscription baseada em recebimento recente.
+- orchetect/swift-osc issue #32:
+  - https://github.com/orchetect/swift-osc/issues/32
+  - Pontos usados: mixers Behringer-style respondem ao mesmo socket/porta de envio; isso reforca manter send/receive no SharedOscClient.
+- cabcookie/saddleback-x32-general-scene:
+  - https://github.com/cabcookie/saddleback-x32-general-scene
+  - Pontos usados: /config/chlink, /config/auxlink, /config/fxlink e /config/buslink; pan em stereo send e intencionalmente independente por lado.
+- Stack Overflow meters X32:
+  - https://stackoverflow.com/questions/79628962/how-to-access-meters-on-behringer-x32
+  - Pontos usados: meters tem mecanismo proprio e devem continuar separados da reatividade fader/on/pan.
+
+Arquivos criados
+- src/features/busMix/.specs/feature/realtime-console-reactivity/spec.md
+- src/features/busMix/.specs/feature/realtime-console-reactivity/design.md
+- src/features/busMix/.specs/feature/realtime-console-reactivity/tasks.md
+
+Arquivos atualizados
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Decisoes tecnicas planejadas
+- Tratar como feature Complex.
+- Preservar o caminho atual app -> mesa.
+- Usar o SharedOscClient atual para manter envio e recebimento no mesmo transporte UDP.
+- Manter /xremote ativo e renovado.
+- Implementar helpers puros para refletir peers linkados em level/on.
+- Nao refletir pan entre canais linkados.
+- Nao mandar comandos duplicados para o peer linkado por padrao; o console continua como fonte do audio, o app reflete visualmente.
+- Manter meters em useMeterSubscription sem misturar com a nova reatividade.
+- Adicionar health/diagnostics de recebimento.
+- Usar polling/reconciliacao focada somente como fallback com evidencia em console real.
+
+Validacao da etapa
+- Planejamento/documentacao apenas.
+- Nenhum codigo funcional foi alterado nesta etapa.
+- UAT real foi explicitamente marcado como pendente por falta de console fisico.
