@@ -138,17 +138,20 @@ This directory is intentionally empty for now except for scaffolding.
 
 - `pan-modal-correct-scale`: implementation completed on 2026-05-24; manual Demo validation remains open for native slider/thumb confirmation.
 - `realtime-console-reactivity`: planned on 2026-05-24. Goal is to make BusMix visually react to X32/M32 console changes and linked-channel behavior with low latency, without regressing the existing app-to-console send path, meters, presets, pan independence, or BusGroups shared state. Created after external research on X32 `/xremote`, `/subscribe`, UDP packet loss, linked channel configuration, and meter subscription separation.
-- `aux-fx-meter-stability`: planned on 2026-05-24. Goal is to keep CH 01..32 meters unchanged while fixing AUX 01..08 and FX Return 01..08 meter flicker. Current root-cause hypothesis is meter stream cross-contamination: `/meters/1` should update only CH 01..32, while AUX/FX should consume `/meters/13` only unless real-console evidence proves `/meters/3` is needed.
+- `aux-fx-meter-stability`: implemented on 2026-05-24 for automated/runtime stream isolation; real-console UAT remains open. Goal is to keep CH 01..32 meters unchanged while fixing AUX 01..08 and FX Return 01..08 meter flicker. Runtime now isolates `/meters/1` to CH 01..32 and `/meters/13` to AUX/FX IDs 33..48.
 
 ## Implemented Specs
 
 - `fader-thumb-only-interaction`: implemented on 2026-05-24 and corrected after user validation. The first coordinate-based hit-test broke normal thumb dragging, so `VerticalFader` now attaches `PanResponder` handlers directly to the animated thumb. The central visual track has no gesture handlers, while dragging the thumb keeps the original volume change pipeline. Automated gates passed after the correction: `yarn tsc` and `yarn jest __tests__/features/busMix --runInBand`. Manual Demo validation remains recommended for physical touch ergonomics.
 - `pan-modal-correct-scale`: implemented on 2026-05-24. `PanControlModal` now clamps local pan values, renders only one signed numeric value (`-100`, `0`, `+100`), and no longer shows the extra directional/raw dual readout. `src/shared/x32/pan.ts` now exposes `clampPanPercent` and `formatSignedPanValue`, with focused tests in `__tests__/shared/x32/pan.test.ts`. Automated gates passed: focused pan tests, BusMix tests, and `yarn tsc`.
+- `aux-fx-meter-stability`: implemented on 2026-05-24. Added pure meter stream routing helpers and updated `useMeterSubscription` so `/meters/1` only dispatches to CH 01..32 and `/meters/13` only dispatches to AUX/FX IDs 33..48. Added regression tests proving AUX/FX listeners do not consume `/meters/1` gate/dynamics data, plus boundary tests for CH and AUX/FX offsets. `/meters/3` remains a documented fallback only until real-console evidence proves it is needed.
 
 ## Latest Verification Notes
 
 - `yarn jest __tests__/shared/x32/pan.test.ts --runInBand`: passed, 6 tests.
 - `yarn jest __tests__/features/busMix --runInBand`: passed, 4 suites / 18 tests. Re-run after fader thumb-handler correction.
+- `yarn jest __tests__/features/busMix/utils/meterDecoder.test.ts __tests__/features/busMix/utils/meterStreamRouting.test.ts --runInBand`: passed, 2 suites / 16 tests.
+- `yarn jest __tests__/features/busMix --runInBand`: passed after AUX/FX meter isolation, 5 suites / 24 tests.
 - `yarn tsc`: passed.
 - `yarn lint`: blocked because `eslint` is not installed/resolvable in `node_modules/.bin` in the current workspace.
 - Simulator/device Demo validation was not executed in this terminal pass.

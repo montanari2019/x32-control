@@ -5,11 +5,13 @@ import { OscMessage } from '@shared/osc/OscMessage';
 import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
 import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
+import { ChannelMeterValues } from '../utils/meterDecoder';
 import {
-  ChannelMeterValues,
-  decodeMeter1BlobForChannel,
-  decodeMeter13BlobForChannel,
-} from '../utils/meterDecoder';
+  dispatchMeterStreamBlob,
+  getMeterStreamForChannelId,
+  isAuxFxMeterId,
+  isInputChannelMeterId,
+} from '../utils/meterStreamRouting';
 
 type MeterListener = (values: ChannelMeterValues) => void;
 
@@ -81,10 +83,10 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
 
         const requestActiveMeterStreams = (): void => {
           const activeChannelIds = [...listenersRef.current.keys()];
-          if (activeChannelIds.some((channelId) => channelId >= 1 && channelId <= 32)) {
+          if (activeChannelIds.some(isInputChannelMeterId)) {
             requestMeterStream(X32Protocol.getMeters1Path());
           }
-          if (activeChannelIds.some((channelId) => channelId >= 33 && channelId <= 48)) {
+          if (activeChannelIds.some(isAuxFxMeterId)) {
             requestMeterStream(X32Protocol.getMeters13Path());
           }
         };
@@ -96,19 +98,13 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
             return;
           }
 
-          listenersRef.current.forEach((listeners, channelId) => {
-            if (listeners.size === 0) return;
-            const values = decodeMeter1BlobForChannel(blob, channelId);
-            listeners.forEach((listener) => listener(values));
-          });
+          dispatchMeterStreamBlob('meters1', blob, listenersRef.current);
         });
 
         // Meter requests are sent to /meters with the requested meter id as a string.
         // The X32 streams responses for about 10s, so renew before that timeout.
         pollIntervalRef.current = setInterval(() => {
-          const hasChannelListeners = [...listenersRef.current.keys()].some(
-            (channelId) => channelId >= 1 && channelId <= 32,
-          );
+          const hasChannelListeners = [...listenersRef.current.keys()].some(isInputChannelMeterId);
           if (!hasChannelListeners) return;
           if (isPollingRef.current) return;
 
@@ -124,19 +120,12 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
             return;
           }
 
-          listenersRef.current.forEach((listeners, channelId) => {
-            if (channelId < 33 || channelId > 48) return;
-            if (listeners.size === 0) return;
-            const values = decodeMeter13BlobForChannel(blob, channelId);
-            listeners.forEach((listener) => listener(values));
-          });
+          dispatchMeterStreamBlob('meters13', blob, listenersRef.current);
         });
 
         // Poll /meters/13 only while AUX/FX Return listeners are active.
         pollInterval13Ref.current = setInterval(() => {
-          const hasAuxFxListeners = [...listenersRef.current.keys()].some(
-            (channelId) => channelId >= 33 && channelId <= 48,
-          );
+          const hasAuxFxListeners = [...listenersRef.current.keys()].some(isAuxFxMeterId);
           if (!hasAuxFxListeners) return;
           if (isPolling13Ref.current) return;
 
@@ -197,11 +186,13 @@ export const useMeterSubscription = (consoleIp: string, enabled = true) => {
       listeners.add(listener);
       listenersRef.current.set(channelId, listeners);
 
-      requestMeterStream(
-        channelId >= 33 && channelId <= 48
-          ? X32Protocol.getMeters13Path()
-          : X32Protocol.getMeters1Path(),
-      );
+      const meterStream = getMeterStreamForChannelId(channelId);
+      if (meterStream === 'meters1') {
+        requestMeterStream(X32Protocol.getMeters1Path());
+      }
+      if (meterStream === 'meters13') {
+        requestMeterStream(X32Protocol.getMeters13Path());
+      }
 
       return () => {
         const current = listenersRef.current.get(channelId);

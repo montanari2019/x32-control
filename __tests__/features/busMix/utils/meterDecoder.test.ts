@@ -64,6 +64,21 @@ describe('decodeMeter1BlobForChannel', () => {
     expect(decodeMeter1BlobForChannel(blob, 1).preFadeDbfs).toBeCloseTo(0, 1);
   });
 
+  it('keeps CH01, CH16, CH17, and CH32 mapped to the first 32 /meters/1 floats', () => {
+    const values = new Array(96).fill(0.001);
+    values[0] = 0.25;
+    values[15] = 0.35;
+    values[16] = 0.45;
+    values[31] = 0.55;
+    values[32] = 1.0;
+    const blob = createFloatMeterBlob(values);
+
+    expect(decodeMeter1BlobForChannel(blob, 1).preFadeDbfs).toBeCloseTo(-12, 0);
+    expect(decodeMeter1BlobForChannel(blob, 16).preFadeDbfs).toBeCloseTo(-9, 0);
+    expect(decodeMeter1BlobForChannel(blob, 17).preFadeDbfs).toBeCloseTo(-7, 0);
+    expect(decodeMeter1BlobForChannel(blob, 32).preFadeDbfs).toBeCloseTo(-5, 0);
+  });
+
   it('decodes X32 linear headroom values above unity', () => {
     const blob = createFloatMeterBlob([2.0]);
 
@@ -98,5 +113,20 @@ describe('decodeMeter13BlobForChannel', () => {
     const blob = createFloatMeterBlob(new Array(48).fill(0.5));
 
     expect(decodeMeter13BlobForChannel(blob, 49).preFadeDbfs).toBe(-60);
+  });
+
+  it('maps AUX and FX Return boundaries inside the 48-float /meters/13 blob', () => {
+    const values = new Array(48).fill(0.001);
+    // /meters/13: indexes 0..31 are inputs, 32..39 are AUX, 40..47 are stereo FX returns.
+    values[32] = 0.25;
+    values[39] = 0.35;
+    values[40] = 0.45;
+    values[47] = 0.55;
+    const blob = createFloatMeterBlob(values);
+
+    expect(decodeMeter13BlobForChannel(blob, 33).preFadeDbfs).toBeCloseTo(-12, 0);
+    expect(decodeMeter13BlobForChannel(blob, 40).preFadeDbfs).toBeCloseTo(-9, 0);
+    expect(decodeMeter13BlobForChannel(blob, 41).preFadeDbfs).toBeCloseTo(-7, 0);
+    expect(decodeMeter13BlobForChannel(blob, 48).preFadeDbfs).toBeCloseTo(-5, 0);
   });
 });
