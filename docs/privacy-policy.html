@@ -1,0 +1,330 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Política de Privacidade — TaciMix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@300;400;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0d0f11;
+      --surface: #13181d;
+      --border: #1f2830;
+      --accent: #00d4aa;
+      --accent2: #0097ff;
+      --text: #c8d6e0;
+      --muted: #566878;
+      --heading: #e8f4ff;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: 'IBM Plex Sans', sans-serif;
+      font-weight: 300;
+      line-height: 1.8;
+      min-height: 100vh;
+    }
+
+    /* subtle grid background */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(0,212,170,0.03) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0,212,170,0.03) 1px, transparent 1px);
+      background-size: 40px 40px;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 760px;
+      margin: 0 auto;
+      padding: 60px 24px 80px;
+    }
+
+    header {
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 36px;
+      margin-bottom: 48px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--accent);
+      border: 1px solid var(--accent);
+      padding: 4px 12px;
+      border-radius: 2px;
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: clamp(22px, 4vw, 32px);
+      font-weight: 600;
+      color: var(--heading);
+      line-height: 1.25;
+      margin-bottom: 12px;
+    }
+
+    .meta {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      letter-spacing: 0.05em;
+    }
+
+    .meta span { color: var(--accent2); }
+
+    section {
+      margin-bottom: 44px;
+    }
+
+    h2 {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 13px;
+      font-weight: 600;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 16px;
+      padding-left: 14px;
+      border-left: 2px solid var(--accent);
+    }
+
+    p {
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+
+    ul {
+      padding-left: 0;
+      list-style: none;
+      margin-bottom: 14px;
+    }
+
+    ul li {
+      position: relative;
+      padding-left: 20px;
+      margin-bottom: 8px;
+      font-size: 15px;
+    }
+
+    ul li::before {
+      content: '›';
+      position: absolute;
+      left: 0;
+      color: var(--accent);
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    .highlight-box {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-left: 3px solid var(--accent);
+      padding: 18px 20px;
+      border-radius: 4px;
+      margin-bottom: 14px;
+      font-size: 15px;
+    }
+
+    .highlight-box strong {
+      color: var(--heading);
+      font-weight: 600;
+    }
+
+    a {
+      color: var(--accent2);
+      text-decoration: none;
+      border-bottom: 1px solid transparent;
+      transition: border-color 0.2s;
+    }
+
+    a:hover { border-color: var(--accent2); }
+
+    footer {
+      margin-top: 60px;
+      padding-top: 28px;
+      border-top: 1px solid var(--border);
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 12px;
+      color: var(--muted);
+      text-align: center;
+    }
+
+    footer a { color: var(--muted); border-color: transparent; }
+    footer a:hover { color: var(--text); }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f4f7fa;
+        --surface: #ffffff;
+        --border: #d8e3ec;
+        --text: #334050;
+        --muted: #8fa0b0;
+        --heading: #1a2530;
+      }
+      body::before {
+        background-image:
+          linear-gradient(rgba(0,150,100,0.04) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(0,150,100,0.04) 1px, transparent 1px);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <header>
+      <div class="badge">Legal · Privacy</div>
+      <h1>Política de Privacidade<br/>TaciMix</h1>
+      <p class="meta">
+        Última atualização: <span>15 de maio de 2025</span> &nbsp;·&nbsp; Versão <span>1.0</span>
+      </p>
+    </header>
+
+    <!-- 1. Introdução -->
+    <section>
+      <h2>01 — Introdução</h2>
+      <p>
+        Este documento descreve as práticas de privacidade do aplicativo <strong>TaciMix</strong> ("Aplicativo"), desenvolvido para iPhone e iPad. O Aplicativo permite o controle de mesas de som Behringer X32 e Midas M32 via protocolo OSC/UDP em redes locais.
+      </p>
+      <div class="highlight-box">
+        <strong>Resumo objetivo:</strong> Este Aplicativo <strong>não coleta, armazena, transmite nem compartilha nenhum dado pessoal</strong> do usuário. Toda a comunicação ocorre exclusivamente entre o dispositivo e a mesa de som na rede local.
+      </div>
+    </section>
+
+    <!-- 2. Dados Coletados -->
+    <section>
+      <h2>02 — Dados Coletados</h2>
+      <p>O Aplicativo <strong>não coleta qualquer dado pessoal</strong>, identificável ou sensível. Especificamente, o Aplicativo:</p>
+      <ul>
+        <li>Não solicita nome, e-mail, telefone ou qualquer informação de cadastro.</li>
+        <li>Não utiliza contas de usuário ou autenticação.</li>
+        <li>Não acessa câmera, microfone, galeria de fotos, contatos ou localização GPS.</li>
+        <li>Não envia dados para servidores externos ou nuvem.</li>
+        <li>Não utiliza cookies ou tecnologias de rastreamento.</li>
+        <li>Não realiza análises de comportamento do usuário (analytics).</li>
+        <li>Não exibe anúncios e não integra SDKs de publicidade.</li>
+      </ul>
+    </section>
+
+    <!-- 3. Uso da Rede Local -->
+    <section>
+      <h2>03 — Acesso à Rede Local</h2>
+      <p>
+        O Aplicativo requer permissão de <strong>acesso à rede local</strong> exclusivamente para descobrir e se comunicar com mesas de som Behringer X32 / Midas M32 conectadas à mesma rede Wi-Fi que o dispositivo iOS.
+      </p>
+      <ul>
+        <li>A comunicação usa o protocolo OSC (Open Sound Control) sobre UDP na porta <code>10023</code>.</li>
+        <li>Nenhum dado trafegado pela rede é coletado, registrado ou retransmitido para terceiros.</li>
+        <li>O endereço IP da mesa de som pode ser inserido manualmente pelo usuário e é armazenado apenas localmente no dispositivo para conveniência de uso (UserDefaults do iOS), sem qualquer envio externo.</li>
+        <li>O Aplicativo usa o serviço Bonjour (<code>_osc._udp</code>) somente para descoberta de dispositivos na rede local.</li>
+      </ul>
+      <div class="highlight-box">
+        A descrição exibida ao usuário pelo iOS ao solicitar permissão de rede local é: <em>"O app precisa encontrar e controlar consoles X32/M32 na rede local."</em>
+      </div>
+    </section>
+
+    <!-- 4. Dados Armazenados Localmente -->
+    <section>
+      <h2>04 — Armazenamento Local</h2>
+      <p>O Aplicativo pode armazenar localmente no dispositivo do usuário, sem qualquer sincronização externa:</p>
+      <ul>
+        <li>Endereço IP e nome da última mesa de som utilizada.</li>
+        <li>Preferências de configuração de BUS/AUX selecionadas pelo usuário.</li>
+      </ul>
+      <p>
+        Esses dados permanecem exclusivamente no dispositivo e são removidos ao desinstalar o Aplicativo. O usuário pode apagá-los a qualquer momento limpando os dados do Aplicativo nas Configurações do iOS.
+      </p>
+    </section>
+
+    <!-- 5. Compartilhamento de Dados -->
+    <section>
+      <h2>05 — Compartilhamento de Dados</h2>
+      <p>
+        O Aplicativo <strong>não compartilha nenhum dado</strong> com terceiros, parceiros comerciais, provedores de análise, redes de publicidade ou qualquer outra entidade. Não há integração com serviços de terceiros que processem dados do usuário.
+      </p>
+    </section>
+
+    <!-- 6. Privacidade Infantil -->
+    <section>
+      <h2>06 — Privacidade de Crianças</h2>
+      <p>
+        O Aplicativo é voltado a técnicos de som e profissionais de áudio, não sendo direcionado a menores de 13 anos. Em conformidade com o <em>Children's Online Privacy Protection Act (COPPA)</em> e com as diretrizes da Apple, o Aplicativo não coleta conscientemente dados de crianças. Caso um responsável identifique que uma criança utilizou o Aplicativo, não há qualquer dado a ser deletado, pois nenhuma informação é coletada.
+      </p>
+    </section>
+
+    <!-- 7. Segurança -->
+    <section>
+      <h2>07 — Segurança</h2>
+      <p>
+        Como o Aplicativo não coleta nem transmite dados pessoais a servidores externos, os riscos associados a vazamento de dados são inexistentes por design. A comunicação OSC/UDP ocorre integralmente dentro da rede local do usuário.
+      </p>
+    </section>
+
+    <!-- 8. Alterações nesta Política -->
+    <section>
+      <h2>08 — Alterações nesta Política</h2>
+      <p>
+        Esta Política de Privacidade pode ser atualizada para refletir mudanças no Aplicativo ou em requisitos legais. Em caso de alterações relevantes, a data de "Última atualização" no topo desta página será modificada. Recomendamos que o usuário revise esta página periodicamente.
+      </p>
+      <p>
+        O uso continuado do Aplicativo após quaisquer modificações constitui aceitação da Política revisada.
+      </p>
+    </section>
+
+    <!-- 9. Conformidade com a Apple -->
+    <section>
+      <h2>09 — Conformidade com a App Store</h2>
+      <p>Este Aplicativo está em conformidade com:</p>
+      <ul>
+        <li><strong>App Store Review Guidelines</strong> — seções 5.1 (Privacy) e 5.1.1 (Data Collection and Storage).</li>
+        <li><strong>Apple's App Privacy Details</strong> — informações de privacidade declaradas na App Store refletem que nenhum dado é coletado.</li>
+        <li><strong>Local Network Usage</strong> — conforme exigido pelo iOS 14+, o acesso à rede local é declarado no <code>Info.plist</code> com descrição de propósito clara.</li>
+        <li><strong>Bonjour Services</strong> — serviços declarados via <code>NSBonjourServices</code> no <code>Info.plist</code>.</li>
+        <li><strong>GDPR / LGPD</strong> — por não coletar dados pessoais, o Aplicativo está em conformidade com regulamentos de proteção de dados da União Europeia e do Brasil.</li>
+      </ul>
+    </section>
+
+    <!-- 10. Contato -->
+    <section>
+      <h2>10 — Contato</h2>
+      <p>
+        Em caso de dúvidas sobre esta Política de Privacidade, entre em contato com o desenvolvedor pelo repositório oficial do projeto:
+      </p>
+      <div class="highlight-box">
+        <strong>Repositório:</strong>
+        <a href="https://github.com/montanari2019/x32-control" target="_blank" rel="noopener">
+          github.com/montanari2019/x32-control
+        </a><br/>
+        <strong>Issues / Contato:</strong>
+        <a href="https://github.com/montanari2019/x32-control/issues" target="_blank" rel="noopener">
+          github.com/montanari2019/x32-control/issues
+        </a>
+      </div>
+    </section>
+
+    <footer>
+      <p>© 2025 TaciMix · Todos os direitos reservados</p>
+      <p style="margin-top:6px;">
+        <a href="https://github.com/montanari2019/x32-control" target="_blank" rel="noopener">GitHub</a>
+        &nbsp;·&nbsp;
+        Política de Privacidade v1.0
+      </p>
+    </footer>
+
+  </div>
+</body>
+</html>
