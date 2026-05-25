@@ -13,6 +13,20 @@ The design should follow a hybrid model:
 3. Lightweight background reconciliation for lost UDP packets.
 4. No changes to meter stream mechanics.
 
+## Implementation Baseline Confirmed
+
+Confirmed during implementation on 2026-05-24:
+
+- App-to-console fader sends remain in `useBusMix` through `sendLevelOnly`, `enqueueFaderSend`, `sendFaderImmediately`, and `BusMixService.setChannelFader`.
+- Fader drag send throttle remains `30 ms`.
+- Final fader release still sends immediately.
+- `BusMixService.connect()` still acquires `SharedOscClient` and calls `startXRemoteKeepAlive()`.
+- `OscClient.startXRemoteKeepAlive()` still renews `/xremote` every `5000 ms`.
+- Meter traffic remains isolated in `useMeterSubscription`; meter renew remains `8000 ms`; meter request throttle remains `1000 ms`.
+- Background fader reconciliation remains best-effort and keeps the existing `30000 ms + jitter` interval.
+- Shared OSC client release delay remains in `SharedOscClient`.
+- No realtime reactivity task should merge `/meters` behavior into level/on/pan subscriptions.
+
 ## Proposed Architecture
 
 ```txt
@@ -97,6 +111,14 @@ Pan:
 - Stereo-linked channels commonly use independent left/right pan values.
 - The pan modal remains per channel.
 
+Implemented policy on 2026-05-24:
+
+- `src/features/busMix/utils/linkedChannelSync.ts` centralizes linked updates.
+- Local fader drag and commit update the touched channel plus its linked peer visually, but still send only the touched channel command.
+- Remote level/on events update the touched channel plus linked peer visually.
+- Remote pan events update only the addressed channel.
+- Recent local fader protection is applied to both linked peers when relevant.
+
 ## Receive Strategy
 
 Current app already starts `/xremote` every 5000 ms while connected. Keep that.
@@ -112,6 +134,18 @@ Add or harden:
   - continue direct `client.subscribe(path, listener)` for level/on;
   - evaluate pan subscriptions through existing source path helpers;
   - do not subscribe meters here.
+
+Implemented receive additions on 2026-05-24:
+
+- `BusMixService.onPan()` subscribes to the existing source pan path and parses normalized `0..1` values.
+- `useBusMix` now subscribes to level, on, and pan for each current BusMix source.
+- `useBusMix` maintains lightweight realtime health refs:
+  - subscribed timestamp;
+  - last event timestamp;
+  - last level/on event timestamp;
+  - last pan event timestamp;
+  - level/on/pan event counters;
+  - stale threshold of `15000 ms`.
 
 ## Background Reconciliation
 

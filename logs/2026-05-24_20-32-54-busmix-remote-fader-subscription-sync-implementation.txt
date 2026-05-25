@@ -1,0 +1,76 @@
+BusMix remote fader subscription sync implementation
+Timestamp: 2026-05-24_20-32-54
+
+Implemented
+-----------
+- Added X32 scalar subscription protocol helpers/constants in X32Protocol:
+  - /subscribe
+  - /renew
+  - /unsubscribe
+  - default scalar subscription time factor
+  - default scalar subscription renew interval
+- Added OscClient.subscribeScalarValue(...):
+  - registers an exact-address local listener;
+  - sends /subscribe with the fader address and time factor;
+  - ref-counts duplicate subscriptions by address;
+  - renews before the 10s X32 timeout;
+  - sends /unsubscribe when the last listener is removed;
+  - clears managed timers on disconnect.
+- Added BusMixService.subscribeChannelLevelUpdates(...):
+  - subscribes to source send-level paths for CH/AUX/FX;
+  - clamps incoming values;
+  - does not send fader writes;
+  - keeps /ch/17/mix/fader separate from /ch/17/mix/{bus}/level.
+- Added useBusMixRemoteFaderSubscription:
+  - subscribes only visible BusMix channels;
+  - routes incoming levels into useBusMix remote reconciliation;
+  - avoids React state updates per packet;
+  - reports subscription health through callbacks/refs.
+- Wired BusMixScreen.visibleChannelIds into useBusMix.
+- Removed BusMix's old all-channel level listener from the general realtime effect to avoid duplicate level processing for visible subscribed faders.
+- Extended realtime health refs with fader subscription diagnostics.
+
+Not implemented
+---------------
+- T001 real-console packet/path proof remains pending because this terminal session cannot operate the X32 official app.
+- T009 polling fallback was intentionally not implemented because no real-console evidence has shown /subscribe is insufficient.
+- T010 UAT remains pending.
+
+Files changed
+-------------
+- src/shared/osc/X32Protocol.ts
+- src/shared/osc/OscClient.ts
+- src/features/busMix/services/BusMixService.ts
+- src/features/busMix/hooks/useBusMix.ts
+- src/features/busMix/hooks/useBusMixRemoteFaderSubscription.ts
+- src/features/busMix/screens/BusMixScreen.tsx
+- __tests__/shared/osc/X32Protocol.test.ts
+- __tests__/shared/osc/OscClient.test.ts
+- __tests__/features/busMix/services/BusMixService.test.ts
+- __tests__/features/busMix/hooks/useBusMixRemoteFaderSubscription.test.ts
+- src/features/busMix/.specs/feature/remote-fader-subscription-sync/tasks.md
+- src/features/busMix/.specs/STATE.md
+- .specs/project/STATE.md
+
+Verification
+------------
+- yarn jest __tests__/shared/osc/OscClient.test.ts __tests__/shared/osc/X32Protocol.test.ts __tests__/features/busMix/services/BusMixService.test.ts __tests__/features/busMix/hooks/useBusMixRemoteFaderSubscription.test.ts --runInBand
+  Result: passed, 4 suites / 11 tests.
+- yarn jest __tests__/features/busMix --runInBand
+  Result: passed, 8 suites / 37 tests.
+- yarn jest __tests__/features/busGroups --runInBand
+  Result: passed, 2 suites / 10 tests.
+- yarn tsc
+  Result: passed.
+- yarn jest --runInBand
+  Result: failed outside this feature because 3 existing NetworkScanner tests timed out at 5000 ms:
+  - falls back to unicast discovery across the local subnet when broadcast has no response
+  - waits for discovery responses when send callbacks time out on iOS
+  - does not abort discovery when individual discovery sends fail
+  All BusMix, BusGroups, shared OSC, and utility suites in that run passed.
+
+UAT notes for later
+-------------------
+- Validate whether the X32 official app is editing /ch/17/mix/fader or /ch/17/mix/{bus}/level.
+- Tacimix BusMix should mirror only the same-BUS send-level path.
+- Confirm perceived latency and subscription renewal over at least 2 minutes.

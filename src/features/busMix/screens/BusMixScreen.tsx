@@ -129,6 +129,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
   const { width, height } = useWindowDimensions();
   const isCompactLayout = width > height;
+  const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
   const {
     channels,
     error,
@@ -146,13 +147,12 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     overwritePreset,
     deletePreset,
     restorePreset,
-  } = useBusMix(consoleIp, busNumber);
+  } = useBusMix(consoleIp, busNumber, { realtimeVisibleChannelIds: visibleChannelIds });
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
   const faderDragSensitivity = isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined;
   const [faderHeight, setFaderHeight] = useState(240);
   const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
-  const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
   const viewabilityConfig = useRef<ViewabilityConfig>({
     itemVisiblePercentThreshold: 10,
   }).current;

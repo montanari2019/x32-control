@@ -1,0 +1,63 @@
+BusMix remote fader subscription sync planning
+Timestamp: 2026-05-24_20-20-12
+
+Goal
+----
+Create a detailed tlc-spec-driven planning package for the issue where CH17 changes made from the X32 official app or another console client do not mirror in Tacimix BusMix until the screen is reloaded.
+
+Key product constraint
+----------------------
+The current app-to-console fader send path is considered correct and must not regress. This planning package focuses on the receive path only.
+
+Important OSC distinction
+-------------------------
+Tacimix BusMix faders represent source send level to a selected BUS, for example:
+
+- /ch/17/mix/01/level
+- /ch/17/mix/08/level
+
+The main CH17 channel fader is:
+
+- /ch/17/mix/fader
+
+The first implementation task must prove which path the user's X32 app reproduction is changing. Tacimix must not mirror the main channel fader into a BusMix send fader unless product scope changes.
+
+External sources consulted
+--------------------------
+- Mixing Station X32/M32 documentation: https://dev-core.org/ms-docs/mixers/behringer/x32/
+  Relevant conclusion: X32 sync is OSC over UDP. /xremote gives event-style changes for about 10 seconds, while /subscribe can repeatedly report requested visible values for about 10 seconds. UDP can drop packets, so background sync is still useful.
+- Unofficial X32/M32 OSC Remote Protocol: https://www.z80ne.com/behringer/docs/X32-OSC%20v.4.0.pdf
+  Relevant conclusion: /subscribe, /formatsubscribe, /batchsubscribe, /renew, /unsubscribe, and /xremote exist; subscriptions must be renewed before 10 seconds. The document distinguishes /ch/[01...32]/mix/fader from /ch/[01...32]/mix/[01...16]/level.
+- Janis Streib X32 OSC field report: https://janis-streib.de/post/behringer-x32-osc-is-quirky/
+  Relevant conclusion: /xremote must be sent periodically. X32 may not echo all OSC-caused fader changes, so local reflection and background reconciliation remain necessary.
+- OSCKit GitHub issue: https://github.com/orchetect/swift-osc/issues/32
+  Relevant conclusion: Behringer-style mixers can reply to the same UDP port the client sent from, so send and receive should share one transport where possible.
+- Stack Overflow X32 meter discussion: https://stackoverflow.com/questions/79628962/how-to-access-meters-on-behringer-x32
+  Relevant conclusion: meters use a separate subscription mechanism and must remain out of this fader-receive feature.
+
+Local code conclusions
+----------------------
+- OscClient.startXRemoteKeepAlive already renews /xremote.
+- OscClient.subscribe is only a local callback dispatcher; it does not send X32 /subscribe.
+- BusMixService.onLevel registers exact-address local listeners for source send-level paths.
+- useBusMix already reconciles remote fader values and protects recent local edits.
+- BusMixScreen already tracks visibleChannelIds, which is the right signal for scoped fader subscriptions.
+- Meters are owned by useMeterSubscription and must not change.
+
+Created files
+-------------
+- src/features/busMix/.specs/feature/remote-fader-subscription-sync/spec.md
+- src/features/busMix/.specs/feature/remote-fader-subscription-sync/design.md
+- src/features/busMix/.specs/feature/remote-fader-subscription-sync/tasks.md
+
+Planned implementation direction
+--------------------------------
+1. Prove the failing CH17 path.
+2. Add X32 scalar subscription protocol helpers.
+3. Add managed scalar subscriptions in OscClient.
+4. Add BusMixService source send-level subscription method.
+5. Subscribe only visible BusMix faders.
+6. Feed subscribed values into the existing reconcileRemoteFader path.
+7. Add diagnostics.
+8. Keep meters and app-to-console sends untouched.
+9. Use narrow visible-fader polling only if hardware evidence proves /subscribe insufficient.

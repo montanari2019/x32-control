@@ -30,8 +30,9 @@ Last updated: 2026-05-24
 - `.specs` global and local feature scaffolding is being initialized in this session.
 - BusMix fader thumb-only interaction has been implemented and corrected after user validation: the `VerticalFader` gesture handler is attached directly to the thumb, leaving the central fader track visual-only.
 - BusMix pan modal display has been implemented with a single signed numeric `-100..+100` readout and focused pan conversion tests.
-- BusMix realtime console reactivity has been planned as a future implementation spec. The plan is to preserve app-to-console sends while improving console-to-app updates and linked-channel visual consistency.
+- BusMix realtime console reactivity has been implemented for linked CH visual reflection, pan receive, and lightweight receive health. Real-console UAT remains pending in the connected emulator + X32 environment.
 - BusMix AUX/FX meter stability has been implemented for stream isolation. CH 01..32 meters remain the protected baseline; AUX/FX listeners now consume only the `/meters/13` stream instead of also receiving `/meters/1`.
+- BusMix remote fader subscription sync has been implemented at code level as a separate receive-path feature to address CH 17 changes made from the X32 app not mirroring in Tacimix until reload. The implementation preserves current sends and meters while adding scoped visible-fader `/subscribe` receive support. Real-console UAT remains pending.
 
 ## Cross-Feature Decisions
 
@@ -60,6 +61,7 @@ Last updated: 2026-05-24
 - Release checklist linked to iOS/Android build artifacts.
 - Real-console UAT for BusMix realtime linked-channel reactivity once X32/M32 hardware is available.
 - Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available; automated stream isolation is already implemented.
+- Real-console UAT for BusMix remote fader subscription sync, specifically CH 17 same-BUS send-level changes from the X32 official app versus main channel fader changes.
 
 ## Recent Session Notes
 
@@ -72,3 +74,7 @@ Last updated: 2026-05-24
 - 2026-05-24: Planned BusMix spec `realtime-console-reactivity` using local code analysis and external X32/OSC research. Key decision: do not regress the existing send path; use `/xremote` and current shared OSC transport, add linked-peer visual reflection for level/on, keep pan independent, and keep meters separate.
 - 2026-05-24: Planned BusMix spec `aux-fx-meter-stability` using local meter code analysis and external X32 meter docs. Key decision: protect `/meters/1` CH behavior and isolate AUX/FX to the correct meter stream before considering visual smoothing or `/meters/3`.
 - 2026-05-24: Implemented BusMix spec `aux-fx-meter-stability` stream isolation. Added `meterStreamRouting` helpers, dispatch isolation tests, AUX/FX offset tests, and preserved current meter request/renew intervals. Real-console UAT remains pending.
+- 2026-05-24: Implemented BusMix spec `realtime-console-reactivity`. Added linked-channel sync helpers, local/remote level-on visual reflection for linked CH pairs, pan receive without mirroring, and realtime subscription health refs. Kept meters separate and did not add focused polling fallback without real-console drift evidence.
+- 2026-05-24: Planned BusMix spec `remote-fader-subscription-sync` using local code analysis plus X32 OSC research. Key decision: current `OscClient.subscribe` is only local dispatch, so visible BusMix faders need managed X32 `/subscribe` renewal for source send-level paths. First task must distinguish `/ch/17/mix/fader` from `/ch/17/mix/{bus}/level` before implementation.
+- 2026-05-24: Implemented BusMix spec `remote-fader-subscription-sync`. Added managed scalar `/subscribe` support in `OscClient`, BusMixService send-level subscription method, visible fader subscription hook, BusMixScreen visibility wiring, and fader subscription health diagnostics. Automated BusMix, BusGroups, shared OSC focused tests, and TypeScript passed. Manual CH 17 UAT remains pending.
+- 2026-05-24: Full `yarn jest --runInBand` after `remote-fader-subscription-sync` failed only on 3 pre-existing/NetworkScanner timeout cases; BusMix, BusGroups, shared OSC, shared utils, and X32 suites passed in that full run.
