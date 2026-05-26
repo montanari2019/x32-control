@@ -14,6 +14,7 @@ import { x32DbToRaw } from '@shared/utils/faderDb';
 
 type VerticalFaderProps = {
   dragSensitivity?: number;
+  isLinkedInteractionActive?: boolean;
   level: number;
   height: number;
   onChange: (level: number) => void;
@@ -43,6 +44,7 @@ const rawToPosition = (raw: number): number => {
 
 export const VerticalFader = ({
   dragSensitivity = 1,
+  isLinkedInteractionActive = false,
   level,
   height,
   onChange,
@@ -171,7 +173,7 @@ export const VerticalFader = ({
         <Animated.View
           style={[
             styles.thumb,
-            isThumbPressed && styles.thumbPressed,
+            (isThumbPressed || isLinkedInteractionActive) && styles.thumbPressed,
             { transform: [{ translateY: animatedY }] },
           ]}
           {...panResponder.panHandlers}
@@ -215,13 +217,12 @@ const styles = StyleSheet.create({
     width: 8,
   },
   thumb: {
-    backgroundColor: '#CFCFCF',
+    backgroundColor: '#C1BFBF',
     borderRadius: THUMB_RADIUS,
     elevation: 8,
     height: THUMB_HEIGHT,
     left: '50%',
     marginLeft: -THUMB_WIDTH / 2,
-    opacity: 0.8,
     overflow: 'visible',
     position: 'absolute',
     shadowColor: '#000000',
@@ -287,6 +288,7 @@ const styles = StyleSheet.create({
   },
   thumbPressed: {
     elevation: 5,
+    opacity: 0.6,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.5,
     shadowRadius: 7,
@@ -303,7 +305,7 @@ const styles = StyleSheet.create({
   },
   thumbSurface: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: '#CFCFCF',
+    backgroundColor: '#C1BFBF',
     borderColor: '#CFCFC8',
     borderRadius: THUMB_RADIUS,
     borderWidth: 1,

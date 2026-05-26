@@ -16,6 +16,7 @@ type ChannelStripProps = {
   channel: Channel;
   dragSensitivity?: number;
   faderHeight: number;
+  isLinkedFaderInteractionActive?: boolean;
   isVisible: boolean;
   registerMeterListener: (
     channelId: number,
@@ -44,6 +45,7 @@ const ChannelStripComponent = ({
   channel,
   dragSensitivity,
   faderHeight,
+  isLinkedFaderInteractionActive = false,
   isVisible,
   registerMeterListener,
   onToggleMute,
@@ -109,6 +111,7 @@ const ChannelStripComponent = ({
           )}
           <VerticalFader
             dragSensitivity={dragSensitivity}
+            isLinkedInteractionActive={isLinkedFaderInteractionActive}
             level={displayLevel}
             height={faderHeight}
             onChange={handleFaderChange}
@@ -141,6 +144,7 @@ export const ChannelStrip = React.memo(
     prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
     prev.channel.meterChannelId === next.channel.meterChannelId &&
     prev.dragSensitivity === next.dragSensitivity &&
+    prev.isLinkedFaderInteractionActive === next.isLinkedFaderInteractionActive &&
     prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onToggleMute === next.onToggleMute &&

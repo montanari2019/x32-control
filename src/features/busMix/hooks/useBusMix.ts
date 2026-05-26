@@ -52,6 +52,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
   const [presets, setPresets] = useState<BusMixPreset[]>([]);
   const [isLoadingPresets, setIsLoadingPresets] = useState(true);
   const [isRestoringPreset, setIsRestoringPreset] = useState(false);
+  const [channelLinkMap, setChannelLinkMap] = useState<Map<number, number>>(() => new Map());
   const pendingFadersRef = useRef(new Map<number, number>());
   const pendingLocalChangeAtRef = useRef(new Map<number, number>());
   const faderFlushTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -269,6 +270,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
           { force: refresh },
         );
         channelLinkMapRef.current = linkMap;
+        setChannelLinkMap(linkMap);
         channelsRef.current = nextChannels;
       } catch (loadError) {
         setError(getErrorMessage(loadError));
@@ -539,6 +541,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
   return {
     channels,
+    channelLinkMap,
     error,
     isLoading,
     isRefreshing,
