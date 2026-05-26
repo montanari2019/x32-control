@@ -1,0 +1,32 @@
+BusMix pan modal slider consistency/performance
+Date: 2026-05-25
+
+Problem
+- User reported that when console pan is hard-left, the modal can show value -100 while the visual slider thumb appears centered.
+- User also reported pan drag feels stiff/unstable, as if the app is trying to send in real time.
+
+External references consulted
+- @react-native-community/slider README: value is write-only/programmatic and the component is not controlled; onValueChange is continuous while dragging; onSlidingComplete fires on release.
+- X32/M32 OSC remote protocol: binary float pan values use [0.0, 1.0], where 0.5 is center and 0.75 is half-right; X32node-style text pan range is -100.0..+100.0.
+
+Implementation
+- Created spec/tasks under src/features/busMix/.specs/feature/pan-modal-slider-consistency-performance.
+- Added src/features/busMix/utils/panSlider.ts for deterministic signed pan percent <-> visual ratio/position mapping.
+- Added __tests__/features/busMix/utils/panSlider.test.ts.
+- Replaced PanControlModal's @react-native-community/slider usage with a custom lightweight React Native pan control.
+- Drag updates only modal-local value and label.
+- Release/terminate commits the final value through existing onChange/setPan path.
+- Center press commits 0 immediately.
+
+Preserved
+- Existing UI percent to X32 normalized pan conversion in useBusMix.
+- Existing BusMix service pan path and OSC send format.
+- Fader behavior, meter behavior, remote fader rollback behavior, and AUX/FX meter isolation.
+
+Verification
+- yarn jest __tests__/shared/x32/pan.test.ts __tests__/features/busMix/utils/panSlider.test.ts --runInBand: passed, 2 suites / 11 tests.
+- yarn jest __tests__/features/busMix --runInBand: passed, 7 suites / 37 tests.
+- yarn tsc: passed.
+
+Pending
+- Manual real-console validation for hard-left/center/right initial render and pan release commit.

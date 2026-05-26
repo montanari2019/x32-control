@@ -1,0 +1,19 @@
+BusMix pan modal drag stability follow-up
+Date: 2026-05-25
+
+Problem
+- User validation found the custom pan slider could jump through multiple positions while dragging, making the modal unusable.
+
+Cause
+- The first custom slider implementation used nativeEvent.locationX during move events.
+- During a PanResponder gesture, locationX may become unstable when the finger crosses nested visual layers such as fill, center marker, or thumb.
+
+Fix
+- PanControlModal now captures the initial pan value on gesture grant.
+- Move updates derive from PanResponderGestureState.dx and measured track width.
+- Decorative slider layers now use pointerEvents="none" so they do not participate in touch targeting.
+
+Verification
+- yarn tsc: passed.
+- yarn jest __tests__/shared/x32/pan.test.ts __tests__/features/busMix/utils/panSlider.test.ts --runInBand: passed, 2 suites / 11 tests.
+- yarn jest __tests__/features/busMix --runInBand: passed, 7 suites / 37 tests.

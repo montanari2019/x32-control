@@ -4,7 +4,7 @@ Last updated: 2026-05-25
 
 ## Task List
 
-- [ ] T-001: Restyle the BusMix vertical fader cap as an off-white skeuomorphic knob
+- [x] T-001: Restyle the BusMix vertical fader cap as an off-white skeuomorphic knob
   Reqs: REQ-001 through REQ-013
   What: Replace the current simple `VerticalFader` thumb styling with a realistic physical fader cap matching the user-provided reference. The new cap should be a centered orthogonal/front-facing vertical rounded rectangle, slightly taller than wide, with matte off-white industrial plastic color, smooth squircle/capsule corners, four recessed horizontal grip grooves, a thin continuous horizontal center calibration line, subtle top/bottom bevels, lateral occlusion shadows, and a projected shadow that makes the cap feel slightly raised above the panel.
   Where:
@@ -46,6 +46,16 @@ Last updated: 2026-05-25
   - BusMix tests pass.
   - TypeScript passes.
   - Manual visual/touch validation passes or is explicitly logged as pending.
+  Result:
+  - Implemented in `src/features/busMix/components/VerticalFader.tsx` with a stable `36x52` centered cap scaled to the current `ChannelStrip` footprint.
+  - Added layered React Native views for matte off-white surface, side occlusion, top highlight, bottom shade, four recessed grooves, and a continuous center calibration line.
+  - Added a pressed visual state that changes only shadow/elevation, without changing fader layout or value math.
+  - Preserved the existing `PanResponder` ownership on the cap itself; no gesture handlers were added to the track.
+  - Did not change meters, OSC, BusMix service receive paths, fader conversion, throttling, or rollback/performance code.
+  Verification:
+  - `yarn tsc`: passed.
+  - `yarn jest __tests__/features/busMix --runInBand`: passed, 6 suites / 32 tests.
+  - Manual simulator/device visual and touch validation remains pending.
 
 ## Visual Implementation Guidance
 
