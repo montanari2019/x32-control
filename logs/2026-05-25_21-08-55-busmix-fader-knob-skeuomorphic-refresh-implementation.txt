@@ -1,0 +1,30 @@
+BusMix fader knob skeuomorphic refresh implementation
+Date: 2026-05-25
+
+Scope
+- Implemented feature task: src/features/busMix/.specs/feature/fader-knob-skeuomorphic-refresh
+- Primary runtime file: src/features/busMix/components/VerticalFader.tsx
+
+Changes
+- Replaced the simple BusMix vertical fader thumb visual with a centered off-white skeuomorphic cap.
+- Scaled the cap to 36x52 so it remains within the current ChannelStrip footprint while preserving the taller-than-wide physical fader proportion.
+- Added static layered React Native views for:
+  - matte off-white plastic surface;
+  - left/right side occlusion;
+  - top light and bottom shade;
+  - four recessed horizontal grip grooves;
+  - a continuous center calibration line;
+  - projected shadow/elevation.
+- Added a pressed state that shortens/darkens shadow/elevation only.
+
+Preserved
+- Existing PanResponder remains attached directly to the cap/thumb.
+- No gesture handlers were added to the track.
+- Fader value conversion, drag sensitivity, callbacks, throttled/final send behavior, meters, OSC services, and remote receive/rollback code were not changed.
+
+Verification
+- yarn tsc: passed.
+- yarn jest __tests__/features/busMix --runInBand: passed, 6 suites / 32 tests.
+
+Pending
+- Manual simulator/device validation for final visual fit, dB scale spacing, portrait/landscape clipping, and touch behavior.

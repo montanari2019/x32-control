@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   PanResponder,
@@ -26,7 +26,9 @@ const FADER_MIN_DB = -60;
 const FADER_MAX_DB = 10;
 const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
-const THUMB_HEIGHT = 36;
+const THUMB_WIDTH = 36;
+const THUMB_HEIGHT = 52;
+const THUMB_RADIUS = 15;
 const VERTICAL_INSET = 8;
 
 const positionToRaw = (position: number): number => {
@@ -56,6 +58,7 @@ export const VerticalFader = ({
   const currentY = useRef(0);
   const isDragging = useRef(false);
   const startY = useRef(0);
+  const [isThumbPressed, setIsThumbPressed] = useState(false);
   const onChangeRef = useRef(onChange);
   const onChangeEndRef = useRef(onChangeEnd);
   const onInteractionEndRef = useRef(onInteractionEnd);
@@ -111,6 +114,7 @@ export const VerticalFader = ({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
+          setIsThumbPressed(true);
           startY.current = currentY.current;
           onInteractionStartRef.current?.();
         },
@@ -120,10 +124,12 @@ export const VerticalFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromY(startY.current + gestureState.dy * dragSensitivityRef.current, true);
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onPanResponderTerminate: () => {
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onShouldBlockNativeResponder: () => true,
@@ -163,10 +169,24 @@ export const VerticalFader = ({
           <FaderDbScale height={trackHeight} />
         </View>
         <Animated.View
-          style={[styles.thumb, { transform: [{ translateY: animatedY }] }]}
+          style={[
+            styles.thumb,
+            isThumbPressed && styles.thumbPressed,
+            { transform: [{ translateY: animatedY }] },
+          ]}
           {...panResponder.panHandlers}
         >
-          <View style={styles.thumbHighlight} />
+          <View pointerEvents="none" style={styles.thumbSurface}>
+            <View style={styles.thumbLeftShade} />
+            <View style={styles.thumbRightShade} />
+            <View style={styles.thumbTopLight} />
+            <View style={styles.thumbBottomShade} />
+            <View style={[styles.thumbGroove, styles.thumbGrooveTopFirst]} />
+            <View style={[styles.thumbGroove, styles.thumbGrooveTopSecond]} />
+            <View style={styles.thumbCenterLine} />
+            <View style={[styles.thumbGroove, styles.thumbGrooveBottomFirst]} />
+            <View style={[styles.thumbGroove, styles.thumbGrooveBottomSecond]} />
+          </View>
         </Animated.View>
       </View>
     </View>
@@ -180,7 +200,7 @@ const styles = StyleSheet.create({
     overflow: 'visible',
     paddingVertical: VERTICAL_INSET,
     position: 'relative',
-    width: 40,
+    width: 46,
   },
   dbScale: {
     left: '50%',
@@ -195,28 +215,109 @@ const styles = StyleSheet.create({
     width: 8,
   },
   thumb: {
-    backgroundColor: colors.fader.thumb,
-    borderRadius: 8,
-    borderColor: colors.fader.zeroMark,
-    borderWidth: 1,
-    elevation: 2,
+    backgroundColor: '#CFCFCF',
+    borderRadius: THUMB_RADIUS,
+    elevation: 8,
     height: THUMB_HEIGHT,
-    left: 2,
+    left: '50%',
+    marginLeft: -THUMB_WIDTH / 2,
+    opacity: 0.8,
+    overflow: 'visible',
     position: 'absolute',
-    right: 2,
-    shadowColor: colors.fader.thumbShadow,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.65,
-    shadowRadius: 6,
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.42,
+    shadowRadius: 11,
     top: 0,
-    zIndex: 2,
+    width: THUMB_WIDTH,
+    zIndex: 3,
   },
-  thumbHighlight: {
-    backgroundColor: colors.fader.thumbHighlight,
-    borderRadius: 4,
-    height: 5,
-    marginHorizontal: 6,
-    marginTop: 4,
+  thumbBottomShade: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderBottomLeftRadius: THUMB_RADIUS,
+    borderBottomRightRadius: THUMB_RADIUS,
+    bottom: 0,
+    height: 16,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  thumbCenterLine: {
+    alignSelf: 'center',
+    backgroundColor: '#8A8A84',
+    borderRadius: 1,
+    height: 2,
+    position: 'absolute',
+    top: 25,
+    width: 25,
+  },
+  thumbGroove: {
+    alignSelf: 'center',
+    backgroundColor: '#C8C8C2',
+    borderBottomColor: 'rgba(255, 255, 255, 0.65)',
+    borderBottomWidth: 1,
+    borderRadius: 2,
+    borderTopColor: 'rgba(0, 0, 0, 0.18)',
+    borderTopWidth: 1,
+    height: 4,
+    position: 'absolute',
+    width: 24,
+  },
+  thumbGrooveBottomFirst: {
+    top: 34,
+  },
+  thumbGrooveBottomSecond: {
+    top: 41,
+  },
+  thumbGrooveTopFirst: {
+    top: 10,
+  },
+  thumbGrooveTopSecond: {
+    top: 17,
+  },
+  thumbLeftShade: {
+    backgroundColor: 'rgba(0, 0, 0, 0.08)',
+    borderBottomLeftRadius: THUMB_RADIUS,
+    borderTopLeftRadius: THUMB_RADIUS,
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    top: 0,
+    width: 8,
+  },
+  thumbPressed: {
+    elevation: 5,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.5,
+    shadowRadius: 7,
+  },
+  thumbRightShade: {
+    backgroundColor: 'rgba(0, 0, 0, 0.14)',
+    borderBottomRightRadius: THUMB_RADIUS,
+    borderTopRightRadius: THUMB_RADIUS,
+    bottom: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+    width: 9,
+  },
+  thumbSurface: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#CFCFCF',
+    borderColor: '#CFCFC8',
+    borderRadius: THUMB_RADIUS,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  thumbTopLight: {
+    backgroundColor: 'rgba(255, 255, 255, 0.42)',
+    borderTopLeftRadius: THUMB_RADIUS,
+    borderTopRightRadius: THUMB_RADIUS,
+    height: 16,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
   },
   trackBounds: {
     alignItems: 'center',
