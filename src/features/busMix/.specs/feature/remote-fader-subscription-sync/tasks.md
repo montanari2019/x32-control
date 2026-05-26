@@ -2,6 +2,10 @@
 
 Last updated: 2026-05-24
 
+## Rollback Status
+
+Rollback implemented on 2026-05-25. Real-device testing showed the app and meters were more fluid before this managed visible-fader `/subscribe` receive path. The runtime hook/service/shared OSC scalar subscription path was removed under `src/features/busMix/.specs/feature/remote-fader-sync-rollback-performance-restore/`, while preserving Local Network permission preflight and unrelated BusMix fixes.
+
 ## Task List
 
 - [ ] T-001: Prove the exact CH 17 remote-edit OSC path before changing behavior

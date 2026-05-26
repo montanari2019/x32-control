@@ -1,0 +1,48 @@
+BusMix remote fader fluidity performance planning
+Timestamp: 2026-05-25_20-10-12
+
+Context
+-------
+- User reported that `remote-fader-subscription-sync` is functionally correct but remote fader movement has perceptible delay.
+- After sustained remote movement, the fader can become visually frantic, chasing delayed values before settling after around 2 seconds.
+- Goal is to keep Tacimix performant on modest devices, especially in the console connection layer.
+
+Research consulted
+------------------
+- Mixing Station X32/M32 docs: `/subscribe` can send visible values every ~50 ms for 10 seconds, while `/xremote` is event-style for changes. The docs attribute lag to Wi-Fi carrying many small packets and apps showing the last network value instead of a cached local value.
+- Unofficial X32/M32 OSC protocol: send-level paths and main fader paths are distinct; UDP/buffer overflow risk must be considered.
+- Janis Streib X32 OSC field report: `/xremote` must be renewed and X32 may not echo OSC-caused fader changes, supporting local reflection plus receive reconciliation.
+- audiopump/x32-proxy: subscription pooling is used to reduce mixer load for simultaneous clients.
+- React Native performance/timer docs: JS thread work and native view updates must fit frame deadlines; `requestAnimationFrame` is the right boundary for frame-aligned UI work.
+- React docs: `useRef` is appropriate for mutable non-rendering data and `Profiler` can measure render cost.
+
+Local code conclusions
+----------------------
+- Current default scalar subscription time factor is `5`, more aggressive than the earlier planning direction.
+- Every subscribed fader packet currently calls `onRemoteLevel`, then `reconcileRemoteFader`, then `busMixChannelStore.updateChannels`.
+- There is no packet coalescing, duplicate filtering, frame-aligned flush, or explicit stale/out-of-order suppression beyond the existing local protection window.
+- This can create a backlog where UI replays old remote values under Wi-Fi jitter or JS thread pressure.
+
+Created files
+-------------
+- src/features/busMix/.specs/feature/remote-fader-fluidity-performance/spec.md
+- src/features/busMix/.specs/feature/remote-fader-fluidity-performance/design.md
+- src/features/busMix/.specs/feature/remote-fader-fluidity-performance/tasks.md
+
+Planned implementation direction
+--------------------------------
+1. Measure current packet/update rate and settle behavior.
+2. Retune scalar subscription time factor conservatively.
+3. Add pure remote fader packet coalescing.
+4. Flush remote fader application with `requestAnimationFrame`.
+5. Batch shared store updates once per frame.
+6. Harden local echo/stale packet suppression.
+7. Add visibility hysteresis to avoid subscription churn while scrolling.
+8. Extend ref-backed performance diagnostics.
+9. Run BusMix/BusGroups/shared OSC/TypeScript non-regression gates.
+10. Perform real-console UAT focused on fluidity and latency.
+
+Validation
+----------
+- Planning/documentation only.
+- No runtime code changed.

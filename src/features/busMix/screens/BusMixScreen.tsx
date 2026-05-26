@@ -147,7 +147,7 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     overwritePreset,
     deletePreset,
     restorePreset,
-  } = useBusMix(consoleIp, busNumber, { realtimeVisibleChannelIds: visibleChannelIds });
+  } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
   const faderDragSensitivity = isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined;

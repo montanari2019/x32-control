@@ -1,0 +1,73 @@
+BusMix remote fader sync rollback performance restore implementation
+Timestamp: 2026-05-25_20-56-39
+
+Context
+-------
+- User reported that the app and meters were more fluid before `remote-fader-subscription-sync` and `remote-fader-fluidity-performance`.
+- Goal: remove those receive-path additions while preserving Local Network permission preflight, AUX/FX meter stability, local fader sends, and unrelated BusMix fixes.
+
+Removed
+-------
+- Removed `useBusMixRemoteFaderSubscription` runtime hook and test.
+- Removed `BusMixService.subscribeChannelLevelUpdates(...)`.
+- Removed BusMix wiring that passed `visibleChannelIds` into `useBusMix` for fader subscriptions.
+- Removed generic `OscClient.subscribeScalarValue(...)` and scalar subscription timers/ref-counting.
+- Removed X32 scalar subscription helpers/defaults:
+  - `/subscribe`
+  - `/renew`
+  - `/unsubscribe`
+  - default scalar subscription time factor
+  - BusMix fader subscription time factor
+  - scalar renew interval
+- Removed `remoteFaderCoalescing` and `faderSubscriptionScope` utilities/tests.
+- Removed remote fader subscription/coalescing diagnostics from `getRealtimeSubscriptionHealth()`.
+
+Restored
+--------
+- BusMix fader receive path now uses lightweight exact-address `service.onLevel(...)` listeners again.
+- `onLevel`, `onOn`, and `onPan` are registered together for loaded channels.
+- Background fader sync remains active.
+- Linked-channel realtime helpers remain in place for the pre-existing realtime reactivity feature.
+
+Preserved
+---------
+- Local Network permission preflight:
+  - `UdpTransport.bind()` still calls `ensureLocalNetworkPermission()`.
+  - `LocalNetworkPermission.ts` remains.
+  - `ios/Tacimix/LocalNetworkPermission.m` remains.
+  - `NSLocalNetworkUsageDescription` and `NSBonjourServices` remain in `Info.plist`.
+  - `LocalNetworkPermission.m` remains included in the Xcode project.
+- AUX/FX meter stability files were not changed:
+  - `useMeterSubscription.ts`
+  - `meterStreamRouting.ts`
+  - `meterDecoder.ts`
+- Local app-to-console fader send path was preserved.
+
+Verification
+------------
+- `rg -n "subscribeScalarValue|defaultScalarSubscription|defaultBusMix|subscribeChannelLevelUpdates|useBusMixRemoteFaderSubscription|remoteFaderCoalescing|faderSubscriptionScope|applyLinkedRemoteLevelUpdates" src __tests__`
+  Result: no matches.
+- `yarn tsc`
+  Result: passed.
+- `yarn jest __tests__/features/busMix --runInBand`
+  Result: passed, 6 suites / 32 tests.
+- `yarn jest __tests__/features/busGroups --runInBand`
+  Result: passed, 2 suites / 10 tests.
+- `yarn jest __tests__/shared/osc --runInBand`
+  Result: passed, 4 suites / 8 tests.
+- `rg -n "ensureLocalNetworkPermission|LocalNetworkPermission|NSLocalNetworkUsageDescription|NSBonjourServices" src ios`
+  Result: permission preflight and plist declarations remain present.
+- `plutil -lint ios/Tacimix/Info.plist`
+  Result: OK.
+- `yarn jest __tests__/shared/network --runInBand --testTimeout=10000`
+  Result: passed, 2 suites / 8 tests.
+- `git diff --check`
+  Result: passed.
+
+Pending
+-------
+- T-008 real-device UAT after rollback remains pending. User should validate app/meter fluidity against the connected console and older smoother build/device.
+
+SPEC_DEVIATION
+--------------
+- None. Rollback followed the planned scope and preserved Local Network permission preflight.
