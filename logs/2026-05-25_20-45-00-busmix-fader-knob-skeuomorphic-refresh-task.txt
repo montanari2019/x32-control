@@ -1,0 +1,24 @@
+BusMix fader knob skeuomorphic refresh task
+Timestamp: 2026-05-25_20-45-00
+
+Context
+-------
+- User requested a new task to change the BusMix fader knob/thumb visual style.
+- Reference: off-white physical mixer fader cap, front-facing orthogonal view, rounded squircle/capsule geometry, four recessed horizontal grip grooves, thin center calibration line, 3D bevel/lighting, and projected shadow.
+
+Analysis
+--------
+- Target feature is BusMix.
+- Primary component is `src/features/busMix/components/VerticalFader.tsx`.
+- Current thumb interaction is already attached directly to the thumb/cap, which must be preserved.
+- This should be visual-only and must not touch fader math, OSC behavior, meters, or remote fader sync/rollback work.
+
+Created files
+-------------
+- src/features/busMix/.specs/feature/fader-knob-skeuomorphic-refresh/spec.md
+- src/features/busMix/.specs/feature/fader-knob-skeuomorphic-refresh/tasks.md
+
+Validation
+----------
+- Planning/task creation only.
+- No runtime code changed.

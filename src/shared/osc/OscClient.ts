@@ -13,22 +13,6 @@ type PendingRequest<T> = {
   timeout: ReturnType<typeof setTimeout>;
 };
 
-type ScalarSubscriptionState = {
-  refCount: number;
-  renewTimer: ReturnType<typeof setInterval>;
-  onSubscribeCallbacks: Set<() => void>;
-  onRenewCallbacks: Set<() => void>;
-};
-
-export type OscScalarSubscriptionOptions = {
-  address: string;
-  timeFactor?: number;
-  renewIntervalMs?: number;
-  listener: (message: OscMessage) => void;
-  onSubscribe?: () => void;
-  onRenew?: () => void;
-};
-
 const XREMOTE_RENEW_INTERVAL_MS = 5000;
 
 const pad4 = (length: number): number => (4 - (length % 4)) % 4;
@@ -46,7 +30,6 @@ export class OscClient {
   private pending = new Set<PendingRequest<unknown>>();
   private pendingByAddress = new Map<string, Set<PendingRequest<unknown>>>();
   private subscriptions = new Map<string, Set<(message: OscMessage) => void>>();
-  private scalarSubscriptions = new Map<string, ScalarSubscriptionState>();
   private unsubscribeTransport?: () => void;
 
   constructor(private readonly transport = new UdpTransport()) {}
@@ -67,7 +50,6 @@ export class OscClient {
 
   disconnect(): void {
     this.clearXRemoteKeepAlive();
-    this.clearScalarSubscriptions();
     this.pending.forEach((request) => {
       clearTimeout(request.timeout);
       request.reject(new AppError('CONNECTION_LOST', 'Conexao encerrada.'));
@@ -174,79 +156,6 @@ export class OscClient {
     return () => listeners.delete(listener);
   }
 
-  subscribeScalarValue({
-    address,
-    timeFactor = X32Protocol.defaultScalarSubscriptionTimeFactor,
-    renewIntervalMs = X32Protocol.defaultScalarSubscriptionRenewIntervalMs,
-    listener,
-    onSubscribe,
-    onRenew,
-  }: OscScalarSubscriptionOptions): () => void {
-    const unsubscribeLocal = this.subscribe(address, listener);
-    let state = this.scalarSubscriptions.get(address);
-
-    if (!state) {
-      state = {
-        refCount: 0,
-        renewTimer: setInterval(() => {
-          this.notifyCallbacks(state?.onRenewCallbacks);
-          this.send(X32Protocol.getRenewPath(), [{ type: 's', value: address }]).catch(
-            () => undefined,
-          );
-        }, renewIntervalMs),
-        onSubscribeCallbacks: new Set(),
-        onRenewCallbacks: new Set(),
-      };
-      this.scalarSubscriptions.set(address, state);
-      this.notifyCallbacks(state.onSubscribeCallbacks);
-      this.send(X32Protocol.getSubscribePath(), [
-        { type: 's', value: address },
-        { type: 'i', value: timeFactor },
-      ]).catch(() => undefined);
-    }
-
-    state.refCount += 1;
-    if (onSubscribe) {
-      state.onSubscribeCallbacks.add(onSubscribe);
-      onSubscribe();
-    }
-    if (onRenew) {
-      state.onRenewCallbacks.add(onRenew);
-    }
-
-    let isUnsubscribed = false;
-    return () => {
-      if (isUnsubscribed) {
-        return;
-      }
-
-      isUnsubscribed = true;
-      unsubscribeLocal();
-      if (onSubscribe) {
-        state?.onSubscribeCallbacks.delete(onSubscribe);
-      }
-      if (onRenew) {
-        state?.onRenewCallbacks.delete(onRenew);
-      }
-
-      const current = this.scalarSubscriptions.get(address);
-      if (!current) {
-        return;
-      }
-
-      current.refCount -= 1;
-      if (current.refCount > 0) {
-        return;
-      }
-
-      clearInterval(current.renewTimer);
-      this.scalarSubscriptions.delete(address);
-      this.send(X32Protocol.getUnsubscribePath(), [{ type: 's', value: address }]).catch(
-        () => undefined,
-      );
-    };
-  }
-
   private handlePacket(data: Uint8Array): void {
     let message: OscMessage;
 
@@ -298,17 +207,6 @@ export class OscClient {
 
     clearInterval(this.keepAlive);
     this.keepAlive = undefined;
-  }
-
-  private clearScalarSubscriptions(): void {
-    this.scalarSubscriptions.forEach((subscription) => {
-      clearInterval(subscription.renewTimer);
-    });
-    this.scalarSubscriptions.clear();
-  }
-
-  private notifyCallbacks(callbacks?: Set<() => void>): void {
-    callbacks?.forEach((callback) => callback());
   }
 
   private isValidIp(ip: string): boolean {

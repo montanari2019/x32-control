@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-05-24
+Last updated: 2026-05-25
 
 ## Workspace Type
 
@@ -32,7 +32,8 @@ Last updated: 2026-05-24
 - BusMix pan modal display has been implemented with a single signed numeric `-100..+100` readout and focused pan conversion tests.
 - BusMix realtime console reactivity has been implemented for linked CH visual reflection, pan receive, and lightweight receive health. Real-console UAT remains pending in the connected emulator + X32 environment.
 - BusMix AUX/FX meter stability has been implemented for stream isolation. CH 01..32 meters remain the protected baseline; AUX/FX listeners now consume only the `/meters/13` stream instead of also receiving `/meters/1`.
-- BusMix remote fader subscription sync has been implemented at code level as a separate receive-path feature to address CH 17 changes made from the X32 app not mirroring in Tacimix until reload. The implementation preserves current sends and meters while adding scoped visible-fader `/subscribe` receive support. Real-console UAT remains pending.
+- BusMix remote fader subscription sync and remote fader fluidity/performance have been rolled back after user validation showed the app and meters were more fluid before those receive-path changes. Managed visible-fader `/subscribe` loops, scalar subscription infrastructure, and the follow-up coalescing/hysteresis layer were removed. BusMix now uses the lighter exact-address receive model plus `/xremote` and background sync again.
+- iOS Local Network permission preflight must be preserved during any rollback. The permission prompt/preflight fixed first-console-discovery failures and is independent from the BusMix remote fader receive work.
 
 ## Cross-Feature Decisions
 
@@ -62,6 +63,7 @@ Last updated: 2026-05-24
 - Real-console UAT for BusMix realtime linked-channel reactivity once X32/M32 hardware is available.
 - Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available; automated stream isolation is already implemented.
 - Real-console UAT for BusMix remote fader subscription sync, specifically CH 17 same-BUS send-level changes from the X32 official app versus main channel fader changes.
+- Real-console UAT for BusMix remote fader fluidity/performance after receive-path optimization, measuring latency, packet rate, applied update rate, and fader settle behavior on modest device/emulator conditions.
 
 ## Recent Session Notes
 
@@ -78,3 +80,8 @@ Last updated: 2026-05-24
 - 2026-05-24: Planned BusMix spec `remote-fader-subscription-sync` using local code analysis plus X32 OSC research. Key decision: current `OscClient.subscribe` is only local dispatch, so visible BusMix faders need managed X32 `/subscribe` renewal for source send-level paths. First task must distinguish `/ch/17/mix/fader` from `/ch/17/mix/{bus}/level` before implementation.
 - 2026-05-24: Implemented BusMix spec `remote-fader-subscription-sync`. Added managed scalar `/subscribe` support in `OscClient`, BusMixService send-level subscription method, visible fader subscription hook, BusMixScreen visibility wiring, and fader subscription health diagnostics. Automated BusMix, BusGroups, shared OSC focused tests, and TypeScript passed. Manual CH 17 UAT remains pending.
 - 2026-05-24: Full `yarn jest --runInBand` after `remote-fader-subscription-sync` failed only on 3 pre-existing/NetworkScanner timeout cases; BusMix, BusGroups, shared OSC, shared utils, and X32 suites passed in that full run.
+- 2026-05-25: Planned BusMix spec `remote-fader-fluidity-performance` following `docs/skills/tlc-spec-driven`. External research focused on Mixing Station X32 network traffic guidance, X32 OSC subscription behavior, UDP/buffer pressure, and React Native frame/JS-thread performance. Key decision: optimize by bounding the receive-to-render path, not by broad polling or changing fader UI. Tasks now cover baseline measurement, conservative `/subscribe` tuning, packet coalescing, `requestAnimationFrame` flush, batched store updates, stale echo suppression, visibility hysteresis, diagnostics, non-regression gates, and real-console UAT.
+- 2026-05-25: Implemented BusMix spec `remote-fader-fluidity-performance` code path. Added BusMix-specific `/subscribe` time factor 20, remote fader packet coalescer, visibility subscription hysteresis, frame-aligned flush, batched linked remote fader reducer, stale echo suppression, and extended diagnostics. Automated gates passed: BusMix, BusGroups, shared OSC, focused utility/service tests, and TypeScript. Real-console numeric baseline/UAT remains pending.
+- 2026-05-25: Planned rollback spec `remote-fader-sync-rollback-performance-restore` after user reported older build/version felt more fluid overall and meters were smoother. Product decision: `remote-fader-subscription-sync` and `remote-fader-fluidity-performance` should be treated as undone targets pending implementation rollback. Preserve Local Network permission preflight, AUX/FX meter stability, local fader sends, and unrelated UX fixes.
+- 2026-05-25: Created BusMix visual task/spec `fader-knob-skeuomorphic-refresh` for restyling the `VerticalFader` thumb into an off-white physical fader cap with recessed grooves, center calibration line, bevels, 3D lighting, and projected shadow. Scope is visual-only; do not touch meters, OSC, fader math, or rollback/performance work.
+- 2026-05-25: Implemented rollback spec `remote-fader-sync-rollback-performance-restore`. Removed `useBusMixRemoteFaderSubscription`, `BusMixService.subscribeChannelLevelUpdates`, `OscClient.subscribeScalarValue`, X32 scalar subscription helpers/defaults, remote fader coalescing, fader subscription scope hysteresis, and associated tests. Restored BusMix lightweight `service.onLevel` receive path. Preserved Local Network permission preflight, AUX/FX meter stability, local fader sends, and linked realtime helpers. Gates passed: BusMix, BusGroups, shared OSC, shared network with timeout 10000, TypeScript, plist lint, and `git diff --check`.
