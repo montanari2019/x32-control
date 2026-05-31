@@ -236,6 +236,7 @@ export class MockMixerProvider implements MixerControlProvider {
 
   private readonly channelLevelListeners = new Map<string, Set<Listener<number>>>();
   private readonly meterListeners = new Map<number, Set<Listener<ChannelMeterValues>>>();
+  private readonly busMasterMeterListeners = new Map<number, Set<Listener<number>>>();
   private readonly dcaFaderListeners = new Map<number, Set<Listener<number>>>();
   private readonly dcaOnListeners = new Map<number, Set<Listener<boolean>>>();
   private readonly masterFaderListeners = new Map<number, Set<Listener<number>>>();
@@ -403,10 +404,24 @@ export class MockMixerProvider implements MixerControlProvider {
         this.meterListeners.delete(channelId);
       }
 
-      if (this.meterListeners.size === 0 && this.meterInterval) {
-        clearInterval(this.meterInterval);
-        this.meterInterval = undefined;
+      this.stopMeterLoopIfIdle();
+    };
+  }
+
+  subscribeBusMasterMeter(busId: number, listener: Listener<number>): () => void {
+    const listeners = this.busMasterMeterListeners.get(busId) ?? new Set<Listener<number>>();
+    listeners.add(listener);
+    this.busMasterMeterListeners.set(busId, listeners);
+    listener(this.getBusMasterMeterDbfs(busId));
+    this.ensureMeterLoop();
+
+    return () => {
+      listeners.delete(listener);
+      if (listeners.size === 0) {
+        this.busMasterMeterListeners.delete(busId);
       }
+
+      this.stopMeterLoopIfIdle();
     };
   }
 
@@ -460,7 +475,23 @@ export class MockMixerProvider implements MixerControlProvider {
         const values = this.getMeterValues(channelId);
         listeners.forEach((listener) => listener(values));
       });
+
+      this.busMasterMeterListeners.forEach((listeners, busId) => {
+        const dbfs = this.getBusMasterMeterDbfs(busId);
+        listeners.forEach((listener) => listener(dbfs));
+      });
     }, 120);
+  }
+
+  private stopMeterLoopIfIdle(): void {
+    if (this.meterListeners.size > 0 || this.busMasterMeterListeners.size > 0) {
+      return;
+    }
+
+    if (this.meterInterval) {
+      clearInterval(this.meterInterval);
+      this.meterInterval = undefined;
+    }
   }
 
   private getMeterValues(channelId: number): ChannelMeterValues {
@@ -499,6 +530,20 @@ export class MockMixerProvider implements MixerControlProvider {
     }
 
     return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.15), 1);
+  }
+
+  private getBusMasterMeterDbfs(busId: number): number {
+    const master = this.busMaster.get(busId);
+    if (!master || master.isMuted) {
+      return -60;
+    }
+
+    const now = Date.now() / 1000;
+    const phase = busId * 0.53;
+    const wobble = (Math.sin(now * 2.1 + phase) + 1) / 2;
+    const activity = Math.max(master.faderRawValue, 0.12);
+
+    return clamp(-58 + wobble * 56 * activity, -60, 8);
   }
 
   private syncMcaMuteStatesForBus(busId: number): void {

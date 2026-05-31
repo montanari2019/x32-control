@@ -55,6 +55,32 @@ const makeValues = (preFadeDbfs: number): ChannelMeterValues => ({
   postFadeDb: preFadeDbfs,
 });
 
+const decodeIndexedFloatMeterBlob = (blob: Uint8Array, index: number): ChannelMeterValues => {
+  if (index < 0) {
+    return makeSilence();
+  }
+
+  const dataOffset = X32_BLOB_COUNT_HEADER_SIZE;
+  const minBlobSize = dataOffset + 4;
+  if (blob.byteLength < minBlobSize) {
+    return makeSilence();
+  }
+
+  const dataBytes = blob.byteLength - dataOffset;
+  if (dataBytes % 4 !== 0) {
+    return makeSilence();
+  }
+
+  const floatCount = dataBytes / 4;
+  if (index >= floatCount) {
+    return makeSilence();
+  }
+
+  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
+  const linear = view.getFloat32(dataOffset + index * 4, true);
+  return makeValues(decodeFloatDbValue(linear));
+};
+
 export const decodeMeterBlob = (blob: Uint8Array): ChannelMeterValues => {
   if (blob.byteLength < 10) {
     return makeSilence();
@@ -78,60 +104,25 @@ export const decodeMeter1BlobForChannel = (
   blob: Uint8Array,
   channelId: number,
 ): ChannelMeterValues => {
-  const index = channelId - 1;
-  if (index < 0) {
-    return makeSilence();
-  }
-
-  const dataOffset = X32_BLOB_COUNT_HEADER_SIZE;
-  const minBlobSize = dataOffset + 4;
-  if (blob.byteLength < minBlobSize) {
-    return makeSilence();
-  }
-
-  const dataBytes = blob.byteLength - dataOffset;
-  if (dataBytes % 4 !== 0) {
-    return makeSilence();
-  }
-
-  const floatCount = dataBytes / 4;
-  if (index >= floatCount) {
-    return makeSilence();
-  }
-
-  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-  const linear = view.getFloat32(dataOffset + index * 4, true);
-  return makeValues(decodeFloatDbValue(linear));
+  return decodeIndexedFloatMeterBlob(blob, channelId - 1);
 };
 
 export const decodeMeter13BlobForChannel = (
   blob: Uint8Array,
   channelId: number,
 ): ChannelMeterValues => {
-  const index = channelId - 1;
-  if (index < 0) {
+  return decodeIndexedFloatMeterBlob(blob, channelId - 1);
+};
+
+export const decodeMeter2BlobForBusMaster = (
+  blob: Uint8Array,
+  busId: number,
+): ChannelMeterValues => {
+  if (busId < 1 || busId > 16) {
     return makeSilence();
   }
 
-  const dataOffset = X32_BLOB_COUNT_HEADER_SIZE;
-  const minBlobSize = dataOffset + 4;
-  if (blob.byteLength < minBlobSize) {
-    return makeSilence();
-  }
-
-  const dataBytes = blob.byteLength - dataOffset;
-  if (dataBytes % 4 !== 0) {
-    return makeSilence();
-  }
-
-  const floatCount = dataBytes / 4;
-  if (index >= floatCount) {
-    return makeSilence();
-  }
-
-  const view = new DataView(blob.buffer, blob.byteOffset, blob.byteLength);
-  const linear = view.getFloat32(dataOffset + index * 4, true);
-  return makeValues(decodeFloatDbValue(linear));
+  return decodeIndexedFloatMeterBlob(blob, busId - 1);
 };
 
 export const clampMeterValue = (dbfs: number): number =>

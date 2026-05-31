@@ -76,6 +76,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const isCompactLayout = width > height;
   const {
     masterFaderRaw,
+    masterMeterDbfs,
     masterMuted,
     mcas,
     availableChannels,
@@ -228,6 +229,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                 compact={isCompactLayout}
                 dragSensitivity={isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined}
                 isMuted={masterMuted}
+                meterDbfs={masterMeterDbfs}
                 onFaderChange={setMasterFader}
                 onFaderInteractionEnd={handleFaderInteractionEnd}
                 onFaderInteractionStart={handleFaderInteractionStart}

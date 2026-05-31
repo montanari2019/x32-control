@@ -251,6 +251,7 @@ export class DemoMixerProvider implements MixerControlProvider {
 
   private readonly channelLevelListeners = new Map<string, Set<Listener<number>>>();
   private readonly meterListeners = new Map<number, Set<Listener<ChannelMeterValues>>>();
+  private readonly busMasterMeterListeners = new Map<number, Set<Listener<number>>>();
   private readonly dcaFaderListeners = new Map<number, Set<Listener<number>>>();
   private readonly dcaOnListeners = new Map<number, Set<Listener<boolean>>>();
   private readonly masterFaderListeners = new Map<number, Set<Listener<number>>>();
@@ -258,6 +259,7 @@ export class DemoMixerProvider implements MixerControlProvider {
 
   private meterInterval?: ReturnType<typeof setInterval>;
   private readonly meterStateByChannel = new Map<number, ChannelMeterValues>();
+  private readonly meterStateByBusMaster = new Map<number, number>();
 
   async connect(_consoleIp: string): Promise<void> {
     return Promise.resolve();
@@ -270,6 +272,7 @@ export class DemoMixerProvider implements MixerControlProvider {
     }
 
     this.meterStateByChannel.clear();
+    this.meterStateByBusMaster.clear();
   }
 
   async scanConsoles(): Promise<ConsoleDevice[]> {
@@ -418,10 +421,23 @@ export class DemoMixerProvider implements MixerControlProvider {
       if (set.size === 0) {
         this.meterListeners.delete(channelId);
       }
-      if (this.meterListeners.size === 0 && this.meterInterval) {
-        clearInterval(this.meterInterval);
-        this.meterInterval = undefined;
+      this.stopMeterLoopIfIdle();
+    };
+  }
+
+  subscribeBusMasterMeter(busId: number, listener: Listener<number>): () => void {
+    const set = this.busMasterMeterListeners.get(busId) ?? new Set<Listener<number>>();
+    set.add(listener);
+    this.busMasterMeterListeners.set(busId, set);
+    listener(this.computeBusMasterMeterDbfs(busId));
+    this.ensureMeterLoop();
+
+    return () => {
+      set.delete(listener);
+      if (set.size === 0) {
+        this.busMasterMeterListeners.delete(busId);
       }
+      this.stopMeterLoopIfIdle();
     };
   }
 
@@ -493,7 +509,23 @@ export class DemoMixerProvider implements MixerControlProvider {
         const values = this.computeMeterValues(channelId);
         listeners.forEach((listener) => listener(values));
       });
+
+      this.busMasterMeterListeners.forEach((listeners, busId) => {
+        const dbfs = this.computeBusMasterMeterDbfs(busId);
+        listeners.forEach((listener) => listener(dbfs));
+      });
     }, DEMO_METER_INTERVAL_MS);
+  }
+
+  private stopMeterLoopIfIdle(): void {
+    if (this.meterListeners.size > 0 || this.busMasterMeterListeners.size > 0) {
+      return;
+    }
+
+    if (this.meterInterval) {
+      clearInterval(this.meterInterval);
+      this.meterInterval = undefined;
+    }
   }
 
   private computeMeterValues(channelId: number): ChannelMeterValues {
@@ -575,6 +607,39 @@ export class DemoMixerProvider implements MixerControlProvider {
       return 0;
     }
     return matching.reduce((acc, mca) => acc * Math.max(mca.faderRawValue, 0.1), 1);
+  }
+
+  private computeBusMasterMeterDbfs(busId: number): number {
+    const now = Date.now();
+    const master = this.busMasters.get(busId);
+    if (!master || master.isMuted) {
+      this.meterStateByBusMaster.set(busId, -60);
+      return -60;
+    }
+
+    const channels = this.busChannels.get(busId) ?? [];
+    const activeChannels = channels.filter((channel) => channel.on);
+    const averageLevel =
+      activeChannels.length === 0
+        ? 0
+        : activeChannels.reduce((sum, channel) => sum + channel.faderRaw, 0) /
+          activeChannels.length;
+    const activity = Math.max(master.faderRawValue * Math.max(averageLevel, 0.14), 0.1);
+    const frameBucket = Math.floor(now / DEMO_METER_INTERVAL_MS);
+    const burst = pseudoRandom(busId * 97 + frameBucket * 11);
+    const accent = pseudoRandom(busId * 43 + frameBucket * 5);
+    const previous = this.meterStateByBusMaster.get(busId);
+    let target = -57 + burst * (16 + activity * 22) + (accent - 0.5) * 3;
+
+    if (accent > 0.975) {
+      target += 4;
+    }
+
+    target = clamp(target + 20 * Math.log10(Math.max(master.faderRawValue, 0.1)), -60, 8);
+    const next = this.smoothMeterValue(previous ?? target, target, 0.25, 0.13);
+    this.meterStateByBusMaster.set(busId, next);
+
+    return next;
   }
 
   private smoothMeterValue(

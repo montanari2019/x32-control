@@ -191,6 +191,10 @@ export class X32Protocol {
     return '/meters/1';
   }
 
+  static getMeters2Path(): string {
+    return '/meters/2';
+  }
+
   static getMeters13Path(): string {
     return '/meters/13';
   }

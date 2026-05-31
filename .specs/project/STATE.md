@@ -38,6 +38,7 @@ Last updated: 2026-05-31
 - BusMix pan modal slider consistency/performance has been fixed with a deterministic local pan control. The modal no longer relies on the uncontrolled native slider for pan position and no longer sends pan OSC on every drag tick; it commits on release or Center.
 - BusMix `fader-meter-single-rail` has been implemented. The separate side meter and central fader track were collapsed into a single meter/fader rail by rendering the live meter in the old central track position. Follow-up density work reduced BusMix channel strips from `86` to `71` px with matching FlatList item layout, targeting about 5.5 visible channels on wider portrait phones. Thumb-only drag, fader math, meter subscriptions, OSC behavior, AUX/FX meter isolation, linked pressed feedback, and current rollback decisions were preserved. Manual visual/gesture runtime validation remains pending.
 - BusMix presets modal now occupies 95% width and 95% height, with its preset list filling the remaining modal space instead of being capped to 320 px.
+- BusGroups spec `bus-master-meter-rail` has been implemented. The source is X32/M32 `/meters/2` Mix Bus meter data, decoded at `busId - 1`, rendered inside the existing Bus Master central rail while preserving rail dimensions/background, fader/mute behavior, MCA behavior, and BusMix meter streams. Hardware UAT remains pending.
 
 ## Cross-Feature Decisions
 
@@ -55,6 +56,7 @@ Last updated: 2026-05-31
 - iOS physical-device discovery can still be blocked by Wi-Fi/VLAN, Local Network privacy, or multicast/broadcast platform behavior.
 - Manual IP validation exists in services but is not exposed in current ConsoleDiscovery UI.
 - Real meter indexing for all AUX/FX combinations should be validated against physical console firmware.
+- Real meter indexing for BusGroups Bus Master `/meters/2` should be validated against physical X32/M32 firmware before the feature is marked hardware-complete.
 - `UIBackgroundModes=audio` needs product/legal/review justification.
 
 ## Deferred Ideas
@@ -66,6 +68,7 @@ Last updated: 2026-05-31
 - Release checklist linked to iOS/Android build artifacts.
 - Real-console UAT for BusMix realtime linked-channel reactivity once X32/M32 hardware is available.
 - Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available; automated stream isolation is already implemented.
+- Real-console UAT for BusGroups Bus Master meter rail on BUS 1, 8, 9, and 16 once X32/M32 hardware is available.
 - Real-console UAT for BusMix remote fader subscription sync, specifically CH 17 same-BUS send-level changes from the X32 official app versus main channel fader changes.
 - Real-console UAT for BusMix remote fader fluidity/performance after receive-path optimization, measuring latency, packet rate, applied update rate, and fader settle behavior on modest device/emulator conditions.
 
@@ -97,3 +100,5 @@ Last updated: 2026-05-31
 - 2026-05-31: Implemented BusMix spec `fader-meter-single-rail`. Added a passive custom rail slot to `VerticalFader`, moved `ChannelVuMeter` into that rail from `ChannelStrip`, removed the separate side meter column for BusMix strips, and kept no-meter placeholders aligned. Gates passed: `yarn tsc`, `yarn jest __tests__/features/busMix --runInBand`, `yarn jest __tests__/features/busGroups --runInBand`, and `git diff --check`. Manual portrait/landscape and gesture validation remains pending.
 - 2026-05-31: Applied BusMix channel strip density follow-up for `fader-meter-single-rail`. Reduced channel strip/list item width to target about 5.5 visible channels on wider portrait phones and added one-line shrink protection to the dB label. Gates passed: `yarn tsc`, BusMix tests, and BusGroups tests.
 - 2026-05-31: Enlarged BusMix presets modal to 95% width and 95% height, removing the previous max width/list height caps so users have more room to interact with saved presets. Gates passed: `yarn tsc` and BusMix tests.
+- 2026-05-31: Planned BusGroups spec `bus-master-meter-rail` using `docs/skills/tlc-spec-driven`, local meter docs, current BusGroups code, and external X32/M32 meter references. Key decision: use `/meters/2` rather than `/meters/5` for the selected BUS master meter, preserve the existing master rail geometry/background/function, and require BusMix non-regression gates plus real-console UAT.
+- 2026-05-31: Implemented BusGroups spec `bus-master-meter-rail`. Added `/meters/2` protocol helper/decoder coverage, mock/demo Bus Master meter subscriptions, real `X32BusGroupsService` `/meters/2` renewal, transient `masterMeterDbfs` hook state, and passive meter fill inside the existing 5 px Bus Master rail. Gates passed: `yarn tsc`, BusGroups tests, BusMix tests, shared X32Protocol test, and `git diff --check`. Real-console UAT on BUS 1, 8, 9, and 16 remains pending.
