@@ -16,6 +16,7 @@ type GroupStripProps = {
   isMaster?: boolean;
   isMuted: boolean;
   label: string;
+  meterDbfs?: number;
   name: string;
   onFaderChange: (value: number) => void;
   onFaderInteractionEnd?: () => void;
@@ -168,6 +169,7 @@ export const GroupStrip = ({
   isMaster = false,
   isMuted,
   label,
+  meterDbfs,
   name,
   onFaderChange,
   onFaderInteractionEnd,
@@ -242,6 +244,7 @@ export const GroupStrip = ({
             disabled={isFaderDisabled}
             dragSensitivity={dragSensitivity}
             isMaster={isMaster}
+            meterDbfs={meterDbfs}
             onFaderChange={onFaderChange}
             onInteractionEnd={onFaderInteractionEnd}
             onInteractionStart={onFaderInteractionStart}

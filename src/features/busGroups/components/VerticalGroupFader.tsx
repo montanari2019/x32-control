@@ -13,6 +13,13 @@ import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
 import { clamp } from '@shared/utils/clamp';
+import {
+  clampMeterValue,
+  METER_GREEN_MAX_DB,
+  METER_MAX_DBFS,
+  METER_MIN_DBFS,
+  METER_YELLOW_MAX_DB,
+} from '@features/busMix/utils/meterDecoder';
 import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
 type VerticalGroupFaderProps = {
@@ -20,6 +27,7 @@ type VerticalGroupFaderProps = {
   disabled?: boolean;
   dragSensitivity?: number;
   isMaster?: boolean;
+  meterDbfs?: number;
   onFaderChange: (value: number) => void;
   onInteractionEnd?: () => void;
   onInteractionStart?: () => void;
@@ -31,12 +39,72 @@ const THUMB_HEIGHT = 34;
 const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
 const THUMB_BOTTOM_GUARD = 8;
 const TRACK_TOUCH_WIDTH = 24;
+const METER_TOTAL_RANGE = METER_MAX_DBFS - METER_MIN_DBFS;
+
+type MeterLayerRatios = {
+  green: number;
+  red: number;
+  yellow: number;
+};
+
+const toPercent = (ratio: number): `${number}%` => `${ratio * 100}%` as `${number}%`;
+
+const getMeterZoneRatio = (dbfs: number, min: number, max: number): number => {
+  const clampedDbfs = clampMeterValue(dbfs);
+  return clamp(clampedDbfs - min, 0, max - min) / METER_TOTAL_RANGE;
+};
+
+const getMeterLayerRatios = (dbfs: number): MeterLayerRatios => ({
+  green: getMeterZoneRatio(dbfs, METER_MIN_DBFS, METER_GREEN_MAX_DB),
+  yellow: getMeterZoneRatio(dbfs, METER_GREEN_MAX_DB, METER_YELLOW_MAX_DB),
+  red: getMeterZoneRatio(dbfs, METER_YELLOW_MAX_DB, METER_MAX_DBFS),
+});
+
+const renderMasterMeterFill = (
+  isMaster: boolean,
+  meterDbfs: number | undefined,
+): JSX.Element | null => {
+  if (!isMaster || meterDbfs == null) {
+    return null;
+  }
+
+  const ratios = getMeterLayerRatios(meterDbfs);
+
+  return (
+    <View pointerEvents="none" style={styles.meterFillContainer}>
+      <View
+        style={[styles.meterFillBase, styles.meterFillGreen, { height: toPercent(ratios.green) }]}
+      />
+      <View
+        style={[
+          styles.meterFillBase,
+          styles.meterFillYellow,
+          {
+            bottom: toPercent(ratios.green),
+            height: toPercent(ratios.yellow),
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.meterFillBase,
+          styles.meterFillRed,
+          {
+            bottom: toPercent(ratios.green + ratios.yellow),
+            height: toPercent(ratios.red),
+          },
+        ]}
+      />
+    </View>
+  );
+};
 
 export const VerticalGroupFader = ({
   accentColor,
   disabled = false,
   dragSensitivity = 1,
   isMaster = false,
+  meterDbfs,
   onFaderChange,
   onInteractionEnd,
   onInteractionStart,
@@ -183,7 +251,9 @@ export const VerticalGroupFader = ({
           { backgroundColor: isMaster ? colors.master.track : colors.surface.control },
           { marginBottom: TRACK_EDGE_PADDING + THUMB_BOTTOM_GUARD, marginTop: TRACK_EDGE_PADDING },
         ]}
-      />
+      >
+        {renderMasterMeterFill(isMaster, meterDbfs)}
+      </View>
       <View
         style={[
           styles.dbScale,
@@ -235,6 +305,28 @@ const styles = StyleSheet.create({
   masterTrack: {
     width: 5,
   },
+  meterFillBase: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  meterFillContainer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  meterFillGreen: {
+    backgroundColor: colors.meter.green,
+  },
+  meterFillRed: {
+    backgroundColor: colors.meter.red,
+  },
+  meterFillYellow: {
+    backgroundColor: colors.meter.yellow,
+  },
   mcaThumb: {
     left: 8,
     right: 8,
@@ -266,5 +358,7 @@ const styles = StyleSheet.create({
   track: {
     borderRadius: radius.pill,
     flex: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
 });

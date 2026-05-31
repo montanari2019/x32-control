@@ -14,6 +14,14 @@ const fetchInitialStateMock = jest.fn<Promise<BusGroupsState>, [number]>();
 const disconnectBusGroupsMock = jest.fn(() => undefined);
 const setBusMasterFaderMock = jest.fn(async () => undefined);
 const setBusMasterOnMock = jest.fn(async () => undefined);
+const unsubscribeBusMasterMeterMock = jest.fn();
+const subscribeToBusMasterMeterMock = jest.fn(
+  (_busId: number, listener: (dbfs: number) => void): (() => void) => {
+    busMasterMeterListener = listener;
+    return unsubscribeBusMasterMeterMock;
+  },
+);
+let busMasterMeterListener: ((dbfs: number) => void) | undefined;
 
 const connectBusMixMock = jest.fn(async () => undefined);
 const loadChannelsMock = jest.fn<Promise<Channel[]>, [number]>();
@@ -33,6 +41,7 @@ jest.mock('@features/busGroups/services/X32BusGroupsService', () => ({
     disconnect: disconnectBusGroupsMock,
     setBusMasterFader: setBusMasterFaderMock,
     setBusMasterOn: setBusMasterOnMock,
+    subscribeToBusMasterMeter: subscribeToBusMasterMeterMock,
   })),
 }));
 
@@ -160,6 +169,7 @@ describe('useBusGroups', () => {
     loadChannelsMock.mockResolvedValue(initialChannels.map((channel) => ({ ...channel })));
     getDcaStateMock.mockResolvedValue(null);
     saveDcaStateMock.mockResolvedValue(undefined);
+    busMasterMeterListener = undefined;
   });
 
   it('starts app MCAs empty when there is no stored device state', async () => {
@@ -281,6 +291,29 @@ describe('useBusGroups', () => {
     expect(loadChannelsMock).not.toHaveBeenCalled();
 
     unmount();
+  });
+
+  it('subscribes to the BUS master meter without changing MCA state', async () => {
+    const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() =>
+      expect(subscribeToBusMasterMeterMock).toHaveBeenCalledWith(TEST_BUS_ID, expect.any(Function)),
+    );
+
+    expect(result.current.masterMeterDbfs).toBe(-60);
+    expect(result.current.mcas[0]?.faderRawValue).toBe(MCA_DEFAULT_RAW_VALUE);
+
+    act(() => {
+      busMasterMeterListener?.(-18);
+    });
+
+    expect(result.current.masterMeterDbfs).toBe(-18);
+    expect(result.current.mcas[0]?.faderRawValue).toBe(MCA_DEFAULT_RAW_VALUE);
+
+    unmount();
+
+    expect(unsubscribeBusMasterMeterMock).toHaveBeenCalled();
   });
 
   it('derives the MCA mute state from the current states of its assigned channels', async () => {

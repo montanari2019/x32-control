@@ -1,5 +1,6 @@
 import {
   decodeMeter1BlobForChannel,
+  decodeMeter2BlobForBusMaster,
   decodeMeter13BlobForChannel,
 } from '../../../../src/features/busMix/utils/meterDecoder';
 
@@ -128,5 +129,38 @@ describe('decodeMeter13BlobForChannel', () => {
     expect(decodeMeter13BlobForChannel(blob, 40).preFadeDbfs).toBeCloseTo(-9, 0);
     expect(decodeMeter13BlobForChannel(blob, 41).preFadeDbfs).toBeCloseTo(-7, 0);
     expect(decodeMeter13BlobForChannel(blob, 48).preFadeDbfs).toBeCloseTo(-5, 0);
+  });
+});
+
+describe('decodeMeter2BlobForBusMaster', () => {
+  it('decodes BUS master boundaries from the first 16 /meters/2 floats', () => {
+    const values = new Array(49).fill(0.001);
+    values[0] = 0.25;
+    values[7] = 0.35;
+    values[8] = 0.45;
+    values[15] = 0.55;
+    values[16] = 1.0;
+    const blob = createFloatMeterBlob(values);
+
+    expect(decodeMeter2BlobForBusMaster(blob, 1).preFadeDbfs).toBeCloseTo(-12, 0);
+    expect(decodeMeter2BlobForBusMaster(blob, 8).preFadeDbfs).toBeCloseTo(-9, 0);
+    expect(decodeMeter2BlobForBusMaster(blob, 9).preFadeDbfs).toBeCloseTo(-7, 0);
+    expect(decodeMeter2BlobForBusMaster(blob, 16).preFadeDbfs).toBeCloseTo(-5, 0);
+  });
+
+  it('returns silence for invalid buses, malformed blobs, and out of range indexes', () => {
+    const shortBlob = createFloatMeterBlob(new Array(8).fill(0.5));
+
+    expect(decodeMeter2BlobForBusMaster(shortBlob, 9).preFadeDbfs).toBe(-60);
+    expect(decodeMeter2BlobForBusMaster(new Uint8Array(4), 1).preFadeDbfs).toBe(-60);
+    expect(decodeMeter2BlobForBusMaster(new Uint8Array(7), 1).preFadeDbfs).toBe(-60);
+    expect(decodeMeter2BlobForBusMaster(createFloatMeterBlob([0.5]), 0).preFadeDbfs).toBe(-60);
+    expect(decodeMeter2BlobForBusMaster(createFloatMeterBlob([0.5]), 17).preFadeDbfs).toBe(-60);
+  });
+
+  it('decodes X32 linear headroom values for BUS masters', () => {
+    const blob = createFloatMeterBlob([2.0]);
+
+    expect(decodeMeter2BlobForBusMaster(blob, 1).preFadeDbfs).toBeCloseTo(6, 0);
   });
 });
