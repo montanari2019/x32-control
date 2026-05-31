@@ -55,6 +55,11 @@ Last updated: 2026-05-25
   Verification:
   - `yarn tsc`: passed.
   - `yarn jest __tests__/features/busMix --runInBand`: passed, 6 suites / 32 tests.
+  Follow-up:
+  - Updated the active pressed visual state so the fader cap uses `opacity: 0.6` while pressed/dragged and returns to normal opacity on release/terminate.
+  - Extended the same visual pressed behavior to the linked channel peer by exposing the BusMix channel link map to `BusMixScreen` and passing a linked-interaction flag down to `VerticalFader`.
+  - No fader value math, send behavior, meter code, or OSC receive path was changed.
+  - Re-ran `yarn tsc` and `yarn jest __tests__/features/busMix --runInBand`: both passed.
   - Manual simulator/device visual and touch validation remains pending.
 
 ## Visual Implementation Guidance

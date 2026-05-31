@@ -1,0 +1,23 @@
+BusMix presets modal large layout
+Date: 2026-05-31
+
+Scope
+- Enlarge the BusMix presets modal so it uses most of the screen.
+
+Changes
+- `BusMixPresetsModal` dialog now uses `width: '95%'` and `height: '95%'`.
+- Removed the previous `maxWidth: 520` and `maxHeight: '82%'` constraints.
+- Preset list now uses `flex: 1` with `minHeight: 0` instead of `maxHeight: 320`, so it fills the available modal space.
+
+Preserved
+- Existing `Dialog`/`ModalProvider` system.
+- Preset create, overwrite, delete, restore flows.
+- Restore overlay/toast behavior.
+- BusMix fader, meter, OSC, pan, mute/on, and preset service logic.
+
+Verification
+- `yarn tsc`: passed.
+- `yarn jest __tests__/features/busMix --runInBand`: passed, 7 suites / 37 tests.
+
+Pending
+- Manual device/simulator visual validation in portrait and landscape.

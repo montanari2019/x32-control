@@ -1,0 +1,23 @@
+BusGroups MCA dB label font fit
+Date: 2026-05-31
+
+Scope
+- Small visual adjustment for MCA 1..8 bottom dB labels.
+
+Changes
+- Reduced MCA dB label font size in `GroupStrip`.
+- Added one-line auto-fit protection to the dB label to avoid clipping with wider values such as `12.34dB`.
+
+Preserved
+- Bus Master styling.
+- MCA fader behavior.
+- Mute behavior.
+- BusGroups services, storage, and BusMix integration.
+
+Verification
+- `yarn tsc`: passed.
+- `yarn jest __tests__/features/busGroups --runInBand`: passed, 2 suites / 10 tests.
+- `git diff --check`: passed.
+
+Pending
+- Manual visual validation on target device.

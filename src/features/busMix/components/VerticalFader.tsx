@@ -17,6 +17,8 @@ type VerticalFaderProps = {
   isLinkedInteractionActive?: boolean;
   level: number;
   height: number;
+  rail?: React.ReactNode;
+  railWidth?: number;
   onChange: (level: number) => void;
   onChangeEnd: (level: number) => void;
   onInteractionEnd?: () => void;
@@ -27,9 +29,10 @@ const FADER_MIN_DB = -60;
 const FADER_MAX_DB = 10;
 const RAW_MIN = x32DbToRaw(FADER_MIN_DB);
 const RAW_MAX = x32DbToRaw(FADER_MAX_DB);
-const THUMB_WIDTH = 36;
+const THUMB_WIDTH = 32;
 const THUMB_HEIGHT = 52;
-const THUMB_RADIUS = 15;
+const THUMB_RADIUS = 14;
+const TRACK_WIDTH = 8;
 const VERTICAL_INSET = 8;
 
 const positionToRaw = (position: number): number => {
@@ -47,6 +50,8 @@ export const VerticalFader = ({
   isLinkedInteractionActive = false,
   level,
   height,
+  rail,
+  railWidth = TRACK_WIDTH,
   onChange,
   onChangeEnd,
   onInteractionEnd,
@@ -66,6 +71,7 @@ export const VerticalFader = ({
   const onInteractionEndRef = useRef(onInteractionEnd);
   const onInteractionStartRef = useRef(onInteractionStart);
   const dragSensitivityRef = useRef(dragSensitivity);
+  const hasCustomRail = rail != null;
 
   useEffect(() => {
     availableRef.current = available;
@@ -165,7 +171,24 @@ export const VerticalFader = ({
   return (
     <View style={[styles.container, { height }]}>
       <View style={styles.trackBounds}>
-        <View style={styles.track} />
+        {hasCustomRail ? (
+          <View
+            pointerEvents="none"
+            style={[
+              styles.customRail,
+              {
+                bottom: -VERTICAL_INSET,
+                marginLeft: -railWidth / 2,
+                top: -VERTICAL_INSET,
+                width: railWidth,
+              },
+            ]}
+          >
+            {rail}
+          </View>
+        ) : (
+          <View pointerEvents="none" style={[styles.track, { width: railWidth }]} />
+        )}
         <View style={[styles.zeroMark, { top: zeroMarkTop }]} />
         <View style={[styles.dbScale, { height: trackHeight }]}>
           <FaderDbScale height={trackHeight} />
@@ -204,6 +227,11 @@ const styles = StyleSheet.create({
     position: 'relative',
     width: 46,
   },
+  customRail: {
+    alignItems: 'center',
+    left: '50%',
+    position: 'absolute',
+  },
   dbScale: {
     left: '50%',
     marginLeft: spacing.xxs,
@@ -214,7 +242,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.fader.track,
     borderRadius: 6,
     flex: 1,
-    width: 8,
   },
   thumb: {
     backgroundColor: '#C1BFBF',
@@ -250,7 +277,7 @@ const styles = StyleSheet.create({
     height: 2,
     position: 'absolute',
     top: 25,
-    width: 25,
+    width: 23,
   },
   thumbGroove: {
     alignSelf: 'center',
@@ -262,7 +289,7 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     height: 4,
     position: 'absolute',
-    width: 24,
+    width: 22,
   },
   thumbGrooveBottomFirst: {
     top: 34,
@@ -284,7 +311,7 @@ const styles = StyleSheet.create({
     left: 0,
     position: 'absolute',
     top: 0,
-    width: 8,
+    width: 7,
   },
   thumbPressed: {
     elevation: 5,
@@ -301,7 +328,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: 0,
     top: 0,
-    width: 9,
+    width: 8,
   },
   thumbSurface: {
     ...StyleSheet.absoluteFillObject,

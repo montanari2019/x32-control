@@ -30,7 +30,7 @@ import { ChannelMeterValues } from '../utils/meterDecoder';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
 
-const CHANNEL_STRIP_WIDTH = 86;
+const CHANNEL_STRIP_WIDTH = 71;
 const CHANNEL_STRIP_GAP = 1;
 const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
 const STRIP_FIXED_OVERHEAD = 160;

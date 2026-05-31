@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-05-25
+Last updated: 2026-05-31
 
 ## Workspace Type
 
@@ -36,6 +36,8 @@ Last updated: 2026-05-25
 - iOS Local Network permission preflight must be preserved during any rollback. The permission prompt/preflight fixed first-console-discovery failures and is independent from the BusMix remote fader receive work.
 - BusMix fader cap visual refresh has been implemented as a visual-only change in `VerticalFader`: off-white skeuomorphic cap, recessed grooves, center calibration line, bevel/volume, and pressed shadow feedback. Gesture ownership, fader math, meters, OSC, and rollback behavior were preserved.
 - BusMix pan modal slider consistency/performance has been fixed with a deterministic local pan control. The modal no longer relies on the uncontrolled native slider for pan position and no longer sends pan OSC on every drag tick; it commits on release or Center.
+- BusMix `fader-meter-single-rail` has been implemented. The separate side meter and central fader track were collapsed into a single meter/fader rail by rendering the live meter in the old central track position. Follow-up density work reduced BusMix channel strips from `86` to `71` px with matching FlatList item layout, targeting about 5.5 visible channels on wider portrait phones. Thumb-only drag, fader math, meter subscriptions, OSC behavior, AUX/FX meter isolation, linked pressed feedback, and current rollback decisions were preserved. Manual visual/gesture runtime validation remains pending.
+- BusMix presets modal now occupies 95% width and 95% height, with its preset list filling the remaining modal space instead of being capped to 320 px.
 
 ## Cross-Feature Decisions
 
@@ -88,5 +90,10 @@ Last updated: 2026-05-25
 - 2026-05-25: Created BusMix visual task/spec `fader-knob-skeuomorphic-refresh` for restyling the `VerticalFader` thumb into an off-white physical fader cap with recessed grooves, center calibration line, bevels, 3D lighting, and projected shadow. Scope is visual-only; do not touch meters, OSC, fader math, or rollback/performance work.
 - 2026-05-25: Implemented rollback spec `remote-fader-sync-rollback-performance-restore`. Removed `useBusMixRemoteFaderSubscription`, `BusMixService.subscribeChannelLevelUpdates`, `OscClient.subscribeScalarValue`, X32 scalar subscription helpers/defaults, remote fader coalescing, fader subscription scope hysteresis, and associated tests. Restored BusMix lightweight `service.onLevel` receive path. Preserved Local Network permission preflight, AUX/FX meter stability, local fader sends, and linked realtime helpers. Gates passed: BusMix, BusGroups, shared OSC, shared network with timeout 10000, TypeScript, plist lint, and `git diff --check`.
 - 2026-05-25: Implemented BusMix spec `fader-knob-skeuomorphic-refresh`. Updated only `VerticalFader` visual styling with a stable centered skeuomorphic cap and pressed shadow state. Gates passed: `yarn tsc` and `yarn jest __tests__/features/busMix --runInBand`.
+- 2026-05-25: Extended BusMix fader pressed visual feedback to linked channel peers. Pressing/dragging one linked fader now also dims the linked peer cap visually, while preserving existing fader value propagation and OSC send behavior.
 - 2026-05-25: Planned and implemented BusMix spec `pan-modal-slider-consistency-performance`. External references checked: `@react-native-community/slider` value semantics and X32/M32 OSC pan ranges. Replaced the pan modal native slider with a local deterministic control, added pan slider mapping tests, and changed pan drag to send only on release/Center. Gates passed: focused pan tests, BusMix tests, and TypeScript.
 - 2026-05-25: Applied follow-up pan modal drag stability fix after user validation found the new slider jumped between positions. Drag now uses initial value plus `gestureState.dx` instead of move-time `locationX`, preventing nested slider layers from changing the coordinate basis.
+- 2026-05-31: Planned BusMix spec `fader-meter-single-rail` using `docs/skills/tlc-spec-driven` and local project docs as the source of truth. Created spec/design/tasks under `src/features/busMix/.specs/feature/fader-meter-single-rail/`. External research was not necessary because this is a local React Native fader/meter composition change and existing docs already cover meter protocol and project conventions.
+- 2026-05-31: Implemented BusMix spec `fader-meter-single-rail`. Added a passive custom rail slot to `VerticalFader`, moved `ChannelVuMeter` into that rail from `ChannelStrip`, removed the separate side meter column for BusMix strips, and kept no-meter placeholders aligned. Gates passed: `yarn tsc`, `yarn jest __tests__/features/busMix --runInBand`, `yarn jest __tests__/features/busGroups --runInBand`, and `git diff --check`. Manual portrait/landscape and gesture validation remains pending.
+- 2026-05-31: Applied BusMix channel strip density follow-up for `fader-meter-single-rail`. Reduced channel strip/list item width to target about 5.5 visible channels on wider portrait phones and added one-line shrink protection to the dB label. Gates passed: `yarn tsc`, BusMix tests, and BusGroups tests.
+- 2026-05-31: Enlarged BusMix presets modal to 95% width and 95% height, removing the previous max width/list height caps so users have more room to interact with saved presets. Gates passed: `yarn tsc` and BusMix tests.
