@@ -1,0 +1,23 @@
+BusMix linked fader pressed feedback
+Date: 2026-05-25
+
+Scope
+- Follow-up to fader-knob-skeuomorphic-refresh.
+
+Changes
+- VerticalFader pressed state now applies opacity 0.6 while pressed/dragged.
+- useBusMix exposes the loaded channel link map to BusMixScreen.
+- BusMixScreen tracks the active fader channel number during drag.
+- BusMixScreen passes a linked-interaction visual flag to the linked peer channel.
+- ChannelStrip forwards that flag to VerticalFader.
+
+Preserved
+- Fader raw/dB math.
+- Existing linked level propagation.
+- App-to-console throttled/final send behavior.
+- Meter code.
+- OSC receive/rollback behavior.
+
+Verification
+- yarn tsc: passed.
+- yarn jest __tests__/features/busMix --runInBand: passed, 7 suites / 37 tests.

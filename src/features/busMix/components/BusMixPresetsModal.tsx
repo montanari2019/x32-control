@@ -338,9 +338,8 @@ const styles = StyleSheet.create({
   },
   dialog: {
     gap: spacing.md,
-    maxHeight: '82%',
-    maxWidth: 520,
-    width: '100%',
+    height: '95%',
+    width: '95%',
   },
   dialogBackdrop: {
     justifyContent: 'center',
@@ -395,8 +394,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   list: {
-    flexShrink: 1,
-    maxHeight: 320,
+    flex: 1,
+    minHeight: 0,
   },
   listContent: {
     gap: spacing.sm,
