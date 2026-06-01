@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useIsFocused } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
@@ -71,6 +72,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { consoleIp, busNumber, busName, linkedBusNumber } = route.params;
   const { width, height } = useWindowDimensions();
   const { showModal } = useModal();
+  const isFocused = useIsFocused();
   const [stripsHeight, setStripsHeight] = useState(0);
   const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
   const isCompactLayout = width > height;
@@ -90,7 +92,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     toggleMcaChannelAssignment,
     clearMcaChannels,
     renameMca,
-  } = useBusGroups(consoleIp, busNumber);
+  } = useBusGroups(consoleIp, busNumber, { isMasterMeterActive: isFocused });
   const mcasRef = useRef(mcas);
   const availableChannelsRef = useRef(availableChannels);
 

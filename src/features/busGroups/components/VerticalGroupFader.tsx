@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   LayoutChangeEvent,
@@ -9,10 +9,12 @@ import {
   View,
 } from 'react-native';
 import { FaderDbScale } from '@shared/components/FaderDbScale';
+import { FADER_THUMB_METRICS, FaderThumb } from '@shared/components/FaderThumb';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
 import { clamp } from '@shared/utils/clamp';
+import { getColoredFaderThumbPalette } from '@shared/utils/faderThumbPalette';
 import {
   clampMeterValue,
   METER_GREEN_MAX_DB,
@@ -35,7 +37,8 @@ type VerticalGroupFaderProps = {
   value: number;
 };
 
-const THUMB_HEIGHT = 34;
+const THUMB_WIDTH = FADER_THUMB_METRICS.width;
+const THUMB_HEIGHT = FADER_THUMB_METRICS.height;
 const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
 const THUMB_BOTTOM_GUARD = 8;
 const TRACK_TOUCH_WIDTH = 24;
@@ -117,6 +120,14 @@ export const VerticalGroupFader = ({
   const layoutWidth = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
+  const [isThumbPressed, setIsThumbPressed] = useState(false);
+  const thumbPalette = useMemo(
+    () =>
+      isMaster
+        ? getColoredFaderThumbPalette(colors.master.thumb, colors.master.label)
+        : getColoredFaderThumbPalette(accentColor),
+    [accentColor, isMaster],
+  );
   const onFaderChangeRef = useRef(onFaderChange);
   useEffect(() => {
     onFaderChangeRef.current = onFaderChange;
@@ -140,6 +151,9 @@ export const VerticalGroupFader = ({
   const disabledRef = useRef(disabled);
   useEffect(() => {
     disabledRef.current = disabled;
+    if (disabled) {
+      setIsThumbPressed(false);
+    }
   }, [disabled]);
 
   const dragSensitivityRef = useRef(dragSensitivity);
@@ -195,6 +209,7 @@ export const VerticalGroupFader = ({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
+          setIsThumbPressed(true);
           startY.current = currentY.current;
           onInteractionStartRef.current?.();
         },
@@ -204,10 +219,12 @@ export const VerticalGroupFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onPanResponderTerminate: () => {
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onShouldBlockNativeResponder: () => true,
@@ -268,15 +285,12 @@ export const VerticalGroupFader = ({
       <Animated.View
         style={[
           styles.thumb,
-          isMaster ? styles.masterThumb : styles.mcaThumb,
           {
-            backgroundColor: isMaster ? colors.master.thumb : accentColor,
-            borderColor: isMaster ? colors.master.label : accentColor,
             transform: [{ translateY: animatedY }],
           },
         ]}
       >
-        <View style={styles.thumbLine} />
+        <FaderThumb palette={thumbPalette} pressed={isThumbPressed} />
       </Animated.View>
     </View>
   );
@@ -297,10 +311,6 @@ const styles = StyleSheet.create({
     left: '50%',
     marginLeft: spacing.xxs,
     position: 'absolute',
-  },
-  masterThumb: {
-    left: 8,
-    right: 8,
   },
   masterTrack: {
     width: 5,
@@ -327,33 +337,18 @@ const styles = StyleSheet.create({
   meterFillYellow: {
     backgroundColor: colors.meter.yellow,
   },
-  mcaThumb: {
-    left: 8,
-    right: 8,
-  },
   mcaTrack: {
     width: 5,
   },
   thumb: {
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    elevation: 3,
     height: THUMB_HEIGHT,
+    left: '50%',
+    marginLeft: -THUMB_WIDTH / 2,
+    overflow: 'visible',
     position: 'absolute',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
     top: 0,
-    zIndex: 2,
-  },
-  thumbLine: {
-    backgroundColor: 'rgba(7, 16, 29, 0.55)',
-    height: 2,
-    left: 8,
-    marginTop: THUMB_HEIGHT / 2 - 1,
-    position: 'absolute',
-    right: 8,
+    width: THUMB_WIDTH,
+    zIndex: 3,
   },
   track: {
     borderRadius: radius.pill,

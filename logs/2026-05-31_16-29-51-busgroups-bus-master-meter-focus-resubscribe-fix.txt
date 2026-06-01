@@ -1,0 +1,42 @@
+# BusGroups Bus Master Meter Focus Resubscribe Fix
+
+Date: 2026-05-31
+
+## Context
+
+After implementing the BusGroups Bus Master meter rail, real navigation validation found a freeze scenario:
+entering Channels/BusMix from Personal Mix Groups and returning could leave the Bus Master meter visually frozen.
+
+## Root Cause
+
+`BusGroupsScreen` stays mounted behind the pushed BusMix screen. The Bus Master meter hook did not know route focus, so its `/meters/2` subscription could remain in a stale state while BusMix owned active meter traffic. Returning to BusGroups did not necessarily create a fresh immediate `/meters/2` request.
+
+## Change
+
+- Added route focus wiring in `BusGroupsScreen` with `useIsFocused`.
+- Added `isMasterMeterActive` option to `useBusGroups`.
+- Kept the Bus Master meter subscription active only while BusGroups is focused, connected, and not loading.
+- Reset transient `masterMeterDbfs` to silence while inactive.
+- On return to BusGroups, the hook creates a new `subscribeToBusMasterMeter` subscription, which immediately requests `/meters/2`.
+- Added hook regression coverage for inactive cleanup and active resubscribe.
+
+## Validation
+
+```sh
+yarn jest __tests__/features/busGroups/hooks/useBusGroups.test.ts --runInBand
+yarn tsc --noEmit
+yarn jest __tests__/features/busGroups --runInBand
+yarn jest __tests__/features/busMix --runInBand
+```
+
+All commands passed.
+
+## Remaining Manual Check
+
+Physical-console validation should confirm this exact navigation loop:
+
+1. Open Personal Mix Groups.
+2. Confirm Bus Master meter moves.
+3. Enter Channels/BusMix.
+4. Return to Personal Mix Groups.
+5. Confirm Bus Master meter resumes immediately and does not remain frozen.

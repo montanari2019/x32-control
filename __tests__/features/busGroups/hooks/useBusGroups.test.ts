@@ -316,6 +316,44 @@ describe('useBusGroups', () => {
     expect(unsubscribeBusMasterMeterMock).toHaveBeenCalled();
   });
 
+  it('resubscribes to the BUS master meter when the screen becomes active again', async () => {
+    const { result, rerender, unmount } = renderHook(
+      ({ isMasterMeterActive }) =>
+        useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID, { isMasterMeterActive }),
+      {
+        initialProps: {
+          isMasterMeterActive: true,
+        },
+      },
+    );
+
+    await waitFor(() => expect(result.current.isLoading).toBe(false));
+    await waitFor(() => expect(subscribeToBusMasterMeterMock).toHaveBeenCalledTimes(1));
+
+    act(() => {
+      busMasterMeterListener?.(-20);
+    });
+
+    expect(result.current.masterMeterDbfs).toBe(-20);
+
+    rerender({ isMasterMeterActive: false });
+
+    await waitFor(() => expect(unsubscribeBusMasterMeterMock).toHaveBeenCalledTimes(1));
+    expect(result.current.masterMeterDbfs).toBe(-60);
+
+    rerender({ isMasterMeterActive: true });
+
+    await waitFor(() => expect(subscribeToBusMasterMeterMock).toHaveBeenCalledTimes(2));
+
+    act(() => {
+      busMasterMeterListener?.(-12);
+    });
+
+    expect(result.current.masterMeterDbfs).toBe(-12);
+
+    unmount();
+  });
+
   it('derives the MCA mute state from the current states of its assigned channels', async () => {
     const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
 

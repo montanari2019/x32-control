@@ -80,7 +80,16 @@ type DemoWritableProvider = {
   setMcaMuted?: (dcaNumber: number, isMuted: boolean) => void;
 };
 
-export const useBusGroups = (consoleIp: string, busId: number) => {
+type UseBusGroupsOptions = {
+  isMasterMeterActive?: boolean;
+};
+
+export const useBusGroups = (
+  consoleIp: string,
+  busId: number,
+  options: UseBusGroupsOptions = {},
+) => {
+  const { isMasterMeterActive = true } = options;
   const service = useMemo(() => new X32BusGroupsService(), []);
   const busMixService = useMemo(() => new BusMixService(), []);
   const mcaFaderService = useMemo(() => new McaChannelFaderService(busMixService), [busMixService]);
@@ -456,13 +465,20 @@ export const useBusGroups = (consoleIp: string, busId: number) => {
   }, [consoleIp, secureStoreService, state.isConnected, state.isLoading, state.mcas]);
 
   useEffect(() => {
-    if (!state.isConnected || state.isLoading) {
+    if (!isMasterMeterActive || !state.isConnected || state.isLoading) {
       updateMasterMeterDbfs(METER_MIN_DBFS);
       return undefined;
     }
 
     return service.subscribeToBusMasterMeter(busId, updateMasterMeterDbfs);
-  }, [busId, service, state.isConnected, state.isLoading, updateMasterMeterDbfs]);
+  }, [
+    busId,
+    isMasterMeterActive,
+    service,
+    state.isConnected,
+    state.isLoading,
+    updateMasterMeterDbfs,
+  ]);
 
   const setMcaFader = useCallback(
     (dcaNumber: number, value: number): void => {

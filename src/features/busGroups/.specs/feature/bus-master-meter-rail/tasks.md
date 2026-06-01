@@ -345,3 +345,43 @@ Last updated: 2026-05-31
   - Added implementation log for the Bus Master meter rail feature.
   Verification:
   - `git diff --check`: passed.
+
+- [x] T-011: Fix Bus Master meter lifecycle after returning from Channels
+  Reqs: REQ-007, REQ-012, REQ-013, REQ-014
+  What: Fix the real-console behavior where navigating from BusGroups to Channels/BusMix and then returning could leave the Bus Master meter frozen on stale `/meters/2` telemetry.
+  Where:
+  - `src/features/busGroups/screens/BusGroupsScreen.tsx`
+  - `src/features/busGroups/hooks/useBusGroups.ts`
+  - `__tests__/features/busGroups/hooks/useBusGroups.test.ts`
+  Depends on: T-005, T-007
+  Reuses:
+  - React Navigation route focus state.
+  - Existing `subscribeToBusMasterMeter` immediate request/renew cleanup behavior.
+  Implementation detail:
+  - `BusGroupsScreen` reads route focus with `useIsFocused`.
+  - `useBusGroups` accepts `isMasterMeterActive`.
+  - The hook only keeps the Bus Master meter subscription active while BusGroups is focused, connected, and not loading.
+  - Leaving the screen resets the transient meter to `METER_MIN_DBFS` and cleans up the subscription.
+  - Returning to the screen creates a fresh subscription and immediately requests `/meters/2`.
+  Done when:
+  - Returning from Channels/BusMix causes a new Bus Master meter subscription.
+  - The stale visual meter state is cleared while the screen is unfocused.
+  - BusMix meter tests continue to pass.
+  Tests:
+  ```sh
+  yarn jest __tests__/features/busGroups/hooks/useBusGroups.test.ts --runInBand
+  yarn tsc --noEmit
+  yarn jest __tests__/features/busGroups --runInBand
+  yarn jest __tests__/features/busMix --runInBand
+  git diff --check
+  ```
+  Gate:
+  - No regression in BusGroups or BusMix focused suites.
+  Result:
+  - Added focus-aware Bus Master meter lifecycle.
+  - Added a hook regression test that verifies unsubscribe on inactive state and resubscribe on active state.
+  Verification:
+  - `yarn jest __tests__/features/busGroups/hooks/useBusGroups.test.ts --runInBand`: passed.
+  - `yarn tsc --noEmit`: passed.
+  - `yarn jest __tests__/features/busGroups --runInBand`: passed.
+  - `yarn jest __tests__/features/busMix --runInBand`: passed.

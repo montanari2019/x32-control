@@ -1,0 +1,50 @@
+# BusGroups Fader Thumb BusMix Style Implementation
+
+Date: 2026-06-01
+
+## Context
+
+Implemented `src/features/busGroups/.specs/feature/fader-thumb-busmix-style`.
+
+Goal: make BusGroups Bus Master and MCA fader thumbs use the same physical fader cap style as BusMix, while preserving the current master/MCA color identity.
+
+## Changes
+
+- Added `src/shared/components/FaderThumb.tsx`.
+  - Visual-only shared fader cap.
+  - Preserves BusMix dimensions: `32 x 52`, radius `14`.
+  - Preserves BusMix layer structure: shades, top light, bottom shade, four grooves, and center line.
+  - Keeps BusMix pressed feedback values.
+- Added `src/shared/utils/faderThumbPalette.ts`.
+  - Defines neutral BusMix palette.
+  - Adds deterministic color palette derivation for master/MCA thumbs.
+- Added `__tests__/shared/utils/faderThumbPalette.test.ts`.
+- Migrated `src/features/busMix/components/VerticalFader.tsx`.
+  - Keeps animation, gestures, fader math, linked pressed feedback, rail handling, zero mark, and dB scale in place.
+  - Uses shared neutral `FaderThumb`.
+- Updated `src/features/busGroups/components/VerticalGroupFader.tsx`.
+  - Uses shared `FADER_THUMB_METRICS.height` for fader travel/hit testing.
+  - Uses shared `FaderThumb` with master/MCA-colored palettes.
+  - Adds pressed feedback state.
+  - Keeps master meter rail/fill and dB scale structure unchanged.
+
+## Validation
+
+```sh
+yarn jest __tests__/shared/utils/faderThumbPalette.test.ts --runInBand
+yarn jest __tests__/features/busGroups --runInBand
+yarn jest __tests__/features/busMix --runInBand
+yarn tsc --noEmit
+git diff --check
+```
+
+All commands passed.
+
+## Manual UAT Status
+
+Pending. A simulator/device visual pass should still confirm:
+
+1. BusGroups portrait: Bus Master and MCA thumbs have the BusMix physical cap shape and correct colors.
+2. BusGroups compact landscape: no clipping or overlap with header, dB label, assignment text, meter rail, or mute button.
+3. BusMix portrait: channel fader thumbs still look unchanged and linked pressed feedback still works.
+4. Disabled MCA: unassigned MCA faders remain dimmed and non-interactive.
