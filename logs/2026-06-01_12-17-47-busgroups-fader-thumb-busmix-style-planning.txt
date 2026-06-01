@@ -1,0 +1,47 @@
+# BusGroups Fader Thumb BusMix Style Planning
+
+Date: 2026-06-01
+
+## Request
+
+Plan a spec-driven feature so BusGroups Bus Master and MCA fader buttons use the same physical style as the BusMix fader button, while preserving the current Bus Master and MCA colors.
+
+No implementation was requested for this step.
+
+## Sources Reviewed
+
+- `docs/skills/tlc-spec-driven/SKILL.md`
+- `docs/skills/components-and-shared-ui/SKILL.md`
+- `docs/skills/theme-tokens/SKILL.md`
+- `docs/skills/feature-structure/SKILL.md`
+- `docs/skills/testing-and-jest/SKILL.md`
+- `.specs/codebase/CONVENTIONS.md`
+- `.specs/codebase/TESTING.md`
+- `src/features/busMix/components/VerticalFader.tsx`
+- `src/features/busGroups/components/VerticalGroupFader.tsx`
+- `src/features/busGroups/components/GroupStrip.tsx`
+- `src/features/busGroups/components/MasterStrip.tsx`
+- `src/features/busGroups/components/McaStrip.tsx`
+- `src/theme/tokens.colors.ts`
+
+## Key Findings
+
+- BusMix already owns the desired physical fader cap style: 32 x 52, radius 14, layered shades, four grooves, center line, and pressed feedback.
+- BusGroups currently uses a simpler 34 px tall colored thumb with the color identity tied to `colors.master.thumb` for Bus Master and `accentColor` for MCAs.
+- The new 52 px thumb must update BusGroups fader math and hit testing because `THUMB_HEIGHT` drives travel, track margins, and interaction bounds.
+- The safest future implementation is to extract the BusMix visual into a shared visual-only component, keep BusMix using the neutral palette, and pass colored palettes to BusGroups.
+
+## Files Created
+
+- `src/features/busGroups/.specs/feature/fader-thumb-busmix-style/spec.md`
+- `src/features/busGroups/.specs/feature/fader-thumb-busmix-style/design.md`
+- `src/features/busGroups/.specs/feature/fader-thumb-busmix-style/tasks.md`
+
+## Files Updated
+
+- `src/features/busGroups/.specs/STATE.md`
+- `.specs/project/STATE.md`
+
+## Implementation Status
+
+Planned only. Runtime code was not changed for this feature.
