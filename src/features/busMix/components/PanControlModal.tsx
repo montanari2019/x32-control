@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Animated,
   GestureResponderEvent,
@@ -44,6 +45,7 @@ export const PanControlModal = ({
   value,
   onChange,
 }: PanControlModalProps): JSX.Element => {
+  const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(visible);
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(visible ? 1 : 0.98)).current;
@@ -192,7 +194,7 @@ export const PanControlModal = ({
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Fechar modal do Personal Mix"
+                  accessibilityLabel={t('accessibility.closePanModal')}
                   onPress={onDismiss}
                   style={({ pressed }) => [
                     styles.closeButton,
@@ -215,7 +217,7 @@ export const PanControlModal = ({
 
               <View
                 accessibilityRole="adjustable"
-                accessibilityLabel="Pan"
+                accessibilityLabel={t('accessibility.pan')}
                 accessibilityValue={{ min: -100, max: 100, now: localValue }}
                 style={styles.panSliderTouchArea}
                 onLayout={handleTrackLayout}
@@ -232,11 +234,11 @@ export const PanControlModal = ({
               </View>
 
               <View style={styles.footerRow}>
-                <Text style={styles.footerLabel}>L</Text>
+                <Text style={styles.footerLabel}>{t('busMix.pan.left')}</Text>
                 <Pressable style={styles.centerButton} onPress={handleCenterPress}>
-                  <Text style={styles.centerLabel}>Center</Text>
+                  <Text style={styles.centerLabel}>{t('busMix.pan.center')}</Text>
                 </Pressable>
-                <Text style={styles.footerLabel}>R</Text>
+                <Text style={styles.footerLabel}>{t('busMix.pan.right')}</Text>
               </View>
             </Pressable>
           </Animated.View>

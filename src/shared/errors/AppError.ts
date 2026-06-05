@@ -1,3 +1,5 @@
+import { i18next } from '@shared/i18n';
+
 export type AppErrorCode =
   | 'LOCAL_NETWORK_PERMISSION_DENIED'
   | 'UDP_TIMEOUT'
@@ -29,5 +31,5 @@ export const getErrorMessage = (error: unknown): string => {
     return error.message;
   }
 
-  return 'Erro inesperado.';
+  return i18next.t('errors.unexpectedMessage');
 };

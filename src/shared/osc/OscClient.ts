@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import { AppError } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 import { UdpTransport } from '@shared/network/UdpTransport';
 import { OscArg, OscMessage } from './OscMessage';
 import { OscDecoder } from './OscDecoder';
@@ -36,7 +37,7 @@ export class OscClient {
 
   async connect(ip: string, port = X32Protocol.defaultPort): Promise<void> {
     if (!this.isValidIp(ip)) {
-      throw new AppError('INVALID_IP', 'IP invalido. Use um endereco IPv4 da rede da mesa.');
+      throw new AppError('INVALID_IP', i18next.t('errors.invalidIp'));
     }
 
     this.ip = ip;
@@ -52,7 +53,7 @@ export class OscClient {
     this.clearXRemoteKeepAlive();
     this.pending.forEach((request) => {
       clearTimeout(request.timeout);
-      request.reject(new AppError('CONNECTION_LOST', 'Conexao encerrada.'));
+      request.reject(new AppError('CONNECTION_LOST', i18next.t('errors.connectionClosed')));
     });
     this.pending.clear();
     this.pendingByAddress.clear();
@@ -64,7 +65,7 @@ export class OscClient {
 
   async send(address: string, args: OscArg[] = []): Promise<void> {
     if (!this.ip) {
-      throw new AppError('CONNECTION_LOST', 'Cliente OSC nao conectado.');
+      throw new AppError('CONNECTION_LOST', i18next.t('errors.oscNotConnected'));
     }
 
     await this.transport.send(OscEncoder.encode({ address, args }), this.ip, this.port);
@@ -72,7 +73,7 @@ export class OscClient {
 
   async sendRaw(address: string): Promise<void> {
     if (!this.ip) {
-      throw new AppError('CONNECTION_LOST', 'Cliente OSC nao conectado.');
+      throw new AppError('CONNECTION_LOST', i18next.t('errors.oscNotConnected'));
     }
 
     await this.transport.send(encodeAddressOnly(address), this.ip, this.port);
@@ -106,7 +107,7 @@ export class OscClient {
 
           isSettled = true;
           this.removePendingRequest(pending as PendingRequest<unknown>);
-          reject(new AppError('UDP_TIMEOUT', `Timeout aguardando resposta de ${address}.`));
+          reject(new AppError('UDP_TIMEOUT', i18next.t('errors.oscResponseTimeout', { address })));
         }, timeoutMs),
       };
 
@@ -122,7 +123,11 @@ export class OscClient {
         pending.reject(
           error instanceof AppError
             ? error
-            : new AppError('UDP_TRANSPORT_ERROR', `Falha ao enviar request ${address}.`, error),
+            : new AppError(
+                'UDP_TRANSPORT_ERROR',
+                i18next.t('errors.requestSendFailure', { address }),
+                error,
+              ),
         );
       });
     });

@@ -1,5 +1,6 @@
 import { NativeModules, Platform } from 'react-native';
 import { AppError } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 
 type TacimixNetworkInfoModule = {
   requestLocalNetworkAccess?: () => Promise<boolean>;
@@ -38,13 +39,17 @@ export const ensureLocalNetworkAccess = async (): Promise<void> => {
   try {
     granted = await requestLocalNetworkAccess();
   } catch (error) {
-    throw new AppError('LOCAL_NETWORK_PERMISSION_ERROR', 'Falha ao solicitar acesso a Rede Local.', error);
+    throw new AppError(
+      'LOCAL_NETWORK_PERMISSION_ERROR',
+      i18next.t('errors.localNetworkPermissionError'),
+      error,
+    );
   }
 
   if (!granted) {
     throw new AppError(
       'LOCAL_NETWORK_PERMISSION_DENIED',
-      'Permita o acesso a Rede Local em Ajustes > Tacimix para encontrar e controlar a X32/M32.',
+      i18next.t('errors.localNetworkPermissionDenied'),
     );
   }
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -10,16 +11,20 @@ type ChannelBadgeProps = {
   onPress: () => void;
 };
 
-export const ChannelBadge = ({ label, variant, onPress }: ChannelBadgeProps): JSX.Element => (
-  <Pressable
-    accessibilityRole="button"
-    accessibilityLabel={`Editar PAN ${label}`}
-    onPress={onPress}
-    style={({ pressed }) => [styles.badge, styles[variant], pressed && styles.pressed]}
-  >
-    <Text style={styles.text}>{label}</Text>
-  </Pressable>
-);
+export const ChannelBadge = ({ label, variant, onPress }: ChannelBadgeProps): JSX.Element => {
+  const { t } = useTranslation();
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityLabel={t('accessibility.editPan', { label })}
+      onPress={onPress}
+      style={({ pressed }) => [styles.badge, styles[variant], pressed && styles.pressed]}
+    >
+      <Text style={styles.text}>{label}</Text>
+    </Pressable>
+  );
+};
 
 const styles = StyleSheet.create({
   badge: {

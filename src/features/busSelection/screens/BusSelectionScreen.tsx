@@ -1,6 +1,7 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { FlatList, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icons } from '@assets';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { AppHeader } from '@shared/components/AppHeader';
@@ -18,6 +19,7 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
   const { consoleIp, consoleName } = route.params;
   const { buses, error, isLoading, reload } = useBusSelection(consoleIp);
   const { width } = useWindowDimensions();
+  const { t } = useTranslation();
 
   const numColumns = width >= 720 ? 3 : width >= 420 ? 2 : 1;
   const gridGap = 12;
@@ -69,17 +71,17 @@ export const BusSelectionScreen = ({ navigation, route }: Props): JSX.Element =>
         ListHeaderComponent={
           <View style={styles.header}>
             <AppHeader
-              title="Selecione seu Monitor"
+              title={t('busSelection.title')}
               subtitle={consoleName}
               onBack={() => navigation.goBack()}
               onRightPress={openAbout}
-              rightAccessibilityLabel="About"
+              rightAccessibilityLabel={t('accessibility.about')}
               rightContent={<Icons.Info color={colors.text.primary} width={20} height={20} />}
             />
 
-            {isLoading ? <LoadingState label="Lendo nomes dos BUS..." /> : null}
+            {isLoading ? <LoadingState label={t('busSelection.loadingBuses')} /> : null}
             {error ? (
-              <ErrorState message={error} actionLabel="Recarregar" onAction={reload} />
+              <ErrorState message={error} actionLabel={t('common.actions.reload')} onAction={reload} />
             ) : null}
           </View>
         }

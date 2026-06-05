@@ -1,5 +1,6 @@
 import React from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Button } from './Button';
 import { colors } from '@shared/theme/colors';
 
@@ -9,15 +10,19 @@ type ErrorStateProps = {
   onAction?: () => void;
 };
 
-export const ErrorState = ({ message, actionLabel, onAction }: ErrorStateProps): JSX.Element => (
-  <View style={styles.container}>
-    <Text style={styles.title}>Algo saiu do tom</Text>
-    <Text style={styles.message}>{message}</Text>
-    {actionLabel && onAction ? (
-      <Button title={actionLabel} onPress={onAction} variant="secondary" />
-    ) : null}
-  </View>
-);
+export const ErrorState = ({ message, actionLabel, onAction }: ErrorStateProps): JSX.Element => {
+  const { t } = useTranslation();
+
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>{t('common.errors.defaultTitle')}</Text>
+      <Text style={styles.message}>{message}</Text>
+      {actionLabel && onAction ? (
+        <Button title={actionLabel} onPress={onAction} variant="secondary" />
+      ) : null}
+    </View>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {

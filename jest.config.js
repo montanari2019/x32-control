@@ -8,5 +8,6 @@ module.exports = {
     '^@features/(.*)$': '<rootDir>/src/features/$1',
     '^@shared/(.*)$': '<rootDir>/src/shared/$1',
   },
+  setupFiles: ['<rootDir>/jest.setup.js'],
   testMatch: ['**/__tests__/**/*.test.ts'],
 };

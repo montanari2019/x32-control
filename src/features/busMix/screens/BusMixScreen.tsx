@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   LayoutChangeEvent,
@@ -135,6 +136,7 @@ const BusMixChannelItem = React.memo(
 
 export const BusMixScreen = ({ route, navigation }: Props) => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
+  const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const isCompactLayout = width > height;
   const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
@@ -314,15 +316,15 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     return (
       <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
         <PersonalMixHeader
-          title="Personal Mix Channel"
+          title={t('busMix.title')}
           subtitle={subtitle}
           compact={isCompactLayout}
           onBack={() => navigation.goBack()}
           onAction={openPresetsModal}
-          actionLabel="Presets"
+          actionLabel={t('busMix.actionPresets')}
           isActionDisabled={isRestoringPreset}
         />
-        <LoadingState label="Carregando canais, cores e niveis..." />
+        <LoadingState label={t('busMix.loading')} />
       </Screen>
     );
   }
@@ -330,18 +332,18 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   return (
     <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
       <PersonalMixHeader
-        title="Personal Mix Channel"
+        title={t('busMix.title')}
         subtitle={subtitle}
         compact={isCompactLayout}
         onBack={() => navigation.goBack()}
         onAction={openPresetsModal}
-        actionLabel="Presets"
+        actionLabel={t('busMix.actionPresets')}
         isActionDisabled={isRestoringPreset}
       />
 
       {error ? (
         <View style={styles.errorBlock}>
-          <ErrorState message={error} actionLabel="Recarregar" onAction={refresh} />
+          <ErrorState message={error} actionLabel={t('common.actions.reload')} onAction={refresh} />
         </View>
       ) : null}
 

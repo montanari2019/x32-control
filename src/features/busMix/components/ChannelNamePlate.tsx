@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { mapX32ColorToUiColor, X32ChannelColor } from '@shared/x32/channelColor';
@@ -17,12 +18,13 @@ export const ChannelNamePlate = ({
   color = 0,
   onPress,
 }: ChannelNamePlateProps): JSX.Element => {
+  const { t } = useTranslation();
   const uiColor = mapX32ColorToUiColor(color);
 
   return (
     <Pressable
       accessibilityRole="button"
-      accessibilityLabel={`Editar PAN ${label}`}
+      accessibilityLabel={t('accessibility.editPan', { label })}
       onPress={onPress}
       style={({ pressed }) => [
         styles.plate,

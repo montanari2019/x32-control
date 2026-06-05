@@ -1,7 +1,7 @@
 import { AppError } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 
-const LOCAL_NETWORK_PERMISSION_MESSAGE =
-  'Permissão de rede local negada ou bloqueada. Vá em Ajustes > Privacidade e Segurança > Rede Local e ative o acesso para este app.';
+const getLocalNetworkBlockedMessage = (): string => i18next.t('errors.localNetworkBlocked');
 
 const LOCAL_NETWORK_ERROR_HINTS = [
   'local network prohibited',
@@ -74,7 +74,7 @@ export const toUdpAppError = (
   error?: unknown,
 ): AppError => {
   if (isLocalNetworkBlockedError(error)) {
-    return new AppError('LOCAL_NETWORK_PERMISSION_DENIED', LOCAL_NETWORK_PERMISSION_MESSAGE, error);
+    return new AppError('LOCAL_NETWORK_PERMISSION_DENIED', getLocalNetworkBlockedMessage(), error);
   }
 
   return new AppError(fallbackCode, fallbackMessage, error);
@@ -101,4 +101,4 @@ export const logUdpDiagnostic = (context: UdpDiagnosticContext): void => {
   }
 };
 
-export const getLocalNetworkPermissionMessage = (): string => LOCAL_NETWORK_PERMISSION_MESSAGE;
+export const getLocalNetworkPermissionMessage = (): string => getLocalNetworkBlockedMessage();

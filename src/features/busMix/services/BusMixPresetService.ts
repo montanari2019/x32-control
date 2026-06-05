@@ -1,3 +1,4 @@
+import { i18next } from '@shared/i18n';
 import { secureStore } from '@shared/storage';
 import { BusMixPreset } from '../types/BusMixPreset';
 
@@ -45,13 +46,13 @@ export class BusMixPresetService {
   ): Promise<BusMixPreset> {
     const normalizedName = normalizePresetName(name);
     if (!normalizedName) {
-      throw new Error('Informe um nome para o preset.');
+      throw new Error(i18next.t('errors.presetNameRequired'));
     }
 
     const presets = await this.listPresets(consoleId, busId);
     if (presets.length >= MAX_BUS_MIX_PRESETS) {
       throw new Error(
-        `Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`,
+        i18next.t('errors.presetLimitReached', { max: MAX_BUS_MIX_PRESETS }),
       );
     }
 
@@ -80,7 +81,7 @@ export class BusMixPresetService {
     const existing = presets.find((preset) => preset.id === presetId);
 
     if (!existing) {
-      throw new Error('Preset nao encontrado.');
+      throw new Error(i18next.t('errors.presetNotFound'));
     }
 
     const updatedPreset: BusMixPreset = {
