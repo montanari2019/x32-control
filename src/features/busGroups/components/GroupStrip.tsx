@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -134,6 +135,7 @@ const getCompactMcaLabelPlateTextStyle = (compact: boolean, isMaster: boolean) =
 const renderAssignmentText = (
   assignmentCount: number | undefined,
   compact: boolean,
+  t: (key: string, options?: Record<string, unknown>) => string,
 ): JSX.Element => {
   if (assignmentCount != null) {
     return (
@@ -143,7 +145,7 @@ const renderAssignmentText = (
         numberOfLines={1}
         style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
       >
-        {assignmentCount} canais
+        {t('busGroups.assignmentCount', { count: assignmentCount })}
       </Text>
     );
   }
@@ -155,7 +157,7 @@ const renderAssignmentText = (
       numberOfLines={1}
       style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
     >
-      Bus master
+      {t('busGroups.busMaster')}
     </Text>
   );
 };
@@ -180,6 +182,7 @@ export const GroupStrip = ({
   value,
 }: GroupStripProps): JSX.Element => {
   const dbLabel = formatDb(faderToDb(value));
+  const { t } = useTranslation();
   const [measuredFaderHeight, setMeasuredFaderHeight] = useState(getInitialFaderHeight(compact));
   const canOpenDetails = Boolean(onPress && !isMaster);
 
@@ -286,7 +289,7 @@ export const GroupStrip = ({
             </Text>
           </View>
 
-          {renderAssignmentText(assignmentCount, compact)}
+          {renderAssignmentText(assignmentCount, compact, t)}
         </Pressable>
       </View>
 

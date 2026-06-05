@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 import { DEMO_CONSOLE_ID, DEMO_CONSOLE_IP } from '@shared/mixer/mock/mockMixerProvider';
 import { ConsoleDiscoveryService } from '../services/ConsoleDiscoveryService';
 import { ConsoleDevice } from '../types/ConsoleDevice';
@@ -9,7 +10,7 @@ const DEMO_DEVICE: ConsoleDevice = {
   ip: DEMO_CONSOLE_IP,
   port: 10023,
   name: 'Demo - X32 Control',
-  model: 'Console de Demonstracao',
+  model: 'Demo Console',
   status: 'connected',
   firmware: 'demo-1.0',
 };
@@ -34,7 +35,7 @@ export const useConsoleDiscovery = () => {
       setDevices(appendDemoDevice(found));
       if (found.length === 0) {
         setError(
-          'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o iPhone está no mesmo Wi-Fi da mesa e se a permissão de Rede Local está ativa.',
+          i18next.t('consoleDiscovery.noConsoleFound'),
         );
       }
     } catch (scanError) {

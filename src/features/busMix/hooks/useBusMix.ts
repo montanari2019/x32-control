@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { getErrorMessage } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 import { x32RawToDb } from '@shared/utils/faderDb';
 import { percentToX32Pan, x32PanToPercent } from '@shared/x32/pan';
 import { busMixChannelStore } from '../services/BusMixChannelStore';
@@ -498,7 +499,7 @@ export const useBusMix = (consoleIp: string, busNumber: number) => {
 
         const preset = await presetService.loadPreset(consoleIp, busNumber, presetId);
         if (!preset) {
-          throw new Error('Preset nao encontrado.');
+          throw new Error(i18next.t('errors.presetNotFound'));
         }
 
         const byChannel = new Map(channelsRef.current.map((channel) => [channel.number, channel]));

@@ -1,17 +1,22 @@
 import React from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { spacing } from '@shared/theme/spacing';
 
-export const BusMixPresetRestoreOverlay = (): JSX.Element => (
-  <View pointerEvents="auto" style={styles.overlay}>
-    <View style={styles.content}>
-      <ActivityIndicator size="large" color={colors.text.primary} />
-      <Text style={styles.title}>Restaurando preset...</Text>
-      <Text style={styles.subtitle}>Aplicando volumes do Bus Mix atual.</Text>
+export const BusMixPresetRestoreOverlay = (): JSX.Element => {
+  const { t } = useTranslation();
+
+  return (
+    <View pointerEvents="auto" style={styles.overlay}>
+      <View style={styles.content}>
+        <ActivityIndicator size="large" color={colors.text.primary} />
+        <Text style={styles.title}>{t('busMix.presets.restoreOverlay')}</Text>
+        <Text style={styles.subtitle}>{t('busMix.presets.restoreOverlaySubtitle')}</Text>
+      </View>
     </View>
-  </View>
-);
+  );
+};
 
 const styles = StyleSheet.create({
   content: {

@@ -1,5 +1,6 @@
 import React, { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -30,13 +31,14 @@ export const AppHeader = ({
   rightVariant = 'default',
   reserveRightSpace = true,
 }: AppHeaderProps): JSX.Element => {
+  const { t } = useTranslation();
   const iconSize = compact ? 18 : 20;
 
   return (
     <View style={[styles.container, compact && styles.containerCompact]}>
       <Pressable
         accessibilityRole="button"
-        accessibilityLabel="Voltar"
+        accessibilityLabel={t('common.actions.back')}
         hitSlop={8}
         onPress={onBack}
         style={({ pressed }) => [

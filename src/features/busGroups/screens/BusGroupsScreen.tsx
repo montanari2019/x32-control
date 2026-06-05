@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useIsFocused } from '@react-navigation/native';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { LayoutChangeEvent, ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import Toast from '@shared/components/Toast';
 import { ErrorState } from '@shared/components/ErrorState';
@@ -72,6 +73,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const { consoleIp, busNumber, busName, linkedBusNumber } = route.params;
   const { width, height } = useWindowDimensions();
   const { showModal } = useModal();
+  const { t } = useTranslation();
   const isFocused = useIsFocused();
   const [stripsHeight, setStripsHeight] = useState(0);
   const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
@@ -110,11 +112,11 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     }
 
     showModal(Toast, {
-      title: 'Falha no controle de grupos',
+      title: t('busGroups.failureTitle'),
       message: error,
       variant: 'error',
     });
-  }, [error, showModal]);
+  }, [error, showModal, t]);
 
   const handleStripsAreaLayout = useCallback(
     (event: LayoutChangeEvent): void => {
@@ -200,10 +202,10 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
           }
         />
 
-        {isLoading ? <LoadingState label="Lendo DCA, mute e master da mesa..." /> : null}
+        {isLoading ? <LoadingState label={t('busGroups.loading')} /> : null}
         {!isLoading && error ? (
           <View style={styles.errorBlock}>
-            <ErrorState message={error} actionLabel="Recarregar" onAction={reload} />
+            <ErrorState message={error} actionLabel={t('common.actions.reload')} onAction={reload} />
           </View>
         ) : null}
 

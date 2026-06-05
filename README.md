@@ -97,6 +97,7 @@ Tacimix controla consoles X32/M32 na rede local usando a porta OSC padrão
 - React Native `0.78.1`
 - TypeScript `5.5.4`
 - React Navigation `6`
+- `i18next`, `react-i18next` e `react-native-localize` para internacionalização
 - `react-native-udp` para transporte UDP nativo
 - `@react-native-async-storage/async-storage` para persistência local
 - `react-native-safe-area-context` para safe area
@@ -105,6 +106,26 @@ Tacimix controla consoles X32/M32 na rede local usando a porta OSC padrão
 - `lottie-react-native` para splash/animações
 - Jest `29`
 - TypeScript strict por `tsc --noEmit`
+
+## Internacionalização
+
+Tacimix usa o idioma configurado no dispositivo ou no idioma do app quando o
+sistema operacional oferece essa opção. Os idiomas suportados são:
+
+- inglês (`en`);
+- português do Brasil (`pt-BR`);
+- espanhol (`es`).
+
+Idiomas não suportados fazem fallback para inglês. As traduções ficam em
+`src/shared/i18n/resources`, a resolução de locale fica em
+`src/shared/i18n/locales.ts`, e o app sincroniza o i18n ao iniciar e quando
+volta para o primeiro plano.
+
+Alguns termos são proprietários ou técnicos e devem permanecer literais em
+todas as línguas, incluindo `Tacimix`, `Presets`, `Personal Mix`, `BusMix`,
+`BusGroups`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `DCA`, `ON`, `MUTE`, `X32`,
+`M32`, `OSC`, `UDP`, `IP`, `Wi-Fi`, unidades como `dB/dBFS`, nomes de consoles,
+nomes de canais, nomes de BUS e nomes de presets criados pelo usuário.
 
 ## Estrutura Principal
 

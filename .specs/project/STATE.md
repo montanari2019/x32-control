@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-05-31
+Last updated: 2026-06-05
 
 ## Workspace Type
 
@@ -8,7 +8,7 @@ Last updated: 2026-05-31
 - Monorepo: no evidence of monorepo structure.
 - Primary app: Tacimix mobile.
 - Spec placement: co-located mobile feature specs under `src/features/[feature]/.specs/`.
-- Root `.specs` is reserved for global project memory, brownfield mapping, and quick tasks.
+- Root `.specs` is reserved for global project memory, brownfield mapping, quick tasks, and global cross-cutting feature specs under `.specs/features/`.
 - User preference recorded 2026-05-24: create local `.specs` scaffolding inside each current feature and leave room for future feature specs.
 
 ## Preferences
@@ -19,6 +19,7 @@ Last updated: 2026-05-31
 - Keep a `feature/` folder inside each feature-local `.specs` directory as empty future scaffolding.
 - Use logs in `/logs` for meaningful technical changes.
 - Preserve user worktree changes; do not revert existing iOS plist/project changes unless explicitly requested.
+- Use `.specs/features/[feature-name]/` for app-wide features that cross all mobile feature folders.
 
 ## Current Project Status
 
@@ -41,6 +42,7 @@ Last updated: 2026-05-31
 - BusGroups spec `bus-master-meter-rail` has been implemented. The source is X32/M32 `/meters/2` Mix Bus meter data, decoded at `busId - 1`, rendered inside the existing Bus Master central rail while preserving rail dimensions/background, fader/mute behavior, MCA behavior, and BusMix meter streams. Hardware UAT remains pending.
 - BusGroups Bus Master meter lifecycle was tightened after return-from-Channels validation: the meter now pauses while BusGroups is unfocused and resubscribes to `/meters/2` immediately when the user returns, preventing stale/frozen master meter telemetry.
 - BusGroups spec `fader-thumb-busmix-style` has been implemented. BusMix's physical fader cap is now a shared visual component, BusMix keeps the neutral thumb style, and BusGroups Bus Master/MCA faders use the same cap with master/MCA-colored palettes. Manual visual UAT remains pending.
+- Global feature spec `app-internationalization` has been planned under `.specs/features/app-internationalization/`. Scope: localize app-owned UI copy from device/app locale for `en`, `pt-BR`, and `es`, while preserving reserved terms such as `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, `UDP`, and user/console-provided data.
 
 ## Cross-Feature Decisions
 
@@ -73,6 +75,7 @@ Last updated: 2026-05-31
 - Real-console UAT for BusGroups Bus Master meter rail on BUS 1, 8, 9, and 16 once X32/M32 hardware is available.
 - Real-console UAT for BusMix remote fader subscription sync, specifically CH 17 same-BUS send-level changes from the X32 official app versus main channel fader changes.
 - Real-console UAT for BusMix remote fader fluidity/performance after receive-path optimization, measuring latency, packet rate, applied update rate, and fader settle behavior on modest device/emulator conditions.
+- Manual iOS/Android locale UAT for global app internationalization in `en`, `pt-BR`, and `es`.
 
 ## Recent Session Notes
 
@@ -107,3 +110,5 @@ Last updated: 2026-05-31
 - 2026-05-31: Fixed BusGroups Bus Master meter freeze after navigating to Channels/BusMix and returning. `BusGroupsScreen` now passes route focus into `useBusGroups`; the hook pauses the master meter while unfocused, resets stale visual state, and resubscribes on focus. Gates passed: focused hook test, TypeScript, BusGroups tests, and BusMix tests.
 - 2026-06-01: Planned BusGroups spec `fader-thumb-busmix-style` using local `docs/skills` guidance and the existing BusMix `VerticalFader` as visual source of truth. Key decision: create a reusable visual-only fader thumb component from the BusMix physical cap, then colorize BusGroups Bus Master and MCA thumbs with their current master/MCA colors. No runtime implementation was performed in this planning step.
 - 2026-06-01: Implemented BusGroups spec `fader-thumb-busmix-style`. Added shared `FaderThumb`, deterministic colored thumb palette helper and tests, migrated BusMix `VerticalFader` to the shared neutral cap, and updated BusGroups `VerticalGroupFader` to use the same 32x52 physical cap with master/MCA color palettes. Gates passed: palette helper test, BusGroups tests, BusMix tests, TypeScript, and `git diff --check`. Manual portrait/compact visual UAT remains pending.
+- 2026-06-05: Planned global app internationalization spec following `docs/skills/tlc-spec-driven`. Created context/spec/design/tasks under `.specs/features/app-internationalization/`. External research used Apple Localization, Android localization/app-language docs, `react-native-localize`, `react-i18next`, i18next best practices, and React Native `I18nManager`. No implementation was performed.
+- 2026-06-05: Implemented global app internationalization. Added `i18next`/`react-i18next`/`react-native-localize`, locale resolution for `en`, `pt-BR`, and `es`, translation resources, reserved-term glossary, runtime foreground locale sync, localized app/shared/feature copy, native iOS/Android locale declarations, i18n guardrail tests, and README notes. Preserved reserved terms such as `Tacimix`, `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, and user/console data. Manual device UAT remains pending.

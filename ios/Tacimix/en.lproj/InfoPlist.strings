@@ -1,0 +1,3 @@
+"CFBundleDisplayName" = "Tacimix";
+"NSLocalNetworkUsageDescription" = "Tacimix needs to find and control X32/M32 consoles on the local network.";
+
