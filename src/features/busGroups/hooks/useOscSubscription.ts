@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import { X32BusGroupsService } from '../services/X32BusGroupsService';
+import { BusGroupsService } from '../services/BusGroupsService';
 
 type UseOscSubscriptionParams = {
   busId: number;
-  service: X32BusGroupsService;
+  service: BusGroupsService;
   onMasterFader: (value: number) => void;
   onMasterMute: (isMuted: boolean) => void;
 };

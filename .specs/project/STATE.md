@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-06-05
+Last updated: 2026-06-14
 
 ## Workspace Type
 
@@ -43,6 +43,8 @@ Last updated: 2026-06-05
 - BusGroups Bus Master meter lifecycle was tightened after return-from-Channels validation: the meter now pauses while BusGroups is unfocused and resubscribes to `/meters/2` immediately when the user returns, preventing stale/frozen master meter telemetry.
 - BusGroups spec `fader-thumb-busmix-style` has been implemented. BusMix's physical fader cap is now a shared visual component, BusMix keeps the neutral thumb style, and BusGroups Bus Master/MCA faders use the same cap with master/MCA-colored palettes. Manual visual UAT remains pending.
 - Global feature spec `app-internationalization` has been planned under `.specs/features/app-internationalization/`. Scope: localize app-owned UI copy from device/app locale for `en`, `pt-BR`, and `es`, while preserving reserved terms such as `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, `UDP`, and user/console-provided data.
+- Global feature spec `console-adapter-normalization` has been planned under `.specs/features/console-adapter-normalization/`. Scope: introduce a UI-facing `IConsoleAdapter`/factory boundary so X32/M32 and Demo behavior are normalized behind adapters while preserving current UI data shapes and leaving future WING support as documentation only, not runtime implementation.
+- Global feature spec `console-adapter-normalization` has been implemented with `src/shared/console`, `ConsoleAdapterFactory`, `X32Adapter`, `DemoConsoleAdapter`, feature-service facades, meter hook adapter delegation, adapter boundary tests, and future WING placeholder docs. Manual Demo/runtime UAT and real X32/M32 hardware UAT remain pending.
 
 ## Cross-Feature Decisions
 
@@ -112,3 +114,5 @@ Last updated: 2026-06-05
 - 2026-06-01: Implemented BusGroups spec `fader-thumb-busmix-style`. Added shared `FaderThumb`, deterministic colored thumb palette helper and tests, migrated BusMix `VerticalFader` to the shared neutral cap, and updated BusGroups `VerticalGroupFader` to use the same 32x52 physical cap with master/MCA color palettes. Gates passed: palette helper test, BusGroups tests, BusMix tests, TypeScript, and `git diff --check`. Manual portrait/compact visual UAT remains pending.
 - 2026-06-05: Planned global app internationalization spec following `docs/skills/tlc-spec-driven`. Created context/spec/design/tasks under `.specs/features/app-internationalization/`. External research used Apple Localization, Android localization/app-language docs, `react-native-localize`, `react-i18next`, i18next best practices, and React Native `I18nManager`. No implementation was performed.
 - 2026-06-05: Implemented global app internationalization. Added `i18next`/`react-i18next`/`react-native-localize`, locale resolution for `en`, `pt-BR`, and `es`, translation resources, reserved-term glossary, runtime foreground locale sync, localized app/shared/feature copy, native iOS/Android locale declarations, i18n guardrail tests, and README notes. Preserved reserved terms such as `Tacimix`, `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, and user/console data. Manual device UAT remains pending.
+- 2026-06-14: Planned global console adapter normalization spec following `docs/skills/tlc-spec-driven`. Created context/spec/design/tasks under `.specs/features/console-adapter-normalization/`. Local research covered `.specs`, logs, current network/OSC/services, and demo provider; external research covered X32/M32 OSC and WING OSC differences. No runtime implementation was performed.
+- 2026-06-14: Implemented global console adapter normalization. Added `IConsoleAdapter`, `ConsoleAdapterFactory`, `X32Adapter`, `DemoConsoleAdapter`, X32 source definitions, WING placeholder docs, adapter-aware `ConsoleDevice.adapterKind`, BusSelection/BusMix/BusGroups compatibility facades, `useMeterSubscription` adapter delegation, AsyncStorage Jest setup, shared console tests, and adapter boundary guardrail. Gates passed: TypeScript, shared console, BusMix, BusGroups, shared OSC, shared network, i18n hardcoded-copy guard, and `git diff --check`. Manual UAT remains pending.

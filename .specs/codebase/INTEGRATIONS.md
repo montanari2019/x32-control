@@ -1,8 +1,17 @@
 # Integrations
 
-Last updated: 2026-05-24
+Last updated: 2026-06-14
 
 ## X32/M32 OSC
+
+Access path:
+
+- UI/features call feature services.
+- Feature services are compatibility facades over `src/shared/console`.
+- `ConsoleAdapterFactory` selects `X32Adapter` for real/default endpoints and
+  `DemoConsoleAdapter` for demo/mock endpoints.
+- `X32Adapter` owns X32/M32 paths, keep-alive, shared OSC leases, BusMix source
+  definitions, BusGroups state, and meter stream subscriptions.
 
 Protocol:
 
@@ -198,6 +207,7 @@ Risk:
 
 Files:
 
+- `src/shared/console/adapters/demo/DemoConsoleAdapter.ts`.
 - `src/shared/mixer/MixerControlProvider.ts`.
 - `src/shared/mixer/mock/demoMixerProvider.ts`.
 - `src/shared/mixer/mock/mockMixerProvider.ts`.
@@ -207,6 +217,23 @@ Use:
 - Provides Demo console.
 - Simulates buses, channels, MCAs, faders, mutes, pan, and meters.
 - Enables offline app validation.
+- Is consumed through the same `IConsoleAdapter` contract as the X32/M32
+  implementation.
+
+## Future WING Support
+
+Status:
+
+- Placeholder documentation only in
+  `src/shared/console/adapters/wing/README.md`.
+- No active `WingAdapter` is registered.
+
+Known future differences:
+
+- WING OSC uses UDP port `2223`.
+- WING native discovery can use `WING?` on UDP port `2222`.
+- WING paths, subscription semantics, and event multiplexing differ from
+  X32/M32 and must be normalized inside a future adapter.
 
 ## Asset Generation
 
@@ -241,4 +268,3 @@ Known tested console from logs:
 - Firmware reported in logs: `4.02`.
 
 This is historical context from logs and should be revalidated for current hardware sessions.
-

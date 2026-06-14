@@ -1,6 +1,6 @@
 # Testing
 
-Last updated: 2026-05-24
+Last updated: 2026-06-14
 
 ## Test Framework
 
@@ -74,6 +74,9 @@ __tests__/shared/osc/OscClient.test.ts
 __tests__/shared/osc/OscDecoder.test.ts
 __tests__/shared/osc/OscEncoder.test.ts
 __tests__/shared/osc/X32Protocol.test.ts
+__tests__/shared/console/ConsoleAdapterFactory.test.ts
+__tests__/shared/console/X32SourceDefinitions.test.ts
+__tests__/shared/console/adapterBoundaryGuard.test.ts
 __tests__/shared/utils/clamp.test.ts
 __tests__/shared/utils/faderDb.test.ts
 __tests__/shared/utils/levelToDb.test.ts
@@ -87,6 +90,12 @@ OSC:
 - Decoding.
 - Client request/subscription behavior.
 - X32 protocol path/range behavior.
+
+Console adapter:
+
+- Factory selection for Demo, dev mock, X32/M32, and unimplemented WING.
+- X32 source definition path parity for CH/AUX/FX BusMix sends.
+- Feature boundary guard against direct protocol/adapter-internal imports.
 
 Network:
 
@@ -124,6 +133,8 @@ Utilities:
 
 Network/OSC changes:
 
+- `yarn jest __tests__/shared/console --runInBand` when adapter boundaries are
+  involved.
 - `yarn jest __tests__/shared/osc --runInBand` when applicable.
 - `yarn jest __tests__/shared/network --runInBand --testTimeout=10000`.
 - `yarn tsc`.
@@ -178,4 +189,3 @@ Device:
 - iPhone physical device on same Wi-Fi/subnet.
 - iOS Local Network permission enabled.
 - Android physical or emulator for gesture/layout validation.
-

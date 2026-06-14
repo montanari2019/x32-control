@@ -1,6 +1,6 @@
 # Local State - busMix
 
-Last updated: 2026-05-31
+Last updated: 2026-06-14
 
 ## Scope
 
@@ -137,6 +137,11 @@ This directory is intentionally empty for now except for scaffolding.
 
 ## Active Planned Specs
 
+- `busmix-meter-subscription-adapter-boundary-cleanup`: planned on
+  2026-06-14. Runtime BusMix already consumes the console adapter boundary
+  through `BusMixService`; remaining cleanup is to move X32 `/meters/1` and
+  `/meters/13` assertions out of the `useMeterSubscription` feature hook test
+  and into X32 adapter tests, then extend guardrails to feature tests.
 - `pan-modal-correct-scale`: implementation completed on 2026-05-24; manual Demo validation remains open for native slider/thumb confirmation.
 - `realtime-console-reactivity`: implemented on 2026-05-24 for linked CH level/on reflection, pan receive, and lightweight receive health. Real-console UAT remains open. Goal is to make BusMix visually react to X32/M32 console changes and linked-channel behavior with low latency, without regressing the existing app-to-console send path, meters, presets, pan independence, or BusGroups shared state.
 - `aux-fx-meter-stability`: implemented on 2026-05-24 for automated/runtime stream isolation; real-console UAT remains open. Goal is to keep CH 01..32 meters unchanged while fixing AUX 01..08 and FX Return 01..08 meter flicker. Runtime now isolates `/meters/1` to CH 01..32 and `/meters/13` to AUX/FX IDs 33..48.

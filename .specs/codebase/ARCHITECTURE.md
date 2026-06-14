@@ -1,6 +1,6 @@
 # Architecture
 
-Last updated: 2026-05-24
+Last updated: 2026-06-14
 
 ## Architectural Summary
 
@@ -14,7 +14,7 @@ App bootstrap
     -> Feature screens
       -> Feature hooks
         -> Feature services
-          -> Shared OSC/network/storage/mixer services
+          -> Shared console adapter / OSC/network/storage/mixer services
             -> Native UDP / AsyncStorage / iOS native modules
 ```
 
@@ -83,6 +83,16 @@ Not every feature uses every subfolder.
 - X32 path construction.
 - Shared OSC client leases.
 
+`src/shared/console`:
+
+- `IConsoleAdapter` UI-facing console contract.
+- `ConsoleAdapterFactory` selection for current Demo and X32/M32 endpoints.
+- `X32Adapter` normalizes X32/M32 buses, BusMix channels, BusGroups state,
+  faders, mutes, pans, meters, and subscriptions into app shapes.
+- `DemoConsoleAdapter` wraps existing offline mock behavior.
+- Future WING placeholder documentation only; no WING runtime adapter is
+  registered.
+
 `src/shared/network`:
 
 - UDP bind/send/receive abstraction.
@@ -134,8 +144,8 @@ Discovery behavior:
 BusSelectionScreen
   -> useBusSelection
     -> BusService
-      -> OscClient
-      -> X32Protocol
+      -> ConsoleAdapterFactory
+        -> X32Adapter or DemoConsoleAdapter
 ```
 
 BUS loading:
@@ -151,7 +161,8 @@ BUS loading:
 ```txt
 BusGroupsScreen
   -> useBusGroups
-    -> X32BusGroupsService
+    -> BusGroupsService
+      -> ConsoleAdapterFactory
     -> BusGroupsSecureStoreService
     -> McaChannelFaderService
     -> BusMixService
@@ -183,6 +194,7 @@ MCA behavior:
 BusMixScreen
   -> useBusMix
     -> BusMixService
+      -> ConsoleAdapterFactory
     -> BusMixChannelStore
     -> BusMixPresetService
     -> ChannelStructureCache
@@ -329,4 +341,3 @@ Avoid:
 - raw OSC path strings in screens;
 - AsyncStorage direct calls outside storage services;
 - direct UDP use outside `UdpTransport` or scanner-level code.
-

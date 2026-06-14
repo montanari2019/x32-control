@@ -1,0 +1,53 @@
+# BusGroups Service Adapter Boundary Cleanup Implementation
+
+Date: 2026-06-14
+Spec: src/features/busGroups/.specs/feature/busgroups-service-adapter-boundary-cleanup
+
+## Summary
+
+Moved the BusGroups feature service boundary from the X32-named
+`X32BusGroupsService` to a neutral `BusGroupsService` that delegates through
+`IConsoleAdapter`.
+
+X32/M32 protocol behavior remains owned by the X32 adapter under:
+
+```txt
+src/shared/console/adapters/x32/
+```
+
+## Main Changes
+
+- Added `src/features/busGroups/services/BusGroupsService.ts`.
+- Converted `src/features/busGroups/services/X32BusGroupsService.ts` into a
+  one-line compatibility alias.
+- Migrated `useBusGroups` and `useOscSubscription` to the neutral service.
+- Removed the duplicated feature-level `isChannelInDca` implementation.
+- Removed the remaining feature runtime `@shared/osc/*` import by inferring the
+  injected client type from `ConsoleAdapterFactory`.
+- Rewrote BusGroups service tests as adapter-delegation tests.
+- Added `__tests__/shared/console/X32AdapterBusMasterMeter.test.ts` for the
+  X32-specific `/meters/2` Bus Master meter behavior.
+- Removed the old BusGroups exception from `adapterBoundaryGuard`.
+
+## Verification
+
+Passed:
+
+- npx tsc --noEmit --pretty false
+- npx jest __tests__/features/busGroups --runInBand
+- npx jest __tests__/shared/console --runInBand
+- git diff --check
+
+Inventory after implementation:
+
+```sh
+rg -n "X32BusGroupsService|isChannelInDca|X32Protocol|OscClient|adapters/x32" src/features/busGroups __tests__/features/busGroups
+```
+
+Only the documented `X32BusGroupsService` compatibility alias remains.
+
+Pending:
+
+- Manual demo and real X32/M32 UAT for unchanged BusGroups initial load, Bus
+  Master fader/on, Bus Master meter, MCA assignment, proportional MCA fader,
+  and BusMix navigation return behavior.

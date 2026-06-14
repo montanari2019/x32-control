@@ -4,6 +4,7 @@ export type ConsoleDevice = {
   id: string;
   ip: string;
   port: number;
+  adapterKind?: 'demo' | 'x32';
   name: string;
   model: string;
   status: ConsoleStatus;

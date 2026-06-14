@@ -1,0 +1,82 @@
+Console adapter normalization implementation
+Timestamp: 2026-06-14_16-45-00
+
+Context
+-------
+- Implemented `.specs/features/console-adapter-normalization`.
+- Goal: create a UI-facing console adapter boundary so current X32/M32 and Demo
+  behavior are normalized behind adapters, while future WING support remains a
+  documented extension point only.
+
+Implemented
+-----------
+- Added `src/shared/console`:
+  - `IConsoleAdapter`
+  - `ConsoleAdapterFactory`
+  - `ConsoleEndpoint`
+  - `ConsoleAdapterKind`
+  - normalized type aliases
+  - `DemoConsoleAdapter`
+  - `X32Adapter`
+  - `X32SourceDefinitions`
+  - future WING README placeholder
+- Moved current X32/M32 protocol ownership into `X32Adapter`:
+  - bus names/colors and stereo bus link collapse;
+  - BusMix CH/AUX/FX source definitions;
+  - `/node` bulk loading with fallback;
+  - channel structure cache usage;
+  - channel link map cache;
+  - fader/on/pan writes and exact-address listeners;
+  - BusGroups master/DCA state and writes;
+  - `/meters/1`, `/meters/13`, and `/meters/2` subscriptions.
+- Wrapped demo/mock behavior behind `DemoConsoleAdapter`.
+- Rewired feature services as compatibility facades:
+  - `BusService`
+  - `BusMixService`
+  - `X32BusGroupsService`
+- Rewired `useMeterSubscription` to delegate to `BusMixService.subscribeMeter`
+  instead of importing `OscClient`, `SharedOscClient`, and `X32Protocol`
+  directly.
+- Added optional `adapterKind` metadata to `ConsoleDevice` values from demo,
+  dev mock, and X32 discovery.
+- Added shared console tests and adapter boundary guardrail.
+- Added global AsyncStorage Jest mock to support earlier adapter imports of
+  channel structure cache.
+
+Not implemented
+---------------
+- No WING runtime support.
+- No WING discovery.
+- No WING factory registration.
+- No console type picker UI.
+
+SPEC_DEVIATION
+--------------
+- `ConsoleAdapterRegistry.ts` was not added. The initial runtime selection is a
+  small explicit factory switch for `demo` and `x32`; adding a registry before
+  more adapters exist would add indirection without changing behavior.
+
+Verification
+------------
+- `npx tsc --noEmit --pretty false`
+  Result: passed.
+- `npx jest __tests__/shared/console --runInBand`
+  Result: passed, 3 suites / 6 tests.
+- `npx jest __tests__/features/busMix --runInBand`
+  Result: passed, 7 suites / 40 tests.
+- `npx jest __tests__/features/busGroups --runInBand`
+  Result: passed, 3 suites / 14 tests.
+- `npx jest __tests__/shared/osc --runInBand`
+  Result: passed, 4 suites / 8 tests.
+- `npx jest __tests__/shared/network --runInBand --testTimeout=10000`
+  Result: passed, 2 suites / 8 tests.
+- `npx jest __tests__/shared/i18n/hardcodedCopyGuard.test.ts --runInBand`
+  Result: passed.
+- `git diff --check`
+  Result: passed after removing a trailing blank line.
+
+Pending
+-------
+- Manual Demo/runtime UAT.
+- Real X32/M32 hardware UAT for discovery, BUS selection, BusGroups, BusMix,
+  faders, mutes, pans, meters, presets, and navigation between screens.

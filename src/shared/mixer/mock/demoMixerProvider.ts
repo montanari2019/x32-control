@@ -231,6 +231,7 @@ export class DemoMixerProvider implements MixerControlProvider {
     id: DEMO_CONSOLE_ID,
     ip: DEMO_CONSOLE_IP,
     port: 10023,
+    adapterKind: 'demo',
     name: 'Demo - X32 Control',
     model: 'Console de Demonstracao',
     status: 'connected',

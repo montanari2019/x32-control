@@ -213,6 +213,7 @@ export class MockMixerProvider implements MixerControlProvider {
     id: DEV_MOCK_CONSOLE_ID,
     ip: DEV_MOCK_CONSOLE_IP,
     port: 10023,
+    adapterKind: 'demo',
     name: 'X32 Dev Mock',
     model: 'X32 Development Console',
     status: 'connected',

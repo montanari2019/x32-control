@@ -1,4 +1,4 @@
-import { X32BusGroupsService } from '@features/busGroups/services/X32BusGroupsService';
+import { X32Adapter } from '@shared/console/adapters/x32/X32Adapter';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 
 const createFloatMeterBlob = (linearValues: number[]): Uint8Array => {
@@ -14,7 +14,7 @@ const createFloatMeterBlob = (linearValues: number[]): Uint8Array => {
   return new Uint8Array(buffer);
 };
 
-describe('X32BusGroupsService', () => {
+describe('X32Adapter Bus Master meter', () => {
   beforeEach(() => {
     jest.useFakeTimers();
   });
@@ -34,10 +34,13 @@ describe('X32BusGroupsService', () => {
         return unsubscribe;
       }),
     };
-    const service = new X32BusGroupsService(client as never);
+    const adapter = new X32Adapter(
+      { ip: '192.168.10.50', kind: 'x32' },
+      { client: client as never, useSharedLease: false },
+    );
     const listener = jest.fn();
 
-    const cleanup = service.subscribeToBusMasterMeter(9, listener);
+    const cleanup = adapter.subscribeBusMasterMeter(9, listener);
 
     expect(client.subscribe).toHaveBeenCalledWith(
       X32Protocol.getMeters2Path(),
@@ -74,10 +77,13 @@ describe('X32BusGroupsService', () => {
         return jest.fn();
       }),
     };
-    const service = new X32BusGroupsService(client as never);
+    const adapter = new X32Adapter(
+      { ip: '192.168.10.50', kind: 'x32' },
+      { client: client as never, useSharedLease: false },
+    );
     const listener = jest.fn();
 
-    const cleanup = service.subscribeToBusMasterMeter(1, listener);
+    const cleanup = adapter.subscribeBusMasterMeter(1, listener);
 
     listeners.get(X32Protocol.getMeters2Path())?.({ args: ['not-a-blob'] });
 

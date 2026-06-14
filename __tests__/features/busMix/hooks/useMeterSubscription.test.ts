@@ -37,7 +37,9 @@ describe('useMeterSubscription', () => {
   it('requests X32 meter streams through /meters with the meter id as a string', async () => {
     const { result, unmount } = renderHook(() => useMeterSubscription('192.168.0.10', true));
 
-    await waitFor(() => expect(acquireSharedOscClient).toHaveBeenCalledWith('192.168.0.10'));
+    await waitFor(() =>
+      expect(acquireSharedOscClient).toHaveBeenCalledWith('192.168.0.10', 10023),
+    );
 
     act(() => {
       result.current.registerMeterListener(17, jest.fn());

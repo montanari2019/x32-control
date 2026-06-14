@@ -1,0 +1,52 @@
+# X32 Adapter File Decomposition Implementation
+
+Date: 2026-06-14
+Spec: src/shared/console/adapters/x32/.specs/feature/x32-adapter-file-decomposition
+
+## Summary
+
+Split the large public X32 adapter implementation into focused modules under:
+
+src/shared/console/adapters/x32/X32Adapter/
+
+The root file remains the stable public import path:
+
+src/shared/console/adapters/x32/X32Adapter.ts
+
+It now re-exports `X32Adapter` and `isChannelInDca`.
+
+## Main Changes
+
+- Added focused adapter modules:
+  - X32Adapter.ts
+  - X32AdapterConstants.ts
+  - X32AdapterContext.ts
+  - X32BusAdapter.ts
+  - X32BusGroupsAdapter.ts
+  - X32BusMixAdapter.ts
+  - X32ChannelCache.ts
+  - X32ConnectionLifecycle.ts
+  - X32MeterSubscriptions.ts
+  - X32NodeClient.ts
+  - x32BusGroupsUtils.ts
+  - x32OscValueUtils.ts
+- Added focused tests for extracted OSC/node value helpers.
+- Preserved the public X32 import path used by feature services and the
+  console adapter factory.
+- Kept WING as documentation-only; no new console adapter was registered.
+
+## Verification
+
+Passed:
+
+- npx tsc --noEmit --pretty false
+- npx jest __tests__/shared/console --runInBand
+- npx jest __tests__/features/busMix --runInBand
+- npx jest __tests__/features/busGroups --runInBand
+- npx jest __tests__/shared/osc --runInBand
+- npx jest __tests__/shared/network --runInBand --testTimeout=10000
+
+Pending:
+
+- Manual X32/M32 hardware UAT for UDP timing, meter stream ownership,
+  subscription cleanup, and `/node` fallback behavior against a real console.

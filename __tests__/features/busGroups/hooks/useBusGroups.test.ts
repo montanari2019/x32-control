@@ -33,8 +33,8 @@ const getDcaStateMock = jest.fn(async () => null);
 const saveDcaStateMock = jest.fn(async () => undefined);
 const clearDcaStateMock = jest.fn(async () => undefined);
 
-jest.mock('@features/busGroups/services/X32BusGroupsService', () => ({
-  X32BusGroupsService: jest.fn().mockImplementation(() => ({
+jest.mock('@features/busGroups/services/BusGroupsService', () => ({
+  BusGroupsService: jest.fn().mockImplementation(() => ({
     connect: connectBusGroupsMock,
     startHeartbeat: startHeartbeatMock,
     fetchInitialState: fetchInitialStateMock,

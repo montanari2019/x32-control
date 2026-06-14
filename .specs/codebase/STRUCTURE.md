@@ -1,6 +1,6 @@
 # Structure
 
-Last updated: 2026-05-24
+Last updated: 2026-06-14
 
 ## Root Files
 
@@ -146,7 +146,8 @@ Main files:
 
 - `screens/BusGroupsScreen.tsx`;
 - `hooks/useBusGroups.ts`;
-- `services/X32BusGroupsService.ts`;
+- `services/BusGroupsService.ts`;
+- `services/X32BusGroupsService.ts` compatibility alias;
 - `services/McaChannelFaderService.ts`;
 - `services/BusGroupsSecureStoreService.ts`;
 - `components/McaChannelSelectionModal.tsx`;
@@ -184,6 +185,7 @@ Main files:
 ```txt
 src/shared/
   components/
+  console/
   errors/
   mixer/
   network/
@@ -193,6 +195,23 @@ src/shared/
   utils/
   x32/
 ```
+
+### shared/console
+
+Console adapter boundary:
+
+- `IConsoleAdapter`;
+- `ConsoleAdapterFactory`;
+- `ConsoleEndpoint`;
+- `ConsoleAdapterKind`;
+- normalized type aliases;
+- `adapters/x32/X32Adapter` public entrypoint;
+- `adapters/x32/X32Adapter/` focused X32 implementation modules:
+  lifecycle, BUS, BusMix, BusGroups, meters, `/node`, cache, constants, and
+  OSC value helpers;
+- `adapters/x32/X32SourceDefinitions`;
+- `adapters/demo/DemoConsoleAdapter`;
+- `adapters/wing/README.md`.
 
 ### shared/components
 
@@ -317,4 +336,3 @@ src/features/[feature]/.specs/
   STATE.md
   feature/
 ```
-

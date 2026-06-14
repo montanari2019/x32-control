@@ -14,7 +14,7 @@ import { clampMeterValue, METER_MIN_DBFS } from '@features/busMix/utils/meterDec
 import { useOscSubscription } from './useOscSubscription';
 import { MCA_DEFAULT_RAW_VALUE, McaChannelFaderService } from '../services/McaChannelFaderService';
 import { BusGroupsSecureStoreService } from '../services/BusGroupsSecureStoreService';
-import { X32BusGroupsService } from '../services/X32BusGroupsService';
+import { BusGroupsService } from '../services/BusGroupsService';
 import { BusGroupsState, McaAssignedChannel, McaGroup } from '../types/busGroups.types';
 
 const INITIAL_STATE = (busId: number): BusGroupsState => ({
@@ -90,7 +90,7 @@ export const useBusGroups = (
   options: UseBusGroupsOptions = {},
 ) => {
   const { isMasterMeterActive = true } = options;
-  const service = useMemo(() => new X32BusGroupsService(), []);
+  const service = useMemo(() => new BusGroupsService(), []);
   const busMixService = useMemo(() => new BusMixService(), []);
   const mcaFaderService = useMemo(() => new McaChannelFaderService(busMixService), [busMixService]);
   const secureStoreService = useMemo(() => new BusGroupsSecureStoreService(), []);

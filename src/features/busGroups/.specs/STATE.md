@@ -1,6 +1,6 @@
 # Local State - busGroups
 
-Last updated: 2026-05-31
+Last updated: 2026-06-14
 
 ## Scope
 
@@ -34,8 +34,9 @@ hooks/useBusGroups.ts
 hooks/useOscSubscription.ts
 screens/BusGroupsScreen.tsx
 services/BusGroupsSecureStoreService.ts
+services/BusGroupsService.ts
 services/McaChannelFaderService.ts
-services/X32BusGroupsService.ts
+services/X32BusGroupsService.ts (compatibility alias)
 types/busGroups.types.ts
 utils/audio.ts
 ```
@@ -61,7 +62,10 @@ utils/audio.ts
 
 ## Integration Points
 
-- `X32BusGroupsService` talks to BUS master and DCA OSC paths.
+- `BusGroupsService` is the feature facade for BUS master and DCA/MCA console
+  state; it delegates to `IConsoleAdapter`.
+- `X32BusGroupsService` exists only as a compatibility alias for the neutral
+  `BusGroupsService`.
 - `McaChannelFaderService` applies proportional channel changes using `BusMixService`.
 - `BusGroupsSecureStoreService` persists local MCA state.
 - `BusMixChannelStore` provides cross-screen channel snapshot.
@@ -109,6 +113,21 @@ Feature specs live under this directory.
 
 ## Active Feature Specs
 
+- `feature/busgroups-service-adapter-boundary-cleanup/`
+  - Status: implemented; manual demo/X32 UAT pending.
+  - Scope: replace the X32-named BusGroups feature service boundary with a
+    neutral adapter-backed service while preserving current BusGroups behavior.
+  - Key decision: X32/M32 protocol details belong in
+    `src/shared/console/adapters/x32`; BusGroups should consume
+    `IConsoleAdapter` through a feature-named service.
+  - Validation requirement: TypeScript, focused BusGroups tests, shared console
+    tests, `git diff --check`, plus demo/real-console manual sanity check after
+    implementation.
+  - Automated gates passed: `npx tsc --noEmit --pretty false`,
+    `npx jest __tests__/features/busGroups --runInBand`,
+    `npx jest __tests__/shared/console --runInBand`, `git diff --check`.
+  - Compatibility note: `services/X32BusGroupsService.ts` is a one-line alias
+    for older imports and can be removed after the migration window.
 - `feature/bus-master-meter-rail/`
   - Status: implemented; hardware UAT pending.
   - Scope: render a live selected BUS master meter inside the existing Bus Master central rail without changing fader/mute behavior or MCA strips.

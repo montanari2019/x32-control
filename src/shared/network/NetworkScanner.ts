@@ -113,6 +113,7 @@ const parseInfo = (ip: string, port: number, response: OscMessage): ConsoleDevic
     id: `${ip}:${port}`,
     ip,
     port,
+    adapterKind: 'x32',
     name,
     model,
     status: 'connected',
