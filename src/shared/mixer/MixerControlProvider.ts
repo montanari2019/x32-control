@@ -24,6 +24,7 @@ export interface MixerControlProvider {
     listener: (value: number) => void,
   ): () => void;
   subscribeMeter(channelId: number, listener: (values: ChannelMeterValues) => void): () => void;
+  subscribeBusMasterMeter(busId: number, listener: (dbfs: number) => void): () => void;
   subscribeDcaFader(dcaNumber: number, listener: (value: number) => void): () => void;
   subscribeDcaOn(dcaNumber: number, listener: (isMuted: boolean) => void): () => void;
   subscribeBusMasterFader(busId: number, listener: (value: number) => void): () => void;

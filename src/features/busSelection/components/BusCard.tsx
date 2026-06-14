@@ -1,5 +1,6 @@
 import React, { useMemo, useRef } from 'react';
 import { Animated, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { mapX32ColorToUiColor } from '@shared/x32/channelColor';
 import { Bus } from '../types/Bus';
@@ -28,6 +29,7 @@ const hasConfiguredBusColor = (color: Bus['color']): boolean => {
 
 export const BusCard = ({ bus, onPress, accentColor, style }: BusCardProps): JSX.Element => {
   const scale = useRef(new Animated.Value(1)).current;
+  const { t } = useTranslation();
 
   const animationConfig = useMemo(() => ({ useNativeDriver: true, speed: 30, bounciness: 0 }), []);
   const busColor = hasConfiguredBusColor(bus.color)
@@ -71,7 +73,7 @@ export const BusCard = ({ bus, onPress, accentColor, style }: BusCardProps): JSX
         </View>
 
         <Text style={styles.channels} numberOfLines={1}>
-          Canais: CH 01–32
+          {t('busSelection.channels')}
         </Text>
       </Animated.View>
     </Pressable>

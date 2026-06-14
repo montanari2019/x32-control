@@ -1,5 +1,6 @@
 import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
+import { useTranslation } from 'react-i18next';
 import {
   FlatList,
   LayoutChangeEvent,
@@ -30,7 +31,7 @@ import { ChannelMeterValues } from '../utils/meterDecoder';
 
 type Props = NativeStackScreenProps<RootStackParamList, 'BusMix'>;
 
-const CHANNEL_STRIP_WIDTH = 86;
+const CHANNEL_STRIP_WIDTH = 71;
 const CHANNEL_STRIP_GAP = 1;
 const CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP;
 const STRIP_FIXED_OVERHEAD = 160;
@@ -40,6 +41,7 @@ type BusMixChannelItemProps = {
   channel: Channel;
   dragSensitivity?: number;
   faderHeight: number;
+  isLinkedFaderInteractionActive: boolean;
   isVisible: boolean;
   registerMeterListener: (
     channelId: number,
@@ -48,7 +50,7 @@ type BusMixChannelItemProps = {
   onChangeLevel: (channelNumber: number, level: number) => void;
   onChangeLevelEnd: (channelNumber: number, level: number) => void;
   onFaderInteractionEnd: () => void;
-  onFaderInteractionStart: () => void;
+  onFaderInteractionStart: (channelNumber: number) => void;
   onOpenPan: (channelNumber: number) => void;
   onToggleMute: (channelNumber: number) => void;
 };
@@ -57,6 +59,7 @@ const BusMixChannelItemComponent = ({
   channel,
   dragSensitivity,
   faderHeight,
+  isLinkedFaderInteractionActive,
   isVisible,
   registerMeterListener,
   onChangeLevel,
@@ -78,6 +81,10 @@ const BusMixChannelItemComponent = ({
     (level: number) => onChangeLevelEnd(channel.number, level),
     [channel.number, onChangeLevelEnd],
   );
+  const handleFaderInteractionStart = useCallback(
+    () => onFaderInteractionStart(channel.number),
+    [channel.number, onFaderInteractionStart],
+  );
   const handlePressBadge = useCallback(
     () => onOpenPan(channel.number),
     [channel.number, onOpenPan],
@@ -88,13 +95,14 @@ const BusMixChannelItemComponent = ({
       channel={channel}
       dragSensitivity={dragSensitivity}
       faderHeight={faderHeight}
+      isLinkedFaderInteractionActive={isLinkedFaderInteractionActive}
       isVisible={isVisible}
       registerMeterListener={registerMeterListener}
       onToggleMute={handleToggleMute}
       onFaderChange={handleFaderChange}
       onFaderChangeEnd={handleFaderChangeEnd}
       onFaderInteractionEnd={onFaderInteractionEnd}
-      onFaderInteractionStart={onFaderInteractionStart}
+      onFaderInteractionStart={handleFaderInteractionStart}
       onPressBadge={handlePressBadge}
     />
   );
@@ -115,6 +123,7 @@ const BusMixChannelItem = React.memo(
     prev.channel.pan === next.channel.pan &&
     prev.dragSensitivity === next.dragSensitivity &&
     prev.faderHeight === next.faderHeight &&
+    prev.isLinkedFaderInteractionActive === next.isLinkedFaderInteractionActive &&
     prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onChangeLevel === next.onChangeLevel &&
@@ -127,11 +136,13 @@ const BusMixChannelItem = React.memo(
 
 export const BusMixScreen = ({ route, navigation }: Props) => {
   const { consoleIp, busName, busNumber, linkedBusNumber } = route.params;
+  const { t } = useTranslation();
   const { width, height } = useWindowDimensions();
   const isCompactLayout = width > height;
   const [visibleChannelIds, setVisibleChannelIds] = useState<Set<string>>(new Set());
   const {
     channels,
+    channelLinkMap,
     error,
     isLoading,
     refresh,
@@ -147,12 +158,13 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     overwritePreset,
     deletePreset,
     restorePreset,
-  } = useBusMix(consoleIp, busNumber, { realtimeVisibleChannelIds: visibleChannelIds });
+  } = useBusMix(consoleIp, busNumber);
   const { showModal } = useModal();
   const { registerMeterListener } = useMeterSubscription(consoleIp, !isLoading);
   const faderDragSensitivity = isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined;
   const [faderHeight, setFaderHeight] = useState(240);
   const [isFaderInteractionActive, setIsFaderInteractionActive] = useState(false);
+  const [activeFaderChannelNumber, setActiveFaderChannelNumber] = useState<number>();
   const viewabilityConfig = useRef<ViewabilityConfig>({
     itemVisiblePercentThreshold: 10,
   }).current;
@@ -216,11 +228,13 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     [setLevel],
   );
 
-  const handleFaderInteractionStart = useCallback((): void => {
+  const handleFaderInteractionStart = useCallback((channelNumber: number): void => {
+    setActiveFaderChannelNumber(channelNumber);
     setIsFaderInteractionActive(true);
   }, []);
 
   const handleFaderInteractionEnd = useCallback((): void => {
+    setActiveFaderChannelNumber(undefined);
     setIsFaderInteractionActive(false);
   }, []);
 
@@ -259,22 +273,32 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   );
 
   const renderChannel = useCallback(
-    ({ item }: ListRenderItemInfo<Channel>) => (
-      <BusMixChannelItem
-        channel={item}
-        dragSensitivity={faderDragSensitivity}
-        faderHeight={faderHeight}
-        isVisible={visibleChannelIds.has(item.id)}
-        registerMeterListener={registerMeterListener}
-        onToggleMute={handleToggleMute}
-        onChangeLevel={handleFaderChange}
-        onChangeLevelEnd={handleFaderChangeEnd}
-        onFaderInteractionEnd={handleFaderInteractionEnd}
-        onFaderInteractionStart={handleFaderInteractionStart}
-        onOpenPan={openPanModal}
-      />
-    ),
+    ({ item }: ListRenderItemInfo<Channel>) => {
+      const linkedPeerNumber =
+        activeFaderChannelNumber === undefined
+          ? undefined
+          : channelLinkMap.get(activeFaderChannelNumber);
+
+      return (
+        <BusMixChannelItem
+          channel={item}
+          dragSensitivity={faderDragSensitivity}
+          faderHeight={faderHeight}
+          isLinkedFaderInteractionActive={item.number === linkedPeerNumber}
+          isVisible={visibleChannelIds.has(item.id)}
+          registerMeterListener={registerMeterListener}
+          onToggleMute={handleToggleMute}
+          onChangeLevel={handleFaderChange}
+          onChangeLevelEnd={handleFaderChangeEnd}
+          onFaderInteractionEnd={handleFaderInteractionEnd}
+          onFaderInteractionStart={handleFaderInteractionStart}
+          onOpenPan={openPanModal}
+        />
+      );
+    },
     [
+      activeFaderChannelNumber,
+      channelLinkMap,
       handleFaderChange,
       handleFaderChangeEnd,
       handleFaderInteractionEnd,
@@ -292,15 +316,15 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
     return (
       <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
         <PersonalMixHeader
-          title="Personal Mix Channel"
+          title={t('busMix.title')}
           subtitle={subtitle}
           compact={isCompactLayout}
           onBack={() => navigation.goBack()}
           onAction={openPresetsModal}
-          actionLabel="Presets"
+          actionLabel={t('busMix.actionPresets')}
           isActionDisabled={isRestoringPreset}
         />
-        <LoadingState label="Carregando canais, cores e niveis..." />
+        <LoadingState label={t('busMix.loading')} />
       </Screen>
     );
   }
@@ -308,23 +332,24 @@ export const BusMixScreen = ({ route, navigation }: Props) => {
   return (
     <Screen style={[styles.screen, isCompactLayout && styles.screenCompact]}>
       <PersonalMixHeader
-        title="Personal Mix Channel"
+        title={t('busMix.title')}
         subtitle={subtitle}
         compact={isCompactLayout}
         onBack={() => navigation.goBack()}
         onAction={openPresetsModal}
-        actionLabel="Presets"
+        actionLabel={t('busMix.actionPresets')}
         isActionDisabled={isRestoringPreset}
       />
 
       {error ? (
         <View style={styles.errorBlock}>
-          <ErrorState message={error} actionLabel="Recarregar" onAction={refresh} />
+          <ErrorState message={error} actionLabel={t('common.actions.reload')} onAction={refresh} />
         </View>
       ) : null}
 
       <FlatList
         data={channels}
+        extraData={activeFaderChannelNumber}
         keyExtractor={keyExtractor}
         horizontal
         scrollEnabled={!isFaderInteractionActive}

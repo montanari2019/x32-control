@@ -1,6 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Animated, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import Slider from '@react-native-community/slider';
+import { useTranslation } from 'react-i18next';
+import {
+  Animated,
+  GestureResponderEvent,
+  LayoutChangeEvent,
+  Modal,
+  PanResponder,
+  PanResponderGestureState,
+  PanResponderInstance,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { Icons } from '@assets';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -8,6 +20,11 @@ import { spacing } from '@shared/theme/spacing';
 import { clampPanPercent, formatSignedPanValue } from '@shared/x32/pan';
 import { ModalRenderProps } from '@shared/components/Modal';
 import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
+import {
+  PAN_SLIDER_RANGE,
+  panPercentToSliderRatio,
+  sliderPositionToPanPercent,
+} from '../utils/panSlider';
 
 type PanControlModalProps = ModalRenderProps & {
   channelLabel: string;
@@ -17,6 +34,7 @@ type PanControlModalProps = ModalRenderProps & {
 };
 
 const MODAL_ANIMATION_DURATION_MS = 140;
+const PAN_THUMB_SIZE = 28;
 
 export const PanControlModal = ({
   visible,
@@ -27,13 +45,25 @@ export const PanControlModal = ({
   value,
   onChange,
 }: PanControlModalProps): JSX.Element => {
+  const { t } = useTranslation();
   const [isModalVisible, setIsModalVisible] = useState(visible);
   const opacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const scale = useRef(new Animated.Value(visible ? 1 : 0.98)).current;
   const [localValue, setLocalValue] = useState(() => clampPanPercent(value));
+  const localValueRef = useRef(localValue);
+  const trackWidthRef = useRef(0);
+  const isDraggingRef = useRef(false);
+  const dragStartValueRef = useRef(localValue);
+  const [trackWidth, setTrackWidth] = useState(0);
 
   useEffect(() => {
-    setLocalValue(clampPanPercent(value));
+    if (isDraggingRef.current) {
+      return;
+    }
+
+    const clampedValue = clampPanPercent(value);
+    localValueRef.current = clampedValue;
+    setLocalValue(clampedValue);
   }, [value]);
 
   useEffect(() => {
@@ -75,15 +105,74 @@ export const PanControlModal = ({
     return undefined;
   }, [onDismissEnd, opacity, scale, visible]);
 
-  const handleValueChange = (nextValue: number): void => {
+  const setLocalPanValue = (nextValue: number): void => {
     const clampedValue = clampPanPercent(nextValue);
+    localValueRef.current = clampedValue;
+    setLocalValue(clampedValue);
+  };
+
+  const commitPanValue = (nextValue: number): void => {
+    const clampedValue = clampPanPercent(nextValue);
+    localValueRef.current = clampedValue;
     setLocalValue(clampedValue);
     onChange(clampedValue);
   };
 
-  const handleCenterPress = (): void => {
-    handleValueChange(0);
+  const beginGestureFromEvent = (event: GestureResponderEvent): void => {
+    const nextValue = sliderPositionToPanPercent(
+      event.nativeEvent.locationX,
+      trackWidthRef.current,
+    );
+    dragStartValueRef.current = nextValue;
+    setLocalPanValue(nextValue);
   };
+
+  const updateLocalValueFromGesture = (gestureState: PanResponderGestureState): void => {
+    const width = trackWidthRef.current;
+    if (width <= 0) {
+      return;
+    }
+
+    setLocalPanValue(dragStartValueRef.current + (gestureState.dx / width) * PAN_SLIDER_RANGE);
+  };
+
+  const panResponder = useRef<PanResponderInstance>(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: (event) => {
+        isDraggingRef.current = true;
+        beginGestureFromEvent(event);
+      },
+      onPanResponderMove: (_event, gestureState) => {
+        updateLocalValueFromGesture(gestureState);
+      },
+      onPanResponderRelease: () => {
+        isDraggingRef.current = false;
+        commitPanValue(localValueRef.current);
+      },
+      onPanResponderTerminate: () => {
+        isDraggingRef.current = false;
+        commitPanValue(localValueRef.current);
+      },
+      onShouldBlockNativeResponder: () => true,
+    }),
+  ).current;
+
+  const handleTrackLayout = (event: LayoutChangeEvent): void => {
+    const nextWidth = event.nativeEvent.layout.width;
+    trackWidthRef.current = nextWidth;
+    setTrackWidth(nextWidth);
+  };
+
+  const handleCenterPress = (): void => {
+    commitPanValue(0);
+  };
+
+  const sliderRatio = panPercentToSliderRatio(localValue);
+  const thumbLeft = Math.max(0, Math.min(trackWidth, sliderRatio * trackWidth));
+  const fillLeft = sliderRatio < 0.5 ? thumbLeft : trackWidth / 2;
+  const fillWidth = Math.abs(thumbLeft - trackWidth / 2);
 
   return (
     <Modal
@@ -105,7 +194,7 @@ export const PanControlModal = ({
                 </View>
                 <Pressable
                   accessibilityRole="button"
-                  accessibilityLabel="Fechar modal do Personal Mix"
+                  accessibilityLabel={t('accessibility.closePanModal')}
                   onPress={onDismiss}
                   style={({ pressed }) => [
                     styles.closeButton,
@@ -126,23 +215,30 @@ export const PanControlModal = ({
                 <View style={styles.axisMarker} />
               </View>
 
-              <Slider
-                minimumValue={-100}
-                maximumValue={100}
-                step={1}
-                value={clampPanPercent(localValue)}
-                onValueChange={handleValueChange}
-                minimumTrackTintColor={colors.pan.indicator}
-                maximumTrackTintColor={colors.pan.axis}
-                thumbTintColor={colors.pan.knob}
-              />
+              <View
+                accessibilityRole="adjustable"
+                accessibilityLabel={t('accessibility.pan')}
+                accessibilityValue={{ min: -100, max: 100, now: localValue }}
+                style={styles.panSliderTouchArea}
+                onLayout={handleTrackLayout}
+                {...panResponder.panHandlers}
+              >
+                <View pointerEvents="none" style={styles.panSliderTrack}>
+                  <View
+                    pointerEvents="none"
+                    style={[styles.panSliderFill, { left: fillLeft, width: fillWidth }]}
+                  />
+                  <View pointerEvents="none" style={styles.panSliderCenterMark} />
+                  <View pointerEvents="none" style={[styles.panSliderThumb, { left: thumbLeft }]} />
+                </View>
+              </View>
 
               <View style={styles.footerRow}>
-                <Text style={styles.footerLabel}>L</Text>
+                <Text style={styles.footerLabel}>{t('busMix.pan.left')}</Text>
                 <Pressable style={styles.centerButton} onPress={handleCenterPress}>
-                  <Text style={styles.centerLabel}>Center</Text>
+                  <Text style={styles.centerLabel}>{t('busMix.pan.center')}</Text>
                 </Pressable>
-                <Text style={styles.footerLabel}>R</Text>
+                <Text style={styles.footerLabel}>{t('busMix.pan.right')}</Text>
               </View>
             </Pressable>
           </Animated.View>
@@ -255,6 +351,52 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     justifyContent: 'center',
     paddingVertical: spacing.xs,
+  },
+  panSliderCenterMark: {
+    backgroundColor: colors.pan.indicator,
+    borderRadius: radius.pill,
+    height: 18,
+    left: '50%',
+    marginLeft: -1,
+    position: 'absolute',
+    top: -7,
+    width: 2,
+  },
+  panSliderFill: {
+    backgroundColor: colors.pan.indicator,
+    borderRadius: radius.pill,
+    height: 4,
+    position: 'absolute',
+    top: 0,
+  },
+  panSliderThumb: {
+    backgroundColor: colors.pan.knob,
+    borderColor: colors.border.active,
+    borderRadius: PAN_THUMB_SIZE / 2,
+    borderWidth: 2,
+    elevation: 4,
+    height: PAN_THUMB_SIZE,
+    marginLeft: -PAN_THUMB_SIZE / 2,
+    marginTop: -PAN_THUMB_SIZE / 2 + 2,
+    position: 'absolute',
+    shadowColor: '#000000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 5,
+    top: 0,
+    width: PAN_THUMB_SIZE,
+  },
+  panSliderTouchArea: {
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  panSliderTrack: {
+    backgroundColor: colors.pan.axis,
+    borderRadius: radius.pill,
+    height: 4,
+    justifyContent: 'center',
+    position: 'relative',
+    width: '100%',
   },
   title: {
     color: colors.text.primary,

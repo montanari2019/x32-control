@@ -97,6 +97,7 @@ Tacimix controla consoles X32/M32 na rede local usando a porta OSC padrão
 - React Native `0.78.1`
 - TypeScript `5.5.4`
 - React Navigation `6`
+- `i18next`, `react-i18next` e `react-native-localize` para internacionalização
 - `react-native-udp` para transporte UDP nativo
 - `@react-native-async-storage/async-storage` para persistência local
 - `react-native-safe-area-context` para safe area
@@ -105,6 +106,26 @@ Tacimix controla consoles X32/M32 na rede local usando a porta OSC padrão
 - `lottie-react-native` para splash/animações
 - Jest `29`
 - TypeScript strict por `tsc --noEmit`
+
+## Internacionalização
+
+Tacimix usa o idioma configurado no dispositivo ou no idioma do app quando o
+sistema operacional oferece essa opção. Os idiomas suportados são:
+
+- inglês (`en`);
+- português do Brasil (`pt-BR`);
+- espanhol (`es`).
+
+Idiomas não suportados fazem fallback para inglês. As traduções ficam em
+`src/shared/i18n/resources`, a resolução de locale fica em
+`src/shared/i18n/locales.ts`, e o app sincroniza o i18n ao iniciar e quando
+volta para o primeiro plano.
+
+Alguns termos são proprietários ou técnicos e devem permanecer literais em
+todas as línguas, incluindo `Tacimix`, `Presets`, `Personal Mix`, `BusMix`,
+`BusGroups`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `DCA`, `ON`, `MUTE`, `X32`,
+`M32`, `OSC`, `UDP`, `IP`, `Wi-Fi`, unidades como `dB/dBFS`, nomes de consoles,
+nomes de canais, nomes de BUS e nomes de presets criados pelo usuário.
 
 ## Estrutura Principal
 
@@ -495,7 +516,6 @@ Configurações iOS relevantes:
 - `NSBonjourServices` com `_osc._udp`;
 - `NSAllowsLocalNetworking=true`;
 - `ITSAppUsesNonExemptEncryption=false`;
-- `UIBackgroundModes=audio`;
 - orientações habilitadas:
   - portrait;
   - landscape left;
@@ -503,8 +523,8 @@ Configurações iOS relevantes:
 
 Ponto de atenção para App Review:
 
-- `UIBackgroundModes=audio` deve permanecer apenas se o uso em background for
-  justificável na submissão.
+- `UIBackgroundModes=audio` não deve ser declarado enquanto o app não tiver
+  reprodução/gravação de áudio persistente em background.
 
 Ponto de atenção para descoberta iOS:
 
@@ -650,7 +670,8 @@ docs/skills/
   na mesma rede/sub-rede da mesa.
 - Broadcast/multicast em iOS pode exigir entitlement específico para máxima
   confiabilidade.
-- `UIBackgroundModes=audio` precisa de justificativa real para App Review.
+- O app não declara `UIBackgroundModes=audio`; só reative se houver áudio
+  persistente real e justificável para App Review.
 - Presets e MCAs são locais ao dispositivo, não sincronizados em nuvem.
 - O armazenamento atual usa AsyncStorage, não Keychain/Keystore criptografado.
 - Meters dependem do formato de blob retornado pelo firmware da mesa.
@@ -681,6 +702,7 @@ Antes de release:
 - rodar `yarn test`;
 - rodar `yarn lint`;
 - validar `plutil -lint ios/Tacimix/Info.plist`;
-- revisar justificativa de background audio;
+- confirmar que `UIBackgroundModes=audio` segue ausente, salvo se houver recurso
+  real de áudio em background;
 - revisar build number e marketing version;
 - gerar build iOS/Android em configuração de distribuição.

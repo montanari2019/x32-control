@@ -13,14 +13,7 @@ describe('X32Protocol', () => {
     expect(X32Protocol.getChannelFaderPath(17)).toBe('/ch/17/mix/fader');
     expect(X32Protocol.getBusSendOnPath(2, 16)).toBe('/ch/02/mix/16/on');
     expect(X32Protocol.getBusMasterFaderPath(7)).toBe('/bus/07/mix/fader');
-  });
-
-  it('builds X32 scalar subscription command paths', () => {
-    expect(X32Protocol.getSubscribePath()).toBe('/subscribe');
-    expect(X32Protocol.getRenewPath()).toBe('/renew');
-    expect(X32Protocol.getUnsubscribePath()).toBe('/unsubscribe');
-    expect(X32Protocol.defaultScalarSubscriptionTimeFactor).toBeGreaterThan(0);
-    expect(X32Protocol.defaultScalarSubscriptionRenewIntervalMs).toBeLessThan(10000);
+    expect(X32Protocol.getMeters2Path()).toBe('/meters/2');
   });
 
   it('rejects out of range channels and buses', () => {

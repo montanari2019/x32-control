@@ -8,8 +8,6 @@ const two = (value: number): string => value.toString().padStart(2, '0');
 
 export class X32Protocol {
   static readonly defaultPort = 10023;
-  static readonly defaultScalarSubscriptionTimeFactor = 5;
-  static readonly defaultScalarSubscriptionRenewIntervalMs = 8000;
 
   static getInfoPath(): string {
     return '/info';
@@ -21,18 +19,6 @@ export class X32Protocol {
 
   static getXRemotePath(): string {
     return '/xremote';
-  }
-
-  static getSubscribePath(): string {
-    return '/subscribe';
-  }
-
-  static getRenewPath(): string {
-    return '/renew';
-  }
-
-  static getUnsubscribePath(): string {
-    return '/unsubscribe';
   }
 
   static getChannelNamePath(channel: number): string {
@@ -203,6 +189,10 @@ export class X32Protocol {
 
   static getMeters1Path(): string {
     return '/meters/1';
+  }
+
+  static getMeters2Path(): string {
+    return '/meters/2';
   }
 
   static getMeters13Path(): string {

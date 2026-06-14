@@ -16,6 +16,7 @@ type ChannelStripProps = {
   channel: Channel;
   dragSensitivity?: number;
   faderHeight: number;
+  isLinkedFaderInteractionActive?: boolean;
   isVisible: boolean;
   registerMeterListener: (
     channelId: number,
@@ -29,6 +30,7 @@ type ChannelStripProps = {
   onPressBadge: () => void;
 };
 
+const CHANNEL_STRIP_WIDTH = 71;
 const METER_WIDTH = 8;
 
 const withAlpha = (hexColor: string, alphaHex: string): string =>
@@ -44,6 +46,7 @@ const ChannelStripComponent = ({
   channel,
   dragSensitivity,
   faderHeight,
+  isLinkedFaderInteractionActive = false,
   isVisible,
   registerMeterListener,
   onToggleMute,
@@ -58,6 +61,22 @@ const ChannelStripComponent = ({
   const faderDb = x32RawToDb(displayLevel);
   const channelColor = mapX32ColorToUiColor(channel.color ?? 0).backgroundColor;
   const backgroundColor = withAlpha(channelColor, opacityToAlphaHex(channel.backgroundOpacity));
+  const meterRail = channel.meterChannelId ? (
+    <ChannelVuMeter
+      channelId={channel.meterChannelId}
+      height={faderHeight}
+      width={METER_WIDTH}
+      isVisible={isVisible}
+      registerMeterListener={registerMeterListener}
+    />
+  ) : (
+    <View
+      pointerEvents="none"
+      style={[styles.meterPlaceholder, { height: faderHeight, width: METER_WIDTH }]}
+    >
+      <View style={styles.meterPlaceholderTrack} />
+    </View>
+  );
 
   useEffect(() => {
     if (isDraggingRef.current) {
@@ -95,33 +114,30 @@ const ChannelStripComponent = ({
       />
 
       <View style={styles.stripBody}>
-        <View style={styles.faderRow}>
-          {channel.meterChannelId ? (
-            <ChannelVuMeter
-              channelId={channel.meterChannelId}
-              height={faderHeight}
-              width={METER_WIDTH}
-              isVisible={isVisible}
-              registerMeterListener={registerMeterListener}
-            />
-          ) : (
-            <View style={[styles.meterPlaceholder, { height: faderHeight, width: METER_WIDTH }]} />
-          )}
-          <VerticalFader
-            dragSensitivity={dragSensitivity}
-            level={displayLevel}
-            height={faderHeight}
-            onChange={handleFaderChange}
-            onChangeEnd={handleFaderChangeEnd}
-            onInteractionEnd={onFaderInteractionEnd}
-            onInteractionStart={onFaderInteractionStart}
-          />
-        </View>
+        <VerticalFader
+          dragSensitivity={dragSensitivity}
+          isLinkedInteractionActive={isLinkedFaderInteractionActive}
+          level={displayLevel}
+          height={faderHeight}
+          rail={meterRail}
+          railWidth={METER_WIDTH}
+          onChange={handleFaderChange}
+          onChangeEnd={handleFaderChangeEnd}
+          onInteractionEnd={onFaderInteractionEnd}
+          onInteractionStart={onFaderInteractionStart}
+        />
       </View>
 
       <View style={styles.footer}>
         <MuteButton isMuted={!channel.on} onToggle={onToggleMute} />
-        <Text style={styles.dbValue}>{formatDbLabel(faderDb)} dB</Text>
+        <Text
+          adjustsFontSizeToFit
+          minimumFontScale={0.85}
+          numberOfLines={1}
+          style={styles.dbValue}
+        >
+          {formatDbLabel(faderDb)} dB
+        </Text>
       </View>
     </View>
   );
@@ -141,6 +157,7 @@ export const ChannelStrip = React.memo(
     prev.channel.backgroundOpacity === next.channel.backgroundOpacity &&
     prev.channel.meterChannelId === next.channel.meterChannelId &&
     prev.dragSensitivity === next.dragSensitivity &&
+    prev.isLinkedFaderInteractionActive === next.isLinkedFaderInteractionActive &&
     prev.isVisible === next.isVisible &&
     prev.registerMeterListener === next.registerMeterListener &&
     prev.onToggleMute === next.onToggleMute &&
@@ -159,7 +176,7 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     gap: spacing.xxs,
     padding: spacing.xs,
-    width: 86,
+    width: CHANNEL_STRIP_WIDTH,
   },
   dbValue: {
     color: colors.text.muted,
@@ -170,15 +187,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.xxs,
   },
-  faderRow: {
-    alignItems: 'center',
-    flexDirection: 'row',
-    gap: 4,
-  },
   meterPlaceholder: {
+    paddingVertical: spacing.xs,
+  },
+  meterPlaceholderTrack: {
     backgroundColor: colors.meter.background,
-    borderRadius: 3,
+    borderRadius: radius.xs,
+    flex: 1,
     opacity: 0.55,
+    width: '100%',
   },
   stripBody: {
     alignItems: 'center',

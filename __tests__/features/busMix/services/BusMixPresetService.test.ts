@@ -18,6 +18,7 @@ import {
   BusMixPresetService,
   MAX_BUS_MIX_PRESETS,
 } from '../../../../src/features/busMix/services/BusMixPresetService';
+import { i18next } from '../../../../src/shared/i18n';
 
 const makeChannels = (suffix: number) => [
   {
@@ -83,8 +84,6 @@ describe('BusMixPresetService', () => {
 
     await expect(
       service.savePreset('10.0.0.1', 1, 'Preset extra', makeChannels(99)),
-    ).rejects.toThrow(
-      `Limite maximo de ${MAX_BUS_MIX_PRESETS} presets atingido para este Bus Mix.`,
-    );
+    ).rejects.toThrow(i18next.t('errors.presetLimitReached', { max: MAX_BUS_MIX_PRESETS }));
   });
 });

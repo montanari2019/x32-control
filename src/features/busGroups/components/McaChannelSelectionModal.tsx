@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   Keyboard,
   KeyboardAvoidingView,
@@ -61,6 +62,7 @@ export const McaChannelSelectionModal = ({
   onRename,
   onToggleChannel,
 }: McaChannelSelectionModalProps): JSX.Element => {
+  const { t } = useTranslation();
   const insets = useSafeAreaInsets();
   const { height } = useWindowDimensions();
   const inputRef = useRef<TextInput>(null);
@@ -216,13 +218,13 @@ export const McaChannelSelectionModal = ({
                   {isEditingName ? (
                     <View style={styles.nameEditor}>
                       <TextInput
-                        accessibilityLabel="Editar nome do MCA"
+                        accessibilityLabel={t('accessibility.editMcaName')}
                         autoFocus
                         blurOnSubmit
                         ref={inputRef}
                         onChangeText={setDraftName}
                         onSubmitEditing={handleSaveName}
-                        placeholder="Nome do MCA"
+                        placeholder={t('busGroups.mcaNamePlaceholder')}
                         placeholderTextColor={colors.text.tertiary}
                         returnKeyType="done"
                         selectTextOnFocus
@@ -236,7 +238,7 @@ export const McaChannelSelectionModal = ({
                         value={draftName}
                       />
                       <Pressable
-                        accessibilityLabel="Salvar nome do MCA"
+                        accessibilityLabel={t('accessibility.saveMcaName')}
                         accessibilityRole="button"
                         onPress={handleSaveName}
                         style={({ pressed }) => [
@@ -253,7 +255,7 @@ export const McaChannelSelectionModal = ({
                     </View>
                   ) : (
                     <Pressable
-                      accessibilityLabel={`Editar nome ${displayName}`}
+                      accessibilityLabel={t('accessibility.editName', { name: displayName })}
                       accessibilityRole="button"
                       onPress={handleStartNameEdit}
                       style={({ pressed }) => [
@@ -268,7 +270,7 @@ export const McaChannelSelectionModal = ({
                   )}
 
                   <Pressable
-                    accessibilityLabel="Fechar modal de MCA"
+                    accessibilityLabel={t('accessibility.closeMcaModal')}
                     accessibilityRole="button"
                     onPress={handleDismiss}
                     style={({ pressed }) => [
@@ -282,11 +284,10 @@ export const McaChannelSelectionModal = ({
 
                 <View style={styles.headerBottomRow}>
                   <Text style={styles.subtitle}>
-                    {selectedIds.length}{' '}
-                    {selectedIds.length === 1 ? 'canal vinculado' : 'canais vinculados'}
+                    {t('busGroups.linkedChannel', { count: selectedIds.length })}
                   </Text>
                   <Pressable
-                    accessibilityLabel="Limpar canais do MCA"
+                    accessibilityLabel={t('accessibility.clearMcaChannels')}
                     accessibilityRole="button"
                     disabled={selectedIds.length === 0}
                     onPress={() => {
@@ -299,7 +300,7 @@ export const McaChannelSelectionModal = ({
                       selectedIds.length === 0 && styles.clearButtonDisabled,
                     ]}
                   >
-                    <Text style={styles.clearButtonText}>Limpar</Text>
+                    <Text style={styles.clearButtonText}>{t('common.actions.clear')}</Text>
                   </Pressable>
                 </View>
               </View>
@@ -319,7 +320,10 @@ export const McaChannelSelectionModal = ({
                   return (
                     <Pressable
                       key={channel.id}
-                      accessibilityLabel={`${isSelected ? 'Remover' : 'Adicionar'} ${channel.name}`}
+                      accessibilityLabel={t(
+                        isSelected ? 'accessibility.removeChannel' : 'accessibility.addChannel',
+                        { name: channel.name },
+                      )}
                       accessibilityRole="button"
                       onPress={() => {
                         setSelectedIds((current) =>

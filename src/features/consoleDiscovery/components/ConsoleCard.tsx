@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { DEMO_CONSOLE_ID } from '@shared/mixer/mock/mockMixerProvider';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
@@ -13,6 +14,8 @@ type ConsoleCardProps = {
 
 export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element => {
   const isDemo = device.id === DEMO_CONSOLE_ID;
+  const { t } = useTranslation();
+  const model = isDemo ? t('consoleDiscovery.demoModel') : device.model;
 
   return (
     <Pressable
@@ -24,10 +27,10 @@ export const ConsoleCard = ({ device, onPress }: ConsoleCardProps): JSX.Element 
           {isDemo ? (
             <Text style={styles.demoBadge}>DEMO</Text>
           ) : (
-            <Text style={styles.eyebrow}>Console disponivel</Text>
+            <Text style={styles.eyebrow}>{t('consoleDiscovery.availableConsole')}</Text>
           )}
           <Text style={styles.name}>{device.name}</Text>
-          <Text style={styles.meta}>{device.model}</Text>
+          <Text style={styles.meta}>{model}</Text>
         </View>
         <View style={styles.statusPill}>
           <View

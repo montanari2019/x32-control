@@ -20,7 +20,14 @@ export const MuteButton = ({ isMuted, onToggle }: MuteButtonProps): JSX.Element 
       pressed && styles.pressed,
     ]}
   >
-    <Text style={[styles.text, isMuted ? styles.activeText : styles.inactiveText]}>MUTE</Text>
+    <Text
+      adjustsFontSizeToFit
+      minimumFontScale={0.9}
+      numberOfLines={1}
+      style={[styles.text, isMuted ? styles.activeText : styles.inactiveText]}
+    >
+      MUTE
+    </Text>
   </Pressable>
 );
 
@@ -36,6 +43,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: radius.sm,
     borderWidth: 1,
+    margin: 0,
     paddingHorizontal: spacing.xs,
     paddingVertical: spacing.xxs,
   },

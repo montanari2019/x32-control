@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   Animated,
   LayoutChangeEvent,
@@ -9,10 +9,19 @@ import {
   View,
 } from 'react-native';
 import { FaderDbScale } from '@shared/components/FaderDbScale';
+import { FADER_THUMB_METRICS, FaderThumb } from '@shared/components/FaderThumb';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
 import { clamp } from '@shared/utils/clamp';
+import { getColoredFaderThumbPalette } from '@shared/utils/faderThumbPalette';
+import {
+  clampMeterValue,
+  METER_GREEN_MAX_DB,
+  METER_MAX_DBFS,
+  METER_MIN_DBFS,
+  METER_YELLOW_MAX_DB,
+} from '@features/busMix/utils/meterDecoder';
 import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
 type VerticalGroupFaderProps = {
@@ -20,6 +29,7 @@ type VerticalGroupFaderProps = {
   disabled?: boolean;
   dragSensitivity?: number;
   isMaster?: boolean;
+  meterDbfs?: number;
   onFaderChange: (value: number) => void;
   onInteractionEnd?: () => void;
   onInteractionStart?: () => void;
@@ -27,16 +37,77 @@ type VerticalGroupFaderProps = {
   value: number;
 };
 
-const THUMB_HEIGHT = 34;
+const THUMB_WIDTH = FADER_THUMB_METRICS.width;
+const THUMB_HEIGHT = FADER_THUMB_METRICS.height;
 const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
 const THUMB_BOTTOM_GUARD = 8;
 const TRACK_TOUCH_WIDTH = 24;
+const METER_TOTAL_RANGE = METER_MAX_DBFS - METER_MIN_DBFS;
+
+type MeterLayerRatios = {
+  green: number;
+  red: number;
+  yellow: number;
+};
+
+const toPercent = (ratio: number): `${number}%` => `${ratio * 100}%` as `${number}%`;
+
+const getMeterZoneRatio = (dbfs: number, min: number, max: number): number => {
+  const clampedDbfs = clampMeterValue(dbfs);
+  return clamp(clampedDbfs - min, 0, max - min) / METER_TOTAL_RANGE;
+};
+
+const getMeterLayerRatios = (dbfs: number): MeterLayerRatios => ({
+  green: getMeterZoneRatio(dbfs, METER_MIN_DBFS, METER_GREEN_MAX_DB),
+  yellow: getMeterZoneRatio(dbfs, METER_GREEN_MAX_DB, METER_YELLOW_MAX_DB),
+  red: getMeterZoneRatio(dbfs, METER_YELLOW_MAX_DB, METER_MAX_DBFS),
+});
+
+const renderMasterMeterFill = (
+  isMaster: boolean,
+  meterDbfs: number | undefined,
+): JSX.Element | null => {
+  if (!isMaster || meterDbfs == null) {
+    return null;
+  }
+
+  const ratios = getMeterLayerRatios(meterDbfs);
+
+  return (
+    <View pointerEvents="none" style={styles.meterFillContainer}>
+      <View
+        style={[styles.meterFillBase, styles.meterFillGreen, { height: toPercent(ratios.green) }]}
+      />
+      <View
+        style={[
+          styles.meterFillBase,
+          styles.meterFillYellow,
+          {
+            bottom: toPercent(ratios.green),
+            height: toPercent(ratios.yellow),
+          },
+        ]}
+      />
+      <View
+        style={[
+          styles.meterFillBase,
+          styles.meterFillRed,
+          {
+            bottom: toPercent(ratios.green + ratios.yellow),
+            height: toPercent(ratios.red),
+          },
+        ]}
+      />
+    </View>
+  );
+};
 
 export const VerticalGroupFader = ({
   accentColor,
   disabled = false,
   dragSensitivity = 1,
   isMaster = false,
+  meterDbfs,
   onFaderChange,
   onInteractionEnd,
   onInteractionStart,
@@ -49,6 +120,14 @@ export const VerticalGroupFader = ({
   const layoutWidth = useRef(0);
   const startY = useRef(0);
   const isDragging = useRef(false);
+  const [isThumbPressed, setIsThumbPressed] = useState(false);
+  const thumbPalette = useMemo(
+    () =>
+      isMaster
+        ? getColoredFaderThumbPalette(colors.master.thumb, colors.master.label)
+        : getColoredFaderThumbPalette(accentColor),
+    [accentColor, isMaster],
+  );
   const onFaderChangeRef = useRef(onFaderChange);
   useEffect(() => {
     onFaderChangeRef.current = onFaderChange;
@@ -72,6 +151,9 @@ export const VerticalGroupFader = ({
   const disabledRef = useRef(disabled);
   useEffect(() => {
     disabledRef.current = disabled;
+    if (disabled) {
+      setIsThumbPressed(false);
+    }
   }, [disabled]);
 
   const dragSensitivityRef = useRef(dragSensitivity);
@@ -127,6 +209,7 @@ export const VerticalGroupFader = ({
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
           isDragging.current = true;
+          setIsThumbPressed(true);
           startY.current = currentY.current;
           onInteractionStartRef.current?.();
         },
@@ -136,10 +219,12 @@ export const VerticalGroupFader = ({
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onPanResponderTerminate: () => {
           isDragging.current = false;
+          setIsThumbPressed(false);
           onInteractionEndRef.current?.();
         },
         onShouldBlockNativeResponder: () => true,
@@ -183,7 +268,9 @@ export const VerticalGroupFader = ({
           { backgroundColor: isMaster ? colors.master.track : colors.surface.control },
           { marginBottom: TRACK_EDGE_PADDING + THUMB_BOTTOM_GUARD, marginTop: TRACK_EDGE_PADDING },
         ]}
-      />
+      >
+        {renderMasterMeterFill(isMaster, meterDbfs)}
+      </View>
       <View
         style={[
           styles.dbScale,
@@ -198,15 +285,12 @@ export const VerticalGroupFader = ({
       <Animated.View
         style={[
           styles.thumb,
-          isMaster ? styles.masterThumb : styles.mcaThumb,
           {
-            backgroundColor: isMaster ? colors.master.thumb : accentColor,
-            borderColor: isMaster ? colors.master.label : accentColor,
             transform: [{ translateY: animatedY }],
           },
         ]}
       >
-        <View style={styles.thumbLine} />
+        <FaderThumb palette={thumbPalette} pressed={isThumbPressed} />
       </Animated.View>
     </View>
   );
@@ -228,43 +312,48 @@ const styles = StyleSheet.create({
     marginLeft: spacing.xxs,
     position: 'absolute',
   },
-  masterThumb: {
-    left: 8,
-    right: 8,
-  },
   masterTrack: {
     width: 5,
   },
-  mcaThumb: {
-    left: 8,
-    right: 8,
+  meterFillBase: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+  },
+  meterFillContainer: {
+    bottom: 0,
+    left: 0,
+    position: 'absolute',
+    right: 0,
+    top: 0,
+  },
+  meterFillGreen: {
+    backgroundColor: colors.meter.green,
+  },
+  meterFillRed: {
+    backgroundColor: colors.meter.red,
+  },
+  meterFillYellow: {
+    backgroundColor: colors.meter.yellow,
   },
   mcaTrack: {
     width: 5,
   },
   thumb: {
-    borderRadius: radius.sm,
-    borderWidth: 1,
-    elevation: 3,
     height: THUMB_HEIGHT,
+    left: '50%',
+    marginLeft: -THUMB_WIDTH / 2,
+    overflow: 'visible',
     position: 'absolute',
-    shadowColor: '#000000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.35,
-    shadowRadius: 8,
     top: 0,
-    zIndex: 2,
-  },
-  thumbLine: {
-    backgroundColor: 'rgba(7, 16, 29, 0.55)',
-    height: 2,
-    left: 8,
-    marginTop: THUMB_HEIGHT / 2 - 1,
-    position: 'absolute',
-    right: 8,
+    width: THUMB_WIDTH,
+    zIndex: 3,
   },
   track: {
     borderRadius: radius.pill,
     flex: 1,
+    overflow: 'hidden',
+    position: 'relative',
   },
 });

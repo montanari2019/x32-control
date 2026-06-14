@@ -5,6 +5,7 @@ import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
 import { Buffer } from 'buffer';
+import { i18next } from '@shared/i18n';
 import {
   getNativeBroadcastAddresses,
   getNativeNetworkInterfaces,
@@ -178,7 +179,7 @@ export class NetworkScanner {
 
       throw new AppError(
         'CONSOLE_NOT_FOUND',
-        'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o iPhone está no mesmo Wi-Fi da mesa e se a permissão de Rede Local está ativa.',
+        i18next.t('errors.discoveryFailure'),
         error,
       );
     } finally {
