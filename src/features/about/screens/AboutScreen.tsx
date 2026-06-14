@@ -1,6 +1,7 @@
 import React from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { AppHeader } from '@shared/components/AppHeader';
 import { Screen } from '@shared/components/Screen';
@@ -14,32 +15,36 @@ const APP_COMMIT_VERSION = 44;
 const APP_VERSION = APP_COMMIT_VERSION.toString().padEnd(3, '0').split('').join('.');
 const CURRENT_YEAR = new Date().getFullYear();
 
-export const AboutScreen = ({ navigation }: Props): JSX.Element => (
-  <Screen style={styles.screen}>
-    <AppHeader title="" onBack={() => navigation.goBack()} reserveRightSpace={false} />
+export const AboutScreen = ({ navigation }: Props): JSX.Element => {
+  const { t } = useTranslation();
 
-    <View style={styles.content}>
-      <Text style={styles.title}>ABOUT</Text>
+  return (
+    <Screen style={styles.screen}>
+      <AppHeader title="" onBack={() => navigation.goBack()} reserveRightSpace={false} />
 
-      <View style={styles.card}>
-        <Text style={styles.label}>Versao do app</Text>
-        <Text style={styles.value}>{APP_VERSION}</Text>
+      <View style={styles.content}>
+        <Text style={styles.title}>{t('about.title')}</Text>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>{t('about.appVersion')}</Text>
+          <Text style={styles.value}>{APP_VERSION}</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>{t('about.developedBy')}</Text>
+          <Text style={styles.value}>Ikaro Montanari</Text>
+        </View>
+
+        <View style={styles.card}>
+          <Text style={styles.label}>{t('about.supportBy')}</Text>
+          <Text style={styles.value}>Renan Bohn</Text>
+        </View>
+
+        <Text style={styles.year}>{CURRENT_YEAR}</Text>
       </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Desenvolvido por</Text>
-        <Text style={styles.value}>Ikaro Montanari</Text>
-      </View>
-
-      <View style={styles.card}>
-        <Text style={styles.label}>Apoio de</Text>
-        <Text style={styles.value}>Renan Bohn</Text>
-      </View>
-
-      <Text style={styles.year}>{CURRENT_YEAR}</Text>
-    </View>
-  </Screen>
-);
+    </Screen>
+  );
+};
 
 const styles = StyleSheet.create({
   card: {

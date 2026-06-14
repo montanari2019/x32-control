@@ -1,0 +1,38 @@
+BusMix remote fader sync rollback performance restore planning
+Timestamp: 2026-05-25_20-35-00
+
+Context
+-------
+- User reported that the app was more fluid before `remote-fader-subscription-sync` and `remote-fader-fluidity-performance`.
+- User is testing an older build/version and observes smoother meters and overall app performance.
+- User requested tasks to remove those implementations and mark them as undone in state docs.
+- User explicitly requested preserving the Local Network permission prompt/preflight because it fixed first console discovery failures.
+
+Findings
+--------
+- `remote-fader-fluidity-performance` is currently in the working tree and adds coalescing, visibility hysteresis, frame flush, diagnostics, and BusMix fader subscription time-factor tuning.
+- `remote-fader-subscription-sync` appears in `HEAD` but not `HEAD~1` as a managed visible-fader `/subscribe` receive path.
+- The permission preflight is independent and should not be part of rollback:
+  - `UdpTransport.bind()` calls `ensureLocalNetworkPermission()`.
+  - `LocalNetworkPermission.ts` bridges to the native module.
+  - `ios/Tacimix/LocalNetworkPermission.m` implements the native preflight.
+  - `Info.plist` declares `NSLocalNetworkUsageDescription` and `NSBonjourServices`.
+  - `project.pbxproj` includes `LocalNetworkPermission.m` in sources.
+
+Created files
+-------------
+- src/features/busMix/.specs/feature/remote-fader-sync-rollback-performance-restore/spec.md
+- src/features/busMix/.specs/feature/remote-fader-sync-rollback-performance-restore/design.md
+- src/features/busMix/.specs/feature/remote-fader-sync-rollback-performance-restore/tasks.md
+
+Planned direction
+-----------------
+- Remove the remote fader `/subscribe` receive path and the later coalescing/performance layer.
+- Restore lightweight BusMix fader receive behavior: exact-address listeners plus `/xremote` and background sync.
+- Preserve Local Network permission preflight.
+- Preserve AUX/FX meter stability and local app-to-console fader sends.
+- Mark both removed features as reverted/undone in state docs after implementation.
+
+Validation
+----------
+- Planning only; no runtime rollback performed in this step.

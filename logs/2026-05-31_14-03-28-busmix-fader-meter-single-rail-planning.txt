@@ -1,0 +1,36 @@
+BusMix fader meter single rail planning
+Date: 2026-05-31
+
+Scope
+- Planned new BusMix feature spec: `fader-meter-single-rail`.
+- Goal: remove the separate central fader track and render the live meter in that position so each BusMix channel has one single vertical bar.
+
+Docs/source of truth consulted
+- `docs/skills/tlc-spec-driven/SKILL.md`
+- `docs/skills/tlc-spec-driven/references/specify.md`
+- `docs/skills/tlc-spec-driven/references/design.md`
+- `docs/skills/tlc-spec-driven/references/tasks.md`
+- `.specs/project/STATE.md`
+- `.specs/codebase/ARCHITECTURE.md`
+- `.specs/codebase/CONVENTIONS.md`
+- `.specs/codebase/TESTING.md`
+- `src/features/busMix/.specs/STATE.md`
+- `docs/global/x32-control-busmix-meter-real-x32-protocolo-fix.md`
+
+Code context
+- `ChannelStrip` currently renders `ChannelVuMeter` beside `VerticalFader`.
+- `VerticalFader` currently renders the central fader track, zero mark, dB scale, and thumb.
+- `ChannelVuMeter` already uses `pointerEvents="none"` and the same vertical inset as `VerticalFader`.
+
+Planning result
+- Created `spec.md`, `design.md`, and `tasks.md` under `src/features/busMix/.specs/feature/fader-meter-single-rail/`.
+- Proposed a custom rail slot in `VerticalFader` so the meter can occupy the old central track position without moving fader math out of `VerticalFader`.
+- Tasks require preserving thumb-only gesture ownership, meter subscription lifecycle, linked pressed feedback, fader math, OSC behavior, and remote-fader rollback state.
+
+External research
+- Not needed for this planning pass. The change is local React Native layout/composition and existing docs already cover meter protocol and project conventions.
+
+Pending
+- Runtime implementation.
+- Automated gates: `yarn tsc`, `yarn jest __tests__/features/busMix --runInBand`, `git diff --check`.
+- Manual Demo validation in portrait and landscape.

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutChangeEvent, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -16,6 +17,7 @@ type GroupStripProps = {
   isMaster?: boolean;
   isMuted: boolean;
   label: string;
+  meterDbfs?: number;
   name: string;
   onFaderChange: (value: number) => void;
   onFaderInteractionEnd?: () => void;
@@ -24,6 +26,140 @@ type GroupStripProps = {
   onToggleMute: () => void;
   stripHeight?: number;
   value: number;
+};
+
+const getInitialFaderHeight = (compact: boolean): number => {
+  if (compact) {
+    return 160;
+  }
+
+  return 320;
+};
+
+const getMinimumFaderHeight = (compact: boolean): number => {
+  if (compact) {
+    return 1;
+  }
+
+  return 180;
+};
+
+const getWrapperModeStyle = (isMaster: boolean) => {
+  if (isMaster) {
+    return styles.masterWrapper;
+  }
+
+  return styles.mcaWrapper;
+};
+
+const getStripHeightStyle = (stripHeight: number | undefined) => {
+  if (stripHeight == null) {
+    return undefined;
+  }
+
+  return { height: stripHeight };
+};
+
+const getCardModeStyle = (isMaster: boolean) => {
+  if (isMaster) {
+    return styles.masterCard;
+  }
+
+  return styles.mcaCard;
+};
+
+const getCardBorderStyle = (isMaster: boolean, accentColor: string) => {
+  if (isMaster) {
+    return { borderColor: colors.border.subtle };
+  }
+
+  return { borderColor: accentColor };
+};
+
+const getPressedStyle = (pressed: boolean, canOpenDetails: boolean) => {
+  if (pressed && canOpenDetails) {
+    return styles.cardPressed;
+  }
+
+  return undefined;
+};
+
+const getMcaNameStyle = (isMaster: boolean) => {
+  if (isMaster) {
+    return undefined;
+  }
+
+  return styles.mcaName;
+};
+
+const getCompactMcaNameStyle = (compact: boolean, isMaster: boolean) => {
+  if (!compact || isMaster) {
+    return undefined;
+  }
+
+  return styles.mcaNameCompact;
+};
+
+const getNameColorStyle = (isMaster: boolean, accentColor: string) => {
+  if (isMaster) {
+    return { color: colors.master.label };
+  }
+
+  return { color: accentColor };
+};
+
+const getLabelPlateBackgroundStyle = (isMaster: boolean, accentColor: string) => {
+  if (isMaster) {
+    return { backgroundColor: colors.master.thumb };
+  }
+
+  return { backgroundColor: accentColor };
+};
+
+const getMcaLabelPlateTextStyle = (isMaster: boolean) => {
+  if (isMaster) {
+    return undefined;
+  }
+
+  return styles.mcaLabelPlateText;
+};
+
+const getCompactMcaLabelPlateTextStyle = (compact: boolean, isMaster: boolean) => {
+  if (!compact || isMaster) {
+    return undefined;
+  }
+
+  return styles.mcaLabelPlateTextCompact;
+};
+
+const renderAssignmentText = (
+  assignmentCount: number | undefined,
+  compact: boolean,
+  t: (key: string, options?: Record<string, unknown>) => string,
+): JSX.Element => {
+  if (assignmentCount != null) {
+    return (
+      <Text
+        adjustsFontSizeToFit
+        minimumFontScale={0.7}
+        numberOfLines={1}
+        style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
+      >
+        {t('busGroups.assignmentCount', { count: assignmentCount })}
+      </Text>
+    );
+  }
+
+  return (
+    <Text
+      adjustsFontSizeToFit
+      minimumFontScale={0.62}
+      numberOfLines={1}
+      style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
+    >
+      {t('busGroups.busMaster')}
+    </Text>
+  );
 };
 
 export const GroupStrip = ({
@@ -35,6 +171,7 @@ export const GroupStrip = ({
   isMaster = false,
   isMuted,
   label,
+  meterDbfs,
   name,
   onFaderChange,
   onFaderInteractionEnd,
@@ -45,11 +182,15 @@ export const GroupStrip = ({
   value,
 }: GroupStripProps): JSX.Element => {
   const dbLabel = formatDb(faderToDb(value));
-  const [measuredFaderHeight, setMeasuredFaderHeight] = useState(compact ? 160 : 320);
+  const { t } = useTranslation();
+  const [measuredFaderHeight, setMeasuredFaderHeight] = useState(getInitialFaderHeight(compact));
   const canOpenDetails = Boolean(onPress && !isMaster);
 
   const handleFaderSlotLayout = (event: LayoutChangeEvent): void => {
-    const nextHeight = Math.max(compact ? 1 : 180, Math.floor(event.nativeEvent.layout.height));
+    const nextHeight = Math.max(
+      getMinimumFaderHeight(compact),
+      Math.floor(event.nativeEvent.layout.height),
+    );
     setMeasuredFaderHeight(nextHeight);
   };
 
@@ -58,16 +199,16 @@ export const GroupStrip = ({
       style={[
         styles.wrapper,
         compact && styles.wrapperCompact,
-        isMaster ? styles.masterWrapper : styles.mcaWrapper,
-        stripHeight ? { height: stripHeight } : undefined,
+        getWrapperModeStyle(isMaster),
+        getStripHeightStyle(stripHeight),
       ]}
     >
       <View
         style={[
           styles.card,
           compact && styles.cardCompact,
-          isMaster ? styles.masterCard : styles.mcaCard,
-          { borderColor: isMaster ? colors.border.subtle : accentColor },
+          getCardModeStyle(isMaster),
+          getCardBorderStyle(isMaster, accentColor),
         ]}
       >
         <Pressable
@@ -77,7 +218,7 @@ export const GroupStrip = ({
           style={({ pressed }) => [
             styles.headerPressable,
             compact && styles.headerPressableCompact,
-            pressed && canOpenDetails ? styles.cardPressed : undefined,
+            getPressedStyle(pressed, canOpenDetails),
           ]}
         >
           <Text style={[styles.kicker, compact && styles.kickerCompact]}>{label}</Text>
@@ -85,11 +226,9 @@ export const GroupStrip = ({
             style={[
               styles.name,
               compact && styles.nameCompact,
-              !isMaster ? styles.mcaName : undefined,
-              compact && !isMaster ? styles.mcaNameCompact : undefined,
-              {
-                color: isMaster ? colors.master.label : accentColor,
-              },
+              getMcaNameStyle(isMaster),
+              getCompactMcaNameStyle(compact, isMaster),
+              getNameColorStyle(isMaster, accentColor),
             ]}
             adjustsFontSizeToFit
             minimumFontScale={0.72}
@@ -108,6 +247,7 @@ export const GroupStrip = ({
             disabled={isFaderDisabled}
             dragSensitivity={dragSensitivity}
             isMaster={isMaster}
+            meterDbfs={meterDbfs}
             onFaderChange={onFaderChange}
             onInteractionEnd={onFaderInteractionEnd}
             onInteractionStart={onFaderInteractionStart}
@@ -123,51 +263,33 @@ export const GroupStrip = ({
           style={({ pressed }) => [
             styles.footerPressable,
             compact && styles.footerPressableCompact,
-            pressed && canOpenDetails ? styles.cardPressed : undefined,
+            getPressedStyle(pressed, canOpenDetails),
           ]}
         >
           <View
             style={[
               styles.labelPlate,
               compact && styles.labelPlateCompact,
-              {
-                backgroundColor: isMaster ? colors.master.thumb : accentColor,
-              },
+              getLabelPlateBackgroundStyle(isMaster, accentColor),
             ]}
           >
             <Text
+              adjustsFontSizeToFit
               ellipsizeMode="clip"
+              minimumFontScale={0.82}
               numberOfLines={1}
               style={[
                 styles.labelPlateText,
                 compact && styles.labelPlateTextCompact,
-                !isMaster ? styles.mcaLabelPlateText : undefined,
-                compact && !isMaster ? styles.mcaLabelPlateTextCompact : undefined,
+                getMcaLabelPlateTextStyle(isMaster),
+                getCompactMcaLabelPlateTextStyle(compact, isMaster),
               ]}
             >
               {dbLabel}
             </Text>
           </View>
 
-          {assignmentCount != null ? (
-            <Text
-              adjustsFontSizeToFit
-              minimumFontScale={0.7}
-              numberOfLines={1}
-              style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
-            >
-              {assignmentCount} canais
-            </Text>
-          ) : (
-            <Text
-              adjustsFontSizeToFit
-              minimumFontScale={0.62}
-              numberOfLines={1}
-              style={[styles.assignmentText, compact && styles.assignmentTextCompact]}
-            >
-              Bus master
-            </Text>
-          )}
+          {renderAssignmentText(assignmentCount, compact, t)}
         </Pressable>
       </View>
 
@@ -272,14 +394,14 @@ const styles = StyleSheet.create({
   },
   mcaLabelPlateText: {
     flexShrink: 0,
-    fontSize: 11,
+    fontSize: 10,
     includeFontPadding: false,
-    lineHeight: 13,
+    lineHeight: 12,
     textAlign: 'center',
   },
   mcaLabelPlateTextCompact: {
-    fontSize: 9,
-    lineHeight: 11,
+    fontSize: 8.5,
+    lineHeight: 10,
   },
   masterCard: {
     backgroundColor: colors.surface.stripMaster,

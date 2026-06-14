@@ -1,6 +1,7 @@
 import React, { useEffect } from 'react';
 import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { StyleSheet, Text, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { RootStackParamList } from '@app/navigation/RootNavigator';
 import { Button } from '@shared/components/Button';
 import { LoadingState } from '@shared/components/LoadingState';
@@ -19,6 +20,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ConsoleDiscovery'>;
 export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
   const { devices, error, isSearching, scan } = useConsoleDiscovery();
   const { showModal } = useModal();
+  const { t } = useTranslation();
 
   useEffect(() => {
     if (!error) {
@@ -26,11 +28,11 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
     }
 
     showModal(Toast, {
-      title: 'Falha na descoberta',
+      title: t('consoleDiscovery.failureTitle'),
       message: error,
       variant: 'error',
     });
-  }, [error, showModal]);
+  }, [error, showModal, t]);
 
   const openConsole = (device: ConsoleDevice): void => {
     navigation.navigate('BusSelection', {
@@ -43,21 +45,18 @@ export const ConsoleDiscoveryScreen = ({ navigation }: Props): JSX.Element => {
     <Screen scroll style={styles.screen}>
       <View style={styles.heroCard}>
         <View style={styles.heroBadge}>
-          <Text style={styles.heroBadgeText}>Descoberta de console</Text>
+          <Text style={styles.heroBadgeText}>{t('consoleDiscovery.heroBadge')}</Text>
         </View>
 
         <View style={styles.hero}>
-          <Text style={styles.title}>Controle BUS/AUX</Text>
-          <Text style={styles.subtitle}>
-            Conecte o celular na mesma rede Ethernet ou Wi-Fi da X32/M32 para localizar a mesa e
-            entrar no monitor correto.
-          </Text>
+          <Text style={styles.title}>{t('consoleDiscovery.title')}</Text>
+          <Text style={styles.subtitle}>{t('consoleDiscovery.subtitle')}</Text>
         </View>
 
-        <Button title="Buscar mesas na rede" onPress={scan} loading={isSearching} />
+        <Button title={t('consoleDiscovery.searchButton')} onPress={scan} loading={isSearching} />
       </View>
 
-      {isSearching ? <LoadingState label="Procurando consoles via /info..." /> : null}
+      {isSearching ? <LoadingState label={t('consoleDiscovery.searching')} /> : null}
 
       <View style={styles.list}>
         {devices.map((device) => (

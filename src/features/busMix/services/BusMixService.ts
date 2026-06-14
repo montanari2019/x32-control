@@ -243,26 +243,6 @@ export class BusMixService {
     });
   }
 
-  subscribeChannelLevelUpdates(
-    channel: Channel,
-    bus: number,
-    listener: (level: number) => void,
-    options: { onSubscribe?: () => void; onRenew?: () => void } = {},
-  ): () => void {
-    if (this.useMockProvider) {
-      return this.mockProvider.subscribeChannelLevel(channel.number, bus, listener);
-    }
-
-    return this.client.subscribeScalarValue({
-      address: this.getLevelPath(channel, bus),
-      listener: (message) => {
-        listener(clamp(asNumber(message, 0)));
-      },
-      onSubscribe: options.onSubscribe,
-      onRenew: options.onRenew,
-    });
-  }
-
   onOn(channel: Channel, bus: number, listener: (on: boolean) => void): () => void {
     if (this.useMockProvider) {
       return () => {};

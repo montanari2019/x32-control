@@ -1,0 +1,27 @@
+BusMix channel strip density follow-up
+Date: 2026-05-31
+
+Scope
+- Follow-up to `fader-meter-single-rail`.
+- Goal: slightly reduce each BusMix channel strip width so about 5.5 channels are visible on wider portrait phones before horizontal scroll is needed.
+
+Changes
+- Reduced `ChannelStrip` width from `86` to `71`.
+- Updated `BusMixScreen.CHANNEL_STRIP_WIDTH` from `86` to `71`, keeping `CHANNEL_ITEM_LENGTH = CHANNEL_STRIP_WIDTH + CHANNEL_STRIP_GAP`.
+- Effective item length is now `72` with the existing `1` px gap.
+- Added single-line/font-shrink protection to the channel dB label so narrower strips do not wrap the value.
+
+Preserved
+- Fader rail/meter composition from `fader-meter-single-rail`.
+- Fader cap size and gesture ownership.
+- Meter subscription lifecycle.
+- Fader math and OSC behavior.
+- BusMix hooks, services, meter decoder/routing, presets, pan, mute/on, and remote-fader rollback state.
+
+Verification
+- `yarn tsc`: passed.
+- `yarn jest __tests__/features/busMix --runInBand`: passed, 7 suites / 37 tests.
+- `yarn jest __tests__/features/busGroups --runInBand`: passed, 2 suites / 10 tests.
+
+Pending
+- Manual device/simulator visual validation to confirm the exact 5.5-channel feel on the target phone width.

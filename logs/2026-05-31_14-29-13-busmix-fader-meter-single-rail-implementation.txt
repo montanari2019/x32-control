@@ -1,0 +1,35 @@
+BusMix fader meter single rail implementation
+Date: 2026-05-31
+
+Scope
+- Implemented feature spec: `src/features/busMix/.specs/feature/fader-meter-single-rail`.
+- Goal: collapse the BusMix side meter and central fader track into one vertical meter/fader rail.
+
+Changes
+- `VerticalFader` now accepts an optional passive custom rail via `rail` and `railWidth`.
+- The old internal fader track remains as fallback only when no custom rail is supplied.
+- `ChannelStrip` no longer renders `ChannelVuMeter` as a side column beside `VerticalFader`.
+- `ChannelStrip` now passes `ChannelVuMeter` into the `VerticalFader` rail slot.
+- Channels without a meter id render an inset placeholder rail with the same width and height contract.
+
+Preserved
+- Fader raw/dB math.
+- `dragSensitivity`.
+- Thumb-only `PanResponder` ownership.
+- Throttled drag sends and final release commit.
+- Linked fader pressed visual feedback.
+- Meter listener registration and visibility lifecycle.
+- AUX/FX meter stream isolation.
+- BusMix service, hooks, OSC behavior, presets, pan, mute/on, and remote-fader rollback state.
+- BusMix fixed strip/list width constants.
+
+Verification
+- `yarn tsc`: passed.
+- `yarn jest __tests__/features/busMix --runInBand`: passed, 7 suites / 37 tests.
+- `yarn jest __tests__/features/busGroups --runInBand`: passed, 2 suites / 10 tests.
+- `git diff -- src/features/busMix/hooks src/features/busMix/services src/features/busMix/utils src/shared/osc`: no diff.
+- `git diff --check`: passed.
+
+Pending
+- Manual Demo/device visual validation in portrait and landscape.
+- Manual gesture validation: drag cap, touch rail outside cap, horizontal scroll from fader area outside cap, and linked peer pressed visual.

@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTranslation } from 'react-i18next';
 import { Icons } from '@assets';
 import { Button } from '@shared/components/Button';
 import Dialog from '@shared/components/Dialog';
 import { ModalRenderProps, useModal } from '@shared/components/Modal';
 import Toast from '@shared/components/Toast';
 import { getErrorMessage } from '@shared/errors/AppError';
+import { getCurrentLocale } from '@shared/i18n';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -38,6 +40,7 @@ export const BusMixPresetsModal = ({
   onRestorePreset,
 }: BusMixPresetsModalProps): JSX.Element => {
   const { showModal } = useModal();
+  const { t } = useTranslation();
   const [presetList, setPresetList] = useState<BusMixPreset[]>(presets);
   const [isLoadingPresets, setIsLoadingPresets] = useState(false);
   const [isCreating, setIsCreating] = useState(false);
@@ -62,8 +65,8 @@ export const BusMixPresetsModal = ({
 
   const canCreateMore = presetList.length < maxPresets;
   const helperText = useMemo(
-    () => `Presets salvos: ${presetList.length}/${maxPresets}`,
-    [maxPresets, presetList.length],
+    () => t('busMix.presets.savedCount', { count: presetList.length, max: maxPresets }),
+    [maxPresets, presetList.length, t],
   );
 
   const handleCreate = async (): Promise<void> => {
@@ -74,13 +77,13 @@ export const BusMixPresetsModal = ({
       setPresetName('');
       setIsCreating(false);
       showModal(Toast, {
-        title: 'Preset salvo',
-        message: 'O estado atual do Bus Mix foi salvo localmente neste dispositivo.',
+        title: t('busMix.presets.savedTitle'),
+        message: t('busMix.presets.savedMessage'),
         variant: 'success',
       });
     } catch (error) {
       showModal(Toast, {
-        title: 'Falha ao salvar preset',
+        title: t('busMix.presets.saveFailureTitle'),
         message: getErrorMessage(error),
         variant: 'error',
       });
@@ -95,13 +98,13 @@ export const BusMixPresetsModal = ({
       const nextPresets = await onOverwritePreset(presetId);
       setPresetList(nextPresets);
       showModal(Toast, {
-        title: 'Preset atualizado',
-        message: 'O preset foi sobrescrito com os niveis atuais do Bus Mix.',
+        title: t('busMix.presets.updateTitle'),
+        message: t('busMix.presets.updateMessage'),
         variant: 'success',
       });
     } catch (error) {
       showModal(Toast, {
-        title: 'Falha ao sobrescrever',
+        title: t('busMix.presets.overwriteFailureTitle'),
         message: getErrorMessage(error),
         variant: 'error',
       });
@@ -116,13 +119,13 @@ export const BusMixPresetsModal = ({
       const nextPresets = await onDeletePreset(presetId);
       setPresetList(nextPresets);
       showModal(Toast, {
-        title: 'Preset removido',
-        message: `O preset ${presetNameValue} foi removido deste dispositivo.`,
+        title: t('busMix.presets.removedTitle'),
+        message: t('busMix.presets.removedMessage', { name: presetNameValue }),
         variant: 'success',
       });
     } catch (error) {
       showModal(Toast, {
-        title: 'Falha ao remover preset',
+        title: t('busMix.presets.removeFailureTitle'),
         message: getErrorMessage(error),
         variant: 'error',
       });
@@ -136,14 +139,14 @@ export const BusMixPresetsModal = ({
       onDismiss?.();
       await onRestorePreset(presetId);
       showModal(Toast, {
-        title: 'Preset restaurado',
-        message: 'Os volumes salvos foram aplicados ao Bus Mix e enviados para a mesa.',
+        title: t('busMix.presets.restoredTitle'),
+        message: t('busMix.presets.restoredMessage'),
         variant: 'success',
         timeToCloseInMilliseconds: RESTORE_SUCCESS_TOAST_DURATION_MS,
       });
     } catch (error) {
       showModal(Toast, {
-        title: 'Falha ao restaurar',
+        title: t('busMix.presets.restoreFailureTitle'),
         message: getErrorMessage(error),
         variant: 'error',
       });
@@ -162,17 +165,17 @@ export const BusMixPresetsModal = ({
     >
       <View style={styles.modalHeader}>
         <View style={styles.modalTitleBlock}>
-          <Text style={styles.modalTitle}>Presets do Bus Mix</Text>
+          <Text style={styles.modalTitle}>{t('busMix.presets.title')}</Text>
           <View style={styles.headerBlock}>
             <Text style={styles.helperText}>{helperText}</Text>
             <Text style={styles.helperSubtext}>
-              Os presets ficam salvos apenas neste dispositivo e separados por console e bus.
+              {t('busMix.presets.helper')}
             </Text>
           </View>
         </View>
         <Pressable
           accessibilityRole="button"
-          accessibilityLabel="Fechar modal de presets"
+          accessibilityLabel={t('accessibility.closePresetsModal')}
           disabled={isRestoringPreset}
           onPress={onDismiss}
           style={({ pressed }) => [
@@ -186,7 +189,7 @@ export const BusMixPresetsModal = ({
       </View>
 
       <Button
-        title="Novo Preset"
+        title={t('busMix.presets.newPreset')}
         onPress={() => setIsCreating((current) => !current)}
         variant="secondary"
         disabled={!canCreateMore || isRestoringPreset || isLoadingPresets}
@@ -198,7 +201,7 @@ export const BusMixPresetsModal = ({
           <TextInput
             value={presetName}
             onChangeText={setPresetName}
-            placeholder="Digite o nome do preset"
+            placeholder={t('busMix.presets.namePlaceholder')}
             placeholderTextColor={colors.text.tertiary}
             style={styles.input}
             autoFocus
@@ -206,7 +209,7 @@ export const BusMixPresetsModal = ({
           />
           <View style={styles.createActions}>
             <Button
-              title="Salvar Preset"
+              title={t('busMix.presets.savePreset')}
               onPress={() => {
                 handleCreate().catch(() => undefined);
               }}
@@ -215,7 +218,7 @@ export const BusMixPresetsModal = ({
               style={styles.actionButton}
             />
             <Button
-              title="Cancelar"
+              title={t('common.actions.cancel')}
               onPress={() => {
                 setPresetName('');
                 setIsCreating(false);
@@ -229,10 +232,10 @@ export const BusMixPresetsModal = ({
       ) : null}
 
       <ScrollView style={styles.list} contentContainerStyle={styles.listContent}>
-        {isLoadingPresets ? <Text style={styles.emptyText}>Carregando presets...</Text> : null}
+        {isLoadingPresets ? <Text style={styles.emptyText}>{t('busMix.presets.loading')}</Text> : null}
 
         {!isLoadingPresets && presetList.length === 0 ? (
-          <Text style={styles.emptyText}>Nenhum preset salvo para este Bus Mix.</Text>
+          <Text style={styles.emptyText}>{t('busMix.presets.empty')}</Text>
         ) : null}
 
         {!isLoadingPresets
@@ -243,14 +246,16 @@ export const BusMixPresetsModal = ({
                     {preset.name}
                   </Text>
                   <Text style={styles.presetMeta}>
-                    Atualizado em {new Date(preset.updatedAt).toLocaleString('pt-BR')}
+                    {t('busMix.presets.updatedAt', {
+                      date: new Date(preset.updatedAt).toLocaleString(getCurrentLocale()),
+                    })}
                   </Text>
                 </View>
 
                 <View style={styles.iconActions}>
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Remover preset ${preset.name}`}
+                    accessibilityLabel={t('accessibility.removePreset', { name: preset.name })}
                     onPress={() => {
                       handleDelete(preset.id, preset.name).catch(() => undefined);
                     }}
@@ -267,7 +272,7 @@ export const BusMixPresetsModal = ({
 
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Sobrescrever preset ${preset.name}`}
+                    accessibilityLabel={t('accessibility.overwritePreset', { name: preset.name })}
                     onPress={() => {
                       handleOverwrite(preset.id).catch(() => undefined);
                     }}
@@ -284,7 +289,7 @@ export const BusMixPresetsModal = ({
 
                   <Pressable
                     accessibilityRole="button"
-                    accessibilityLabel={`Restaurar preset ${preset.name}`}
+                    accessibilityLabel={t('accessibility.restorePreset', { name: preset.name })}
                     onPress={() => {
                       handleRestore(preset.id).catch(() => undefined);
                     }}
@@ -338,9 +343,8 @@ const styles = StyleSheet.create({
   },
   dialog: {
     gap: spacing.md,
-    maxHeight: '82%',
-    maxWidth: 520,
-    width: '100%',
+    height: '95%',
+    width: '95%',
   },
   dialogBackdrop: {
     justifyContent: 'center',
@@ -395,8 +399,8 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
   },
   list: {
-    flexShrink: 1,
-    maxHeight: 320,
+    flex: 1,
+    minHeight: 0,
   },
   listContent: {
     gap: spacing.sm,

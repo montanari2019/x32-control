@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button } from '@shared/components/Button';
 import { ModalPropsType } from '@shared/components/Modal';
 import { APP_MODAL_SUPPORTED_ORIENTATIONS } from '@shared/components/Modal/modalOrientations';
+import { i18next } from '@shared/i18n';
 import { colors } from '@shared/theme/colors';
 import { radius } from '@shared/theme/radius';
 import { spacing } from '@shared/theme/spacing';
@@ -140,11 +141,11 @@ const DialogActions = ({ children }: { children: ReactNode }): JSX.Element => {
   if (__DEV__) {
     items.forEach((child) => {
       if (!isValidElement(child)) {
-        throw new Error('Dialog.Actions aceita apenas componentes Button.');
+        throw new Error(i18next.t('errors.dialogActionsButtonOnly'));
       }
 
       if (child.type !== Button) {
-        throw new Error('Dialog.Actions aceita apenas componentes Button.');
+        throw new Error(i18next.t('errors.dialogActionsButtonOnly'));
       }
     });
   }

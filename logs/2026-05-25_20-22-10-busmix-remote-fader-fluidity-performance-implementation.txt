@@ -1,0 +1,69 @@
+BusMix remote fader fluidity performance implementation
+Timestamp: 2026-05-25_20-22-10
+
+Context
+-------
+- User reported that `remote-fader-subscription-sync` works correctly against the real console, but remote fader movement has perceptible delay and can become visually frantic before settling.
+- Goal: keep the app performant on modest devices and avoid replaying delayed network history.
+
+Implemented
+-----------
+- Added a BusMix-specific fader subscription time factor:
+  - `X32Protocol.defaultBusMixFaderSubscriptionTimeFactor = 20`
+  - `BusMixService.subscribeChannelLevelUpdates(...)` now passes this value to `OscClient.subscribeScalarValue(...)`.
+- Added `remoteFaderCoalescing`:
+  - keeps only the latest remote fader value per path before a frame flush;
+  - drops duplicate values within epsilon;
+  - drops out-of-order packets;
+  - supports stale local echo suppression windows;
+  - exposes ref-friendly cumulative stats.
+- Added `faderSubscriptionScope`:
+  - visible faders subscribe immediately;
+  - recently visible faders are retained briefly;
+  - retained subscriptions are capped to a small buffer instead of expanding to all 48 faders.
+- Updated `useBusMixRemoteFaderSubscription`:
+  - buffers remote subscribed fader values in refs;
+  - applies values with `requestAnimationFrame`;
+  - cancels pending frame work during cleanup;
+  - emits diagnostics for incoming packets and frame flushes without React state per packet.
+- Updated `useBusMix`:
+  - added batched remote fader reconciliation through one store update per frame;
+  - preserved linked-channel visual reflection through `applyLinkedRemoteLevelUpdates(...)`;
+  - added local echo suppression timestamps for recently changed local faders and linked peers;
+  - extended `getRealtimeSubscriptionHealth()` with performance counters/rates.
+- Added tests for:
+  - remote fader coalescing;
+  - subscription scope hysteresis/capping;
+  - linked remote batch updates;
+  - BusMix fader subscription time factor.
+
+Not completed
+-------------
+- T-001 real-console numeric baseline remains pending because this terminal cannot operate the emulator/X32 UI directly.
+- T-010 real-console UAT remains pending for the user to validate perceived fluidity and settle behavior.
+
+Verification
+------------
+- yarn jest __tests__/features/busMix/utils/remoteFaderCoalescing.test.ts __tests__/features/busMix/utils/faderSubscriptionScope.test.ts __tests__/features/busMix/utils/linkedChannelSync.test.ts --runInBand
+  Result: passed, 3 suites / 15 tests.
+- yarn jest __tests__/features/busMix/services/BusMixService.test.ts __tests__/shared/osc/X32Protocol.test.ts __tests__/features/busMix/hooks/useBusMixRemoteFaderSubscription.test.ts --runInBand
+  Result: passed, 3 suites / 8 tests.
+- yarn jest __tests__/features/busMix --runInBand
+  Result: passed, 10 suites / 44 tests.
+- yarn jest __tests__/features/busGroups --runInBand
+  Result: passed, 2 suites / 10 tests.
+- yarn jest __tests__/shared/osc --runInBand
+  Result: passed, 4 suites / 11 tests.
+- yarn tsc
+  Result: passed.
+
+UAT notes
+---------
+- Validate CH 17 same-BUS send-level movement from the X32 official app.
+- Observe whether the fader still chases delayed values after remote movement stops.
+- Inspect `getRealtimeSubscriptionHealth()` if possible to compare incoming packet count versus applied fader update count.
+- If `timeFactor = 20` feels too slow, test `10` as the next tuning step, but keep coalescing/frame batching in place.
+
+SPEC_DEVIATION
+--------------
+- T-002 was implemented before a recorded numeric baseline because the user already provided real-console qualitative evidence and the optimization is conservative: it reduces traffic and bounds receive/render work. T-001 and T-010 remain open for hardware measurement/UAT.

@@ -1,6 +1,7 @@
 import { Buffer } from 'buffer';
 import { NativeModules, Platform } from 'react-native';
 import { AppError } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 import { ensureLocalNetworkPermission } from './LocalNetworkPermission';
 import { logUdpDiagnostic, toUdpAppError } from './UdpDiagnostics';
 
@@ -73,7 +74,7 @@ export class UdpTransport {
 
     this.bindPromise = new Promise<void>((resolve, reject) => {
       if (!this.socket) {
-        reject(new AppError('UDP_TRANSPORT_ERROR', 'Socket UDP nao inicializado.'));
+        reject(new AppError('UDP_TRANSPORT_ERROR', i18next.t('errors.udpSocketNotInitialized')));
         return;
       }
 
@@ -101,7 +102,7 @@ export class UdpTransport {
           event: 'socket_error',
           nativeError: error,
         });
-        const appError = toUdpAppError('UDP_TRANSPORT_ERROR', 'Erro no transporte UDP.', error);
+        const appError = toUdpAppError('UDP_TRANSPORT_ERROR', i18next.t('errors.udpTransport'), error);
         this.errorHandlers.forEach((handler) => handler(appError));
         reject(appError);
       });
@@ -118,7 +119,7 @@ export class UdpTransport {
 
   async send(data: Buffer, ip: string, port: number): Promise<void> {
     if (this.isClosing) {
-      throw new AppError('CONNECTION_LOST', 'Transporte UDP esta encerrando.');
+      throw new AppError('CONNECTION_LOST', i18next.t('errors.udpTransportClosing'));
     }
 
     if (!this.socket || !this.isBound) {
@@ -208,7 +209,7 @@ export class UdpTransport {
       });
       const appError = toUdpAppError(
         'UDP_TRANSPORT_ERROR',
-        'Falha ao habilitar broadcast UDP.',
+        i18next.t('errors.udpBroadcastFailure'),
         error,
       );
       this.errorHandlers.forEach((handler) => handler(appError));
@@ -219,7 +220,7 @@ export class UdpTransport {
   private async sendNow(data: Buffer, ip: string, port: number): Promise<void> {
     await new Promise<void>((resolve, reject) => {
       if (!this.socket) {
-        reject(new AppError('CONNECTION_LOST', 'Socket UDP nao inicializado.'));
+        reject(new AppError('CONNECTION_LOST', i18next.t('errors.udpSocketNotInitialized')));
         return;
       }
 
@@ -232,7 +233,7 @@ export class UdpTransport {
         settled = true;
         const appError = new AppError(
           'UDP_TIMEOUT',
-          `Timeout ao enviar pacote UDP para ${ip}:${port}.`,
+          i18next.t('errors.udpSendTimeout', { endpoint: `${ip}:${port}` }),
         );
         logUdpDiagnostic({
           event: 'send_timeout',
@@ -258,7 +259,7 @@ export class UdpTransport {
             port,
             nativeError: error,
           });
-          reject(toUdpAppError('UDP_TRANSPORT_ERROR', 'Falha ao enviar pacote UDP.', error));
+          reject(toUdpAppError('UDP_TRANSPORT_ERROR', i18next.t('errors.udpSendFailure'), error));
           return;
         }
 

@@ -1,0 +1,48 @@
+# BusGroups Bus Master Meter Rail Implementation
+
+Date: 2026-05-31 16:20:25
+
+## Summary
+
+Implemented `src/features/busGroups/.specs/feature/bus-master-meter-rail`.
+
+The BusGroups Bus Master now receives a transient live meter value for the selected BUS and renders it inside the existing central Bus Master fader rail. The existing rail width, height source, background color, fader thumb alignment, fader math, touch behavior, scroll lock, master mute/fader paths, MCA behavior, and BusMix meter streams were preserved.
+
+## Runtime Changes
+
+- Added `X32Protocol.getMeters2Path()` for `/meters/2`.
+- Added `decodeMeter2BlobForBusMaster(blob, busId)` using the same X32 count-header and float decoding path as BusMix meters.
+- Added `subscribeBusMasterMeter(busId, listener)` to `MixerControlProvider`.
+- Added Bus Master meter simulation to mock and demo providers.
+- Added `X32BusGroupsService.subscribeToBusMasterMeter`, which:
+  - listens on `/meters/2`;
+  - requests `/meters` with `['/meters/2']`;
+  - renews every `8000ms`;
+  - decodes `busId - 1`;
+  - cleans up interval and OSC listener.
+- Added transient `masterMeterDbfs` state to `useBusGroups`.
+- Passed `masterMeterDbfs` only through `BusGroupsScreen -> MasterStrip -> GroupStrip -> VerticalGroupFader`.
+- Rendered passive green/yellow/red continuous meter fill inside the existing master rail.
+
+## Tests
+
+Passed:
+
+- `yarn jest __tests__/shared/osc/X32Protocol.test.ts --runInBand`
+- `yarn jest __tests__/features/busMix/utils/meterDecoder.test.ts --runInBand`
+- `yarn jest __tests__/features/busGroups/services/X32BusGroupsService.test.ts --runInBand`
+- `yarn jest __tests__/features/busGroups/hooks/useBusGroups.test.ts --runInBand`
+- `yarn tsc`
+- `yarn jest __tests__/features/busGroups --runInBand`
+- `yarn jest __tests__/features/busMix --runInBand`
+- `git diff --check`
+
+## Pending
+
+Real-console UAT remains pending because this environment does not have physical X32/M32 hardware. Required manual validation:
+
+- BUS 1 meter maps to BUS 1.
+- BUS 8 meter maps to BUS 8.
+- BUS 9 meter maps to BUS 9 and validates the 8/9 boundary.
+- BUS 16 meter maps to BUS 16.
+- BusMix CH/AUX/FX meters still move after visiting BusGroups.

@@ -1,0 +1,22 @@
+BusGroups GroupStrip ternary refactor
+Date: 2026-05-31
+
+Scope
+- Refactor `GroupStrip` conditional rendering/style decisions away from inline ternary operators.
+
+Changes
+- Added auxiliary helpers for master/MCA style selection, compact height defaults, pressed state, colors, and assignment text rendering.
+- Replaced inline ternary expressions in `GroupStrip` render flow with named helper functions.
+- Kept the recent MCA dB label font-fit adjustment.
+
+Preserved
+- Bus Master and MCA visual behavior.
+- Fader behavior.
+- Mute behavior.
+- BusGroups hooks, services, storage, and BusMix integration.
+
+Verification
+- `rg -n "\\?.*:" src/features/busGroups/components/GroupStrip.tsx`: only TypeScript optional prop markers remain.
+- `yarn tsc`: passed.
+- `yarn jest __tests__/features/busGroups --runInBand`: passed, 2 suites / 10 tests.
+- `git diff --check`: passed.

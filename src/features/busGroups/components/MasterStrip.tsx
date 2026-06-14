@@ -7,6 +7,7 @@ type MasterStripProps = {
   compact?: boolean;
   dragSensitivity?: number;
   isMuted: boolean;
+  meterDbfs?: number;
   onFaderChange: (value: number) => void;
   onFaderInteractionEnd?: () => void;
   onFaderInteractionStart?: () => void;
@@ -21,6 +22,7 @@ export const MasterStrip = ({
   compact = false,
   dragSensitivity,
   isMuted,
+  meterDbfs,
   onFaderChange,
   onFaderInteractionEnd,
   onFaderInteractionStart,
@@ -35,6 +37,7 @@ export const MasterStrip = ({
     isMaster
     isMuted={isMuted}
     label={`BUS ${busId.toString().padStart(2, '0')}`}
+    meterDbfs={meterDbfs}
     name={busName}
     onFaderChange={onFaderChange}
     onFaderInteractionEnd={onFaderInteractionEnd}

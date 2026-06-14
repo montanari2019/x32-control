@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-05-24
+Last updated: 2026-06-05
 
 ## Workspace Type
 
@@ -8,7 +8,7 @@ Last updated: 2026-05-24
 - Monorepo: no evidence of monorepo structure.
 - Primary app: Tacimix mobile.
 - Spec placement: co-located mobile feature specs under `src/features/[feature]/.specs/`.
-- Root `.specs` is reserved for global project memory, brownfield mapping, and quick tasks.
+- Root `.specs` is reserved for global project memory, brownfield mapping, quick tasks, and global cross-cutting feature specs under `.specs/features/`.
 - User preference recorded 2026-05-24: create local `.specs` scaffolding inside each current feature and leave room for future feature specs.
 
 ## Preferences
@@ -19,6 +19,7 @@ Last updated: 2026-05-24
 - Keep a `feature/` folder inside each feature-local `.specs` directory as empty future scaffolding.
 - Use logs in `/logs` for meaningful technical changes.
 - Preserve user worktree changes; do not revert existing iOS plist/project changes unless explicitly requested.
+- Use `.specs/features/[feature-name]/` for app-wide features that cross all mobile feature folders.
 
 ## Current Project Status
 
@@ -32,7 +33,16 @@ Last updated: 2026-05-24
 - BusMix pan modal display has been implemented with a single signed numeric `-100..+100` readout and focused pan conversion tests.
 - BusMix realtime console reactivity has been implemented for linked CH visual reflection, pan receive, and lightweight receive health. Real-console UAT remains pending in the connected emulator + X32 environment.
 - BusMix AUX/FX meter stability has been implemented for stream isolation. CH 01..32 meters remain the protected baseline; AUX/FX listeners now consume only the `/meters/13` stream instead of also receiving `/meters/1`.
-- BusMix remote fader subscription sync has been implemented at code level as a separate receive-path feature to address CH 17 changes made from the X32 app not mirroring in Tacimix until reload. The implementation preserves current sends and meters while adding scoped visible-fader `/subscribe` receive support. Real-console UAT remains pending.
+- BusMix remote fader subscription sync and remote fader fluidity/performance have been rolled back after user validation showed the app and meters were more fluid before those receive-path changes. Managed visible-fader `/subscribe` loops, scalar subscription infrastructure, and the follow-up coalescing/hysteresis layer were removed. BusMix now uses the lighter exact-address receive model plus `/xremote` and background sync again.
+- iOS Local Network permission preflight must be preserved during any rollback. The permission prompt/preflight fixed first-console-discovery failures and is independent from the BusMix remote fader receive work.
+- BusMix fader cap visual refresh has been implemented as a visual-only change in `VerticalFader`: off-white skeuomorphic cap, recessed grooves, center calibration line, bevel/volume, and pressed shadow feedback. Gesture ownership, fader math, meters, OSC, and rollback behavior were preserved.
+- BusMix pan modal slider consistency/performance has been fixed with a deterministic local pan control. The modal no longer relies on the uncontrolled native slider for pan position and no longer sends pan OSC on every drag tick; it commits on release or Center.
+- BusMix `fader-meter-single-rail` has been implemented. The separate side meter and central fader track were collapsed into a single meter/fader rail by rendering the live meter in the old central track position. Follow-up density work reduced BusMix channel strips from `86` to `71` px with matching FlatList item layout, targeting about 5.5 visible channels on wider portrait phones. Thumb-only drag, fader math, meter subscriptions, OSC behavior, AUX/FX meter isolation, linked pressed feedback, and current rollback decisions were preserved. Manual visual/gesture runtime validation remains pending.
+- BusMix presets modal now occupies 95% width and 95% height, with its preset list filling the remaining modal space instead of being capped to 320 px.
+- BusGroups spec `bus-master-meter-rail` has been implemented. The source is X32/M32 `/meters/2` Mix Bus meter data, decoded at `busId - 1`, rendered inside the existing Bus Master central rail while preserving rail dimensions/background, fader/mute behavior, MCA behavior, and BusMix meter streams. Hardware UAT remains pending.
+- BusGroups Bus Master meter lifecycle was tightened after return-from-Channels validation: the meter now pauses while BusGroups is unfocused and resubscribes to `/meters/2` immediately when the user returns, preventing stale/frozen master meter telemetry.
+- BusGroups spec `fader-thumb-busmix-style` has been implemented. BusMix's physical fader cap is now a shared visual component, BusMix keeps the neutral thumb style, and BusGroups Bus Master/MCA faders use the same cap with master/MCA-colored palettes. Manual visual UAT remains pending.
+- Global feature spec `app-internationalization` has been planned under `.specs/features/app-internationalization/`. Scope: localize app-owned UI copy from device/app locale for `en`, `pt-BR`, and `es`, while preserving reserved terms such as `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, `UDP`, and user/console-provided data.
 
 ## Cross-Feature Decisions
 
@@ -50,6 +60,7 @@ Last updated: 2026-05-24
 - iOS physical-device discovery can still be blocked by Wi-Fi/VLAN, Local Network privacy, or multicast/broadcast platform behavior.
 - Manual IP validation exists in services but is not exposed in current ConsoleDiscovery UI.
 - Real meter indexing for all AUX/FX combinations should be validated against physical console firmware.
+- Real meter indexing for BusGroups Bus Master `/meters/2` should be validated against physical X32/M32 firmware before the feature is marked hardware-complete.
 - `UIBackgroundModes=audio` needs product/legal/review justification.
 
 ## Deferred Ideas
@@ -61,7 +72,10 @@ Last updated: 2026-05-24
 - Release checklist linked to iOS/Android build artifacts.
 - Real-console UAT for BusMix realtime linked-channel reactivity once X32/M32 hardware is available.
 - Real-console UAT for BusMix AUX/FX meter stability once X32/M32 hardware is available; automated stream isolation is already implemented.
+- Real-console UAT for BusGroups Bus Master meter rail on BUS 1, 8, 9, and 16 once X32/M32 hardware is available.
 - Real-console UAT for BusMix remote fader subscription sync, specifically CH 17 same-BUS send-level changes from the X32 official app versus main channel fader changes.
+- Real-console UAT for BusMix remote fader fluidity/performance after receive-path optimization, measuring latency, packet rate, applied update rate, and fader settle behavior on modest device/emulator conditions.
+- Manual iOS/Android locale UAT for global app internationalization in `en`, `pt-BR`, and `es`.
 
 ## Recent Session Notes
 
@@ -78,3 +92,23 @@ Last updated: 2026-05-24
 - 2026-05-24: Planned BusMix spec `remote-fader-subscription-sync` using local code analysis plus X32 OSC research. Key decision: current `OscClient.subscribe` is only local dispatch, so visible BusMix faders need managed X32 `/subscribe` renewal for source send-level paths. First task must distinguish `/ch/17/mix/fader` from `/ch/17/mix/{bus}/level` before implementation.
 - 2026-05-24: Implemented BusMix spec `remote-fader-subscription-sync`. Added managed scalar `/subscribe` support in `OscClient`, BusMixService send-level subscription method, visible fader subscription hook, BusMixScreen visibility wiring, and fader subscription health diagnostics. Automated BusMix, BusGroups, shared OSC focused tests, and TypeScript passed. Manual CH 17 UAT remains pending.
 - 2026-05-24: Full `yarn jest --runInBand` after `remote-fader-subscription-sync` failed only on 3 pre-existing/NetworkScanner timeout cases; BusMix, BusGroups, shared OSC, shared utils, and X32 suites passed in that full run.
+- 2026-05-25: Planned BusMix spec `remote-fader-fluidity-performance` following `docs/skills/tlc-spec-driven`. External research focused on Mixing Station X32 network traffic guidance, X32 OSC subscription behavior, UDP/buffer pressure, and React Native frame/JS-thread performance. Key decision: optimize by bounding the receive-to-render path, not by broad polling or changing fader UI. Tasks now cover baseline measurement, conservative `/subscribe` tuning, packet coalescing, `requestAnimationFrame` flush, batched store updates, stale echo suppression, visibility hysteresis, diagnostics, non-regression gates, and real-console UAT.
+- 2026-05-25: Implemented BusMix spec `remote-fader-fluidity-performance` code path. Added BusMix-specific `/subscribe` time factor 20, remote fader packet coalescer, visibility subscription hysteresis, frame-aligned flush, batched linked remote fader reducer, stale echo suppression, and extended diagnostics. Automated gates passed: BusMix, BusGroups, shared OSC, focused utility/service tests, and TypeScript. Real-console numeric baseline/UAT remains pending.
+- 2026-05-25: Planned rollback spec `remote-fader-sync-rollback-performance-restore` after user reported older build/version felt more fluid overall and meters were smoother. Product decision: `remote-fader-subscription-sync` and `remote-fader-fluidity-performance` should be treated as undone targets pending implementation rollback. Preserve Local Network permission preflight, AUX/FX meter stability, local fader sends, and unrelated UX fixes.
+- 2026-05-25: Created BusMix visual task/spec `fader-knob-skeuomorphic-refresh` for restyling the `VerticalFader` thumb into an off-white physical fader cap with recessed grooves, center calibration line, bevels, 3D lighting, and projected shadow. Scope is visual-only; do not touch meters, OSC, fader math, or rollback/performance work.
+- 2026-05-25: Implemented rollback spec `remote-fader-sync-rollback-performance-restore`. Removed `useBusMixRemoteFaderSubscription`, `BusMixService.subscribeChannelLevelUpdates`, `OscClient.subscribeScalarValue`, X32 scalar subscription helpers/defaults, remote fader coalescing, fader subscription scope hysteresis, and associated tests. Restored BusMix lightweight `service.onLevel` receive path. Preserved Local Network permission preflight, AUX/FX meter stability, local fader sends, and linked realtime helpers. Gates passed: BusMix, BusGroups, shared OSC, shared network with timeout 10000, TypeScript, plist lint, and `git diff --check`.
+- 2026-05-25: Implemented BusMix spec `fader-knob-skeuomorphic-refresh`. Updated only `VerticalFader` visual styling with a stable centered skeuomorphic cap and pressed shadow state. Gates passed: `yarn tsc` and `yarn jest __tests__/features/busMix --runInBand`.
+- 2026-05-25: Extended BusMix fader pressed visual feedback to linked channel peers. Pressing/dragging one linked fader now also dims the linked peer cap visually, while preserving existing fader value propagation and OSC send behavior.
+- 2026-05-25: Planned and implemented BusMix spec `pan-modal-slider-consistency-performance`. External references checked: `@react-native-community/slider` value semantics and X32/M32 OSC pan ranges. Replaced the pan modal native slider with a local deterministic control, added pan slider mapping tests, and changed pan drag to send only on release/Center. Gates passed: focused pan tests, BusMix tests, and TypeScript.
+- 2026-05-25: Applied follow-up pan modal drag stability fix after user validation found the new slider jumped between positions. Drag now uses initial value plus `gestureState.dx` instead of move-time `locationX`, preventing nested slider layers from changing the coordinate basis.
+- 2026-05-31: Planned BusMix spec `fader-meter-single-rail` using `docs/skills/tlc-spec-driven` and local project docs as the source of truth. Created spec/design/tasks under `src/features/busMix/.specs/feature/fader-meter-single-rail/`. External research was not necessary because this is a local React Native fader/meter composition change and existing docs already cover meter protocol and project conventions.
+- 2026-05-31: Implemented BusMix spec `fader-meter-single-rail`. Added a passive custom rail slot to `VerticalFader`, moved `ChannelVuMeter` into that rail from `ChannelStrip`, removed the separate side meter column for BusMix strips, and kept no-meter placeholders aligned. Gates passed: `yarn tsc`, `yarn jest __tests__/features/busMix --runInBand`, `yarn jest __tests__/features/busGroups --runInBand`, and `git diff --check`. Manual portrait/landscape and gesture validation remains pending.
+- 2026-05-31: Applied BusMix channel strip density follow-up for `fader-meter-single-rail`. Reduced channel strip/list item width to target about 5.5 visible channels on wider portrait phones and added one-line shrink protection to the dB label. Gates passed: `yarn tsc`, BusMix tests, and BusGroups tests.
+- 2026-05-31: Enlarged BusMix presets modal to 95% width and 95% height, removing the previous max width/list height caps so users have more room to interact with saved presets. Gates passed: `yarn tsc` and BusMix tests.
+- 2026-05-31: Planned BusGroups spec `bus-master-meter-rail` using `docs/skills/tlc-spec-driven`, local meter docs, current BusGroups code, and external X32/M32 meter references. Key decision: use `/meters/2` rather than `/meters/5` for the selected BUS master meter, preserve the existing master rail geometry/background/function, and require BusMix non-regression gates plus real-console UAT.
+- 2026-05-31: Implemented BusGroups spec `bus-master-meter-rail`. Added `/meters/2` protocol helper/decoder coverage, mock/demo Bus Master meter subscriptions, real `X32BusGroupsService` `/meters/2` renewal, transient `masterMeterDbfs` hook state, and passive meter fill inside the existing 5 px Bus Master rail. Gates passed: `yarn tsc`, BusGroups tests, BusMix tests, shared X32Protocol test, and `git diff --check`. Real-console UAT on BUS 1, 8, 9, and 16 remains pending.
+- 2026-05-31: Fixed BusGroups Bus Master meter freeze after navigating to Channels/BusMix and returning. `BusGroupsScreen` now passes route focus into `useBusGroups`; the hook pauses the master meter while unfocused, resets stale visual state, and resubscribes on focus. Gates passed: focused hook test, TypeScript, BusGroups tests, and BusMix tests.
+- 2026-06-01: Planned BusGroups spec `fader-thumb-busmix-style` using local `docs/skills` guidance and the existing BusMix `VerticalFader` as visual source of truth. Key decision: create a reusable visual-only fader thumb component from the BusMix physical cap, then colorize BusGroups Bus Master and MCA thumbs with their current master/MCA colors. No runtime implementation was performed in this planning step.
+- 2026-06-01: Implemented BusGroups spec `fader-thumb-busmix-style`. Added shared `FaderThumb`, deterministic colored thumb palette helper and tests, migrated BusMix `VerticalFader` to the shared neutral cap, and updated BusGroups `VerticalGroupFader` to use the same 32x52 physical cap with master/MCA color palettes. Gates passed: palette helper test, BusGroups tests, BusMix tests, TypeScript, and `git diff --check`. Manual portrait/compact visual UAT remains pending.
+- 2026-06-05: Planned global app internationalization spec following `docs/skills/tlc-spec-driven`. Created context/spec/design/tasks under `.specs/features/app-internationalization/`. External research used Apple Localization, Android localization/app-language docs, `react-native-localize`, `react-i18next`, i18next best practices, and React Native `I18nManager`. No implementation was performed.
+- 2026-06-05: Implemented global app internationalization. Added `i18next`/`react-i18next`/`react-native-localize`, locale resolution for `en`, `pt-BR`, and `es`, translation resources, reserved-term glossary, runtime foreground locale sync, localized app/shared/feature copy, native iOS/Android locale declarations, i18n guardrail tests, and README notes. Preserved reserved terms such as `Tacimix`, `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, and user/console data. Manual device UAT remains pending.

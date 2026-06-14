@@ -11,6 +11,7 @@ import { acquireSharedOscClient } from '@shared/osc/SharedOscClient';
 import type { SharedOscClientLease } from '@shared/osc/SharedOscClient';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { clamp } from '@shared/utils/clamp';
+import { decodeMeter2BlobForBusMaster } from '@features/busMix/utils/meterDecoder';
 import {
   BusGroupsState,
   McaAssignedChannel,
@@ -19,6 +20,7 @@ import {
 } from '../types/busGroups.types';
 
 const DCA_NUMBERS = [1, 2, 3, 4, 5, 6, 7, 8] as const;
+const METER_RENEW_INTERVAL_MS = 8000;
 const MCA_COLOR_TOKENS: Record<(typeof DCA_NUMBERS)[number], McaColorToken> = {
   1: 'red',
   2: 'green',
@@ -38,6 +40,11 @@ const asNumber = (message: OscMessage, fallback: number): number => {
 const asString = (message: OscMessage, fallback: string): string => {
   const value = message.args[0];
   return typeof value === 'string' && value.trim().length > 0 ? value : fallback;
+};
+
+const getBlobArg = (message: OscMessage): Uint8Array | null => {
+  const [first] = message.args;
+  return first instanceof Uint8Array ? first : null;
 };
 
 export const isChannelInDca = (dcaBitmask: number, dcaIndex: number): boolean => {
@@ -219,6 +226,44 @@ export class X32BusGroupsService {
     return this.client.subscribe(X32Protocol.getBusMasterOnPath(busId), (message) => {
       listener(asNumber(message, 1) === 0);
     });
+  }
+
+  subscribeToBusMasterMeter(busId: number, listener: (dbfs: number) => void): () => void {
+    if (this.useMockProvider) {
+      return this.mockProvider.subscribeBusMasterMeter(busId, listener);
+    }
+
+    let isActive = true;
+    const requestMeterStream = (): void => {
+      if (!isActive) {
+        return;
+      }
+
+      this.client
+        .send(X32Protocol.getMetersSubscribePath(), [X32Protocol.getMeters2Path()])
+        .catch(() => undefined);
+    };
+    const unsubscribe = this.client.subscribe(X32Protocol.getMeters2Path(), (message) => {
+      const blob = getBlobArg(message);
+      if (!blob) {
+        return;
+      }
+
+      listener(decodeMeter2BlobForBusMaster(blob, busId).preFadeDbfs);
+    });
+    const interval = setInterval(requestMeterStream, METER_RENEW_INTERVAL_MS);
+
+    requestMeterStream();
+
+    return () => {
+      if (!isActive) {
+        return;
+      }
+
+      isActive = false;
+      clearInterval(interval);
+      unsubscribe();
+    };
   }
 
   async setDcaFader(dcaNumber: number, value: number): Promise<void> {

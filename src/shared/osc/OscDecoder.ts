@@ -1,5 +1,6 @@
 import { Buffer } from 'buffer';
 import { AppError } from '@shared/errors/AppError';
+import { i18next } from '@shared/i18n';
 import { OscArg, OscDecodedPacket } from './OscMessage';
 
 const nextOffset = (offset: number): number => offset + ((4 - (offset % 4)) % 4);
@@ -8,7 +9,7 @@ const readOscString = (buffer: Buffer, offset: number): { value: string; offset:
   const end = buffer.indexOf(0, offset);
 
   if (end === -1) {
-    throw new AppError('INVALID_OSC_RESPONSE', 'String OSC sem terminador nulo.');
+    throw new AppError('INVALID_OSC_RESPONSE', i18next.t('errors.invalidOscString'));
   }
 
   const value = buffer.toString('utf8', offset, end);
@@ -21,13 +22,13 @@ export class OscDecoder {
     const address = readOscString(buffer, 0);
 
     if (!address.value.startsWith('/')) {
-      throw new AppError('INVALID_OSC_RESPONSE', 'Endereço OSC inválido.');
+      throw new AppError('INVALID_OSC_RESPONSE', i18next.t('errors.invalidOscAddress'));
     }
 
     const typeTags = readOscString(buffer, address.offset);
 
     if (!typeTags.value.startsWith(',')) {
-      throw new AppError('INVALID_OSC_RESPONSE', 'Type tag OSC inválida.');
+      throw new AppError('INVALID_OSC_RESPONSE', i18next.t('errors.invalidOscTypeTag'));
     }
 
     let offset = typeTags.offset;
@@ -72,7 +73,7 @@ export class OscDecoder {
         continue;
       }
 
-      throw new AppError('INVALID_OSC_RESPONSE', `Type tag OSC não suportada: ${tag}`);
+      throw new AppError('INVALID_OSC_RESPONSE', i18next.t('errors.unsupportedOscTypeTag', { tag }));
     }
 
     return { address: address.value, args };

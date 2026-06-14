@@ -1,0 +1,49 @@
+# BusGroups Bus Master Meter Rail Planning
+
+Date: 2026-05-31 16:09:11
+
+## Request
+
+Plan a BusGroups improvement following `docs/skills/tlc-spec-driven`: show the real console audio meter for the selected BUS master inside the current Bus Master central bar. The current bar must keep the same width, height, background color, fader thumb alignment, fader/mute behavior, and overall screen alignment. No regression is acceptable.
+
+## Files Created
+
+- `src/features/busGroups/.specs/feature/bus-master-meter-rail/spec.md`
+- `src/features/busGroups/.specs/feature/bus-master-meter-rail/design.md`
+- `src/features/busGroups/.specs/feature/bus-master-meter-rail/tasks.md`
+
+## State Updated
+
+- `src/features/busGroups/.specs/STATE.md`
+- `.specs/project/STATE.md`
+
+## Technical Research Summary
+
+- Existing BusMix meter fix docs confirm Tacimix must request X32 meter streams via `/meters` with a string argument such as `/meters/1`, not by sending raw `/meters/1`.
+- Existing BusMix decoder already handles the X32 blob payload shape used in the project: 4-byte little-endian count header followed by little-endian float values.
+- X32/M32 meter references indicate `/meters/2` is the Mix Bus meters stream and its first 16 floats are BUS master level meters.
+- `/meters/5` is surface VU-meter oriented and parameterized by surface group/bank, so it is not the first-choice source for a fixed selected BUS master in Tacimix.
+- The implementation should decode selected BUS meter value as index `busId - 1`.
+
+## Sources Checked
+
+- Local: `docs/global/x32-control-busmix-meter-real-x32-protocolo-fix.md`
+- Local: `src/features/busMix/hooks/useMeterSubscription.ts`
+- Local: `src/features/busMix/utils/meterDecoder.ts`
+- Local: `src/features/busGroups/services/X32BusGroupsService.ts`
+- Local: `src/features/busGroups/components/VerticalGroupFader.tsx`
+- External: `https://www.manualowl.com/m/Behringer/DIGITAL-MIXER-X32/Manual/463697?page=50`
+- External: `https://www.z80ne.com/behringer/docs/X32-OSC%20v.4.0.pdf`
+- External: `https://stackoverflow.com/questions/79628962/how-to-access-meters-on-behringer-x32`
+- External: `https://dev-core.org/ms-docs/mixers/behringer/x32/`
+- External: `https://github.com/SkippyWeb/X32-Behringer-Tools`
+
+## Planned Gates
+
+- `yarn tsc`
+- `yarn jest __tests__/features/busGroups --runInBand`
+- `yarn jest __tests__/features/busMix --runInBand`
+- `yarn jest __tests__/shared/osc/X32Protocol.test.ts --runInBand`
+- `git diff --check`
+
+Real-console UAT remains required for BUS 1, 8, 9, and 16 before the future implementation should be considered hardware-validated.
