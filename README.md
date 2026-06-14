@@ -516,7 +516,6 @@ Configurações iOS relevantes:
 - `NSBonjourServices` com `_osc._udp`;
 - `NSAllowsLocalNetworking=true`;
 - `ITSAppUsesNonExemptEncryption=false`;
-- `UIBackgroundModes=audio`;
 - orientações habilitadas:
   - portrait;
   - landscape left;
@@ -524,8 +523,8 @@ Configurações iOS relevantes:
 
 Ponto de atenção para App Review:
 
-- `UIBackgroundModes=audio` deve permanecer apenas se o uso em background for
-  justificável na submissão.
+- `UIBackgroundModes=audio` não deve ser declarado enquanto o app não tiver
+  reprodução/gravação de áudio persistente em background.
 
 Ponto de atenção para descoberta iOS:
 
@@ -671,7 +670,8 @@ docs/skills/
   na mesma rede/sub-rede da mesa.
 - Broadcast/multicast em iOS pode exigir entitlement específico para máxima
   confiabilidade.
-- `UIBackgroundModes=audio` precisa de justificativa real para App Review.
+- O app não declara `UIBackgroundModes=audio`; só reative se houver áudio
+  persistente real e justificável para App Review.
 - Presets e MCAs são locais ao dispositivo, não sincronizados em nuvem.
 - O armazenamento atual usa AsyncStorage, não Keychain/Keystore criptografado.
 - Meters dependem do formato de blob retornado pelo firmware da mesa.
@@ -702,6 +702,7 @@ Antes de release:
 - rodar `yarn test`;
 - rodar `yarn lint`;
 - validar `plutil -lint ios/Tacimix/Info.plist`;
-- revisar justificativa de background audio;
+- confirmar que `UIBackgroundModes=audio` segue ausente, salvo se houver recurso
+  real de áudio em background;
 - revisar build number e marketing version;
 - gerar build iOS/Android em configuração de distribuição.
