@@ -5,12 +5,14 @@ import { OscMessage } from '@shared/osc/OscMessage';
 import { X32Protocol } from '@shared/osc/X32Protocol';
 import { ConsoleDevice } from '@features/consoleDiscovery/types/ConsoleDevice';
 import { Buffer } from 'buffer';
+import { Platform } from 'react-native';
 import { i18next } from '@shared/i18n';
 import {
   getNativeBroadcastAddresses,
   getNativeNetworkInterfaces,
   NativeNetworkInterface,
 } from './NativeNetworkInterfaces';
+import { logUdpDiagnostic } from './UdpDiagnostics';
 import { UdpTransport } from './UdpTransport';
 
 const FALLBACK_BROADCAST_ADDRESS = '255.255.255.255';
@@ -30,6 +32,12 @@ const encodeAddressOnly = (address: string): Buffer => {
 
 const getDiscoveryBroadcastAddresses = async (): Promise<string[]> => {
   const nativeBroadcasts = await getNativeBroadcastAddresses();
+  if (Platform.OS === 'android' && nativeBroadcasts.length === 0) {
+    logUdpDiagnostic({
+      event: 'android_native_broadcasts_unavailable',
+    });
+  }
+
   return [...new Set([...nativeBroadcasts, FALLBACK_BROADCAST_ADDRESS])];
 };
 
@@ -77,7 +85,21 @@ const getInterfaceHostAddresses = (networkInterface: NativeNetworkInterface): st
 
 const getUnicastDiscoveryAddresses = async (): Promise<string[]> => {
   const networkInterfaces = await getNativeNetworkInterfaces();
-  return [...new Set(networkInterfaces.flatMap(getInterfaceHostAddresses))];
+  if (Platform.OS === 'android' && networkInterfaces.length === 0) {
+    logUdpDiagnostic({
+      event: 'android_native_interfaces_unavailable',
+    });
+  }
+
+  const addresses = [...new Set(networkInterfaces.flatMap(getInterfaceHostAddresses))];
+
+  if (Platform.OS === 'android' && addresses.length === 0) {
+    logUdpDiagnostic({
+      event: 'android_unicast_candidates_unavailable',
+    });
+  }
+
+  return addresses;
 };
 
 const sleep = (delayMs: number): Promise<void> =>
@@ -129,37 +151,62 @@ export class NetworkScanner {
   async scanForConsoles(): Promise<ConsoleDevice[]> {
     const transport = this.transportFactory();
     const devices = new Map<string, ConsoleDevice>();
+    let unsubscribe: (() => void) | undefined;
 
-    await transport.bind(0, { broadcast: true });
-
-    const unsubscribe = transport.onMessage((message) => {
-      try {
-        const packet = OscDecoder.decode(message.data);
-        if (packet.address === X32Protocol.getInfoPath()) {
-          devices.set(
-            message.remoteAddress,
-            parseInfo(message.remoteAddress, X32Protocol.defaultPort, packet),
-          );
-        }
-      } catch {
-        // Discovery ignores non-OSC broadcast traffic on busy networks.
-      }
+    logUdpDiagnostic({
+      event: 'discovery_scan_start',
+      port: X32Protocol.defaultPort,
+      broadcast: true,
     });
 
     try {
+      logUdpDiagnostic({
+        event: 'discovery_bind_start',
+        port: X32Protocol.defaultPort,
+        broadcast: true,
+      });
+      await transport.bind(0, { broadcast: true });
+      logUdpDiagnostic({
+        event: 'discovery_bind_complete',
+        port: X32Protocol.defaultPort,
+        broadcast: true,
+      });
+
+      unsubscribe = transport.onMessage((message) => {
+        try {
+          const packet = OscDecoder.decode(message.data);
+          if (packet.address === X32Protocol.getInfoPath()) {
+            devices.set(
+              message.remoteAddress,
+              parseInfo(message.remoteAddress, X32Protocol.defaultPort, packet),
+            );
+          }
+        } catch {
+          // Discovery ignores non-OSC broadcast traffic on busy networks.
+        }
+      });
+
       const payload = encodeAddressOnly(X32Protocol.getInfoPath());
       const broadcasts = await getDiscoveryBroadcastAddresses();
       this.sendDiscoveryBatch(payload, transport, broadcasts);
 
-      await this.waitForResponses(devices, BROADCAST_RESPONSE_WAIT_MS);
+      await this.waitForResponses(devices, BROADCAST_RESPONSE_WAIT_MS, 'broadcast');
 
       if (devices.size === 0) {
+        logUdpDiagnostic({
+          event: 'discovery_no_response_after_broadcast',
+          timeoutMs: BROADCAST_RESPONSE_WAIT_MS,
+        });
         await this.sendUnicastDiscovery(payload, transport, devices);
-        await this.waitForResponses(devices, UNICAST_RESPONSE_WAIT_MS);
+        await this.waitForResponses(devices, UNICAST_RESPONSE_WAIT_MS, 'unicast');
       }
     } finally {
-      unsubscribe();
+      unsubscribe?.();
       transport.close();
+      logUdpDiagnostic({
+        event: 'discovery_scan_complete',
+        nativeError: { deviceCount: devices.size },
+      });
     }
 
     return [...devices.values()];
@@ -193,6 +240,12 @@ export class NetworkScanner {
     devices: Map<string, ConsoleDevice>,
   ): Promise<void> {
     const addresses = await getUnicastDiscoveryAddresses();
+    if (addresses.length === 0) {
+      logUdpDiagnostic({
+        event: 'discovery_unicast_skipped',
+      });
+      return;
+    }
 
     for (let index = 0; index < addresses.length; index += UNICAST_BATCH_SIZE) {
       if (devices.size > 0) {
@@ -206,6 +259,20 @@ export class NetworkScanner {
   }
 
   private sendDiscoveryBatch(payload: Buffer, transport: UdpTransport, addresses: string[]): void {
+    if (addresses.length === 0) {
+      return;
+    }
+
+    logUdpDiagnostic({
+      event: 'discovery_send_batch',
+      host: addresses[0],
+      port: X32Protocol.defaultPort,
+      nativeError: {
+        addressCount: addresses.length,
+        lastAddress: addresses[addresses.length - 1],
+      },
+    });
+
     addresses.forEach((address) => {
       transport.send(payload, address, X32Protocol.defaultPort).catch(() => undefined);
     });
@@ -214,7 +281,14 @@ export class NetworkScanner {
   private async waitForResponses(
     devices: Map<string, ConsoleDevice>,
     maxWaitMs: number,
+    phase: 'broadcast' | 'unicast',
   ): Promise<void> {
+    logUdpDiagnostic({
+      event: 'discovery_wait_start',
+      timeoutMs: maxWaitMs,
+      nativeError: { deviceCount: devices.size, phase },
+    });
+
     await new Promise<void>((resolve) => {
       // iOS can spend part of the first scan waiting for the Local Network permission prompt.
       let isSettled = false;
@@ -246,6 +320,12 @@ export class NetworkScanner {
           settle();
         }
       }, 50);
+    });
+
+    logUdpDiagnostic({
+      event: 'discovery_wait_end',
+      timeoutMs: maxWaitMs,
+      nativeError: { deviceCount: devices.size, phase },
     });
   }
 }
