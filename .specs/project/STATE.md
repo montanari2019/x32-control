@@ -1,6 +1,6 @@
 # Tacimix Global State
 
-Last updated: 2026-06-05
+Last updated: 2026-06-19
 
 ## Workspace Type
 
@@ -43,6 +43,8 @@ Last updated: 2026-06-05
 - BusGroups Bus Master meter lifecycle was tightened after return-from-Channels validation: the meter now pauses while BusGroups is unfocused and resubscribes to `/meters/2` immediately when the user returns, preventing stale/frozen master meter telemetry.
 - BusGroups spec `fader-thumb-busmix-style` has been implemented. BusMix's physical fader cap is now a shared visual component, BusMix keeps the neutral thumb style, and BusGroups Bus Master/MCA faders use the same cap with master/MCA-colored palettes. Manual visual UAT remains pending.
 - Global feature spec `app-internationalization` has been planned under `.specs/features/app-internationalization/`. Scope: localize app-owned UI copy from device/app locale for `en`, `pt-BR`, and `es`, while preserving reserved terms such as `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, `UDP`, and user/console-provided data.
+- Android local-network permission audit was completed. Current Android OSC/UDP access does not require an iOS-style runtime Local Network prompt; the app already relies on manifest permissions `INTERNET`, `ACCESS_WIFI_STATE`, `ACCESS_NETWORK_STATE`, and `CHANGE_WIFI_MULTICAST_STATE`, and `LocalNetworkPermission` intentionally auto-grants on non-iOS platforms.
+- Android console discovery hardening was implemented on 2026-06-19. `UdpTransport.bind()` now time-bounds Android native broadcast confirmation and falls back to async `socket.setBroadcast(true)` instead of keeping discovery unresolved forever; `TacimixNetworkInfo` now also exists on Android so the shared scanner can reuse directed-broadcast and subnet-unicast fallback parity without changing iOS Local Network preflight behavior. Real-device Android/iOS discovery UAT remains pending.
 
 ## Cross-Feature Decisions
 
@@ -54,10 +56,15 @@ Last updated: 2026-06-05
 - MCA composition is local to device and console.
 - Fader writes are optimistic and protect local edits from delayed remote echo.
 - Toast/Dialog/Modal interactions should use the global `ModalProvider`.
+- Android should keep the current normal-permission network model; any future discovery hardening on Android should focus on native interface/broadcast enumeration rather than adding a runtime permission prompt.
+- Android console-discovery fixes must preserve iOS Local Network preflight and current iOS discovery hardening; treat Android bind/broadcast lifecycle changes as platform-specific unless shared behavior is proven safe.
+- Android discovery bind must never await broadcast confirmation indefinitely again; if native confirmation does not arrive promptly, continue through the bounded async fallback path and let the scanner settle normally.
+- `TacimixNetworkInfo` is now a discovery-scoped native bridge on both iOS and Android for IPv4 interface/netmask/broadcast enumeration only.
 
 ## Architectural Blockers
 
 - iOS physical-device discovery can still be blocked by Wi-Fi/VLAN, Local Network privacy, or multicast/broadcast platform behavior.
+- Real-device Android and iOS discovery UAT is still pending for the new Android bind timeout + async broadcast fallback + native interface parity path.
 - Manual IP validation exists in services but is not exposed in current ConsoleDiscovery UI.
 - Real meter indexing for all AUX/FX combinations should be validated against physical console firmware.
 - Real meter indexing for BusGroups Bus Master `/meters/2` should be validated against physical X32/M32 firmware before the feature is marked hardware-complete.
@@ -112,3 +119,6 @@ Last updated: 2026-06-05
 - 2026-06-01: Implemented BusGroups spec `fader-thumb-busmix-style`. Added shared `FaderThumb`, deterministic colored thumb palette helper and tests, migrated BusMix `VerticalFader` to the shared neutral cap, and updated BusGroups `VerticalGroupFader` to use the same 32x52 physical cap with master/MCA color palettes. Gates passed: palette helper test, BusGroups tests, BusMix tests, TypeScript, and `git diff --check`. Manual portrait/compact visual UAT remains pending.
 - 2026-06-05: Planned global app internationalization spec following `docs/skills/tlc-spec-driven`. Created context/spec/design/tasks under `.specs/features/app-internationalization/`. External research used Apple Localization, Android localization/app-language docs, `react-native-localize`, `react-i18next`, i18next best practices, and React Native `I18nManager`. No implementation was performed.
 - 2026-06-05: Implemented global app internationalization. Added `i18next`/`react-i18next`/`react-native-localize`, locale resolution for `en`, `pt-BR`, and `es`, translation resources, reserved-term glossary, runtime foreground locale sync, localized app/shared/feature copy, native iOS/Android locale declarations, i18n guardrail tests, and README notes. Preserved reserved terms such as `Tacimix`, `Presets`, `BUS`, `MCA`, `CH`, `AUX`, `FX`, `X32`, `M32`, `OSC`, and user/console data. Manual device UAT remains pending.
+- 2026-06-19: Audited Android local-network permission requirements. Decision: no iOS-style runtime permission flow is needed on Android for the current UDP/OSC path because the app already uses manifest permissions only and `LocalNetworkPermission` intentionally auto-grants outside iOS. Logged the decision and recorded the residual gap that Android native interface/broadcast enumeration is still absent, so unicast subnet fallback remains effectively iOS-only.
+- 2026-06-19: Investigated Android console discovery after user reported that search never exits on Android while iOS works. Local code analysis plus external `react-native-udp` research point to a likely bind-stage stall around Android `setBroadcast(...)` completion, with a separate secondary gap that Android still lacks the iOS native interface/broadcast enumeration helper. Created planned global spec `.specs/features/android-console-discovery-hardening/` with validation-first tasks and explicit iOS non-regression gates.
+- 2026-06-19: Implemented global spec `android-console-discovery-hardening`. Added Android-only bounded broadcast-confirmation fallback in `UdpTransport`, expanded `TacimixNetworkInfo` parity to Android native code, kept iOS Local Network preflight unchanged, tightened `NetworkScanner` cleanup/diagnostics, added focused shared-network tests plus Android Kotlin compile validation, and left only real-device Android/iOS discovery UAT and runtime logcat proof pending.

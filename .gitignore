@@ -28,6 +28,8 @@ C
 build/
 .idea
 .gradle
+android/.kotlin/
+android/.tmp/
 local.properties
 android/keystore.properties
 *.iml

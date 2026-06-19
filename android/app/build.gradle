@@ -103,7 +103,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
-        versionName "1.0"
+        versionName "1.0.0"
     }
     signingConfigs {
         debug {
@@ -113,16 +113,16 @@ android {
             keyPassword 'android'
         }
         homolog {
-            storeFile file(getSigningProperty('X32_HOMOL_STORE_FILE', 'X32_HOMOL_STORE_FILE', 'x32-control.keystore'))
-            storePassword getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD')
-            keyAlias getSigningProperty('X32_HOMOL_KEY_ALIAS', 'X32_HOMOL_KEY_ALIAS', 'androidhomolkey')
-            keyPassword getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD')
+            storeFile file(getSigningProperty('X32_HOMOLOG_STORE_FILE', 'X32_HOMOLOG_STORE_FILE', 'x32-control.keystore'))
+            storePassword getSigningProperty('X32_HOMOLOG_STORE_PASSWORD', 'X32_HOMOLOG_STORE_PASSWORD', getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD'))
+            keyAlias getSigningProperty('X32_HOMOLOG_KEY_ALIAS', 'X32_HOMOLOG_KEY_ALIAS', 'androidhomolkey')
+            keyPassword getSigningProperty('X32_HOMOLOG_KEY_PASSWORD', 'X32_HOMOLOG_KEY_PASSWORD', getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD'))
         }
         release {
             storeFile file(getSigningProperty('X32_RELEASE_STORE_FILE', 'X32_RELEASE_STORE_FILE', 'x32-control.keystore'))
-            storePassword getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD')
+            storePassword getSigningProperty('X32_RELEASE_STORE_PASSWORD', 'X32_RELEASE_STORE_PASSWORD', getSigningProperty('X32_STORE_PASSWORD', 'X32_STORE_PASSWORD'))
             keyAlias getSigningProperty('X32_RELEASE_KEY_ALIAS', 'X32_RELEASE_KEY_ALIAS', 'androidreleasekey')
-            keyPassword getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD')
+            keyPassword getSigningProperty('X32_RELEASE_KEY_PASSWORD', 'X32_RELEASE_KEY_PASSWORD', getSigningProperty('X32_KEY_PASSWORD', 'X32_KEY_PASSWORD'))
         }
     }
     flavorDimensions "environment"

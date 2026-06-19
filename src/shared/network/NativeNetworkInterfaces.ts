@@ -39,7 +39,7 @@ const isNativeNetworkInterface = (value: unknown): value is NativeNetworkInterfa
 };
 
 const getNetworkInfoModule = (): TacimixNetworkInfoModule | undefined => {
-  if (Platform.OS !== 'ios') {
+  if (Platform.OS !== 'ios' && Platform.OS !== 'android') {
     return undefined;
   }
 

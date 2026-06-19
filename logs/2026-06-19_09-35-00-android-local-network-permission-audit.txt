@@ -1,0 +1,55 @@
+Android local network permission audit
+Timestamp: 2026-06-19_09-35-00
+
+Context
+-------
+- User asked whether Android needs a network/Wi-Fi permission flow similar to iOS Local Network permission in order to discover and control X32/M32 consoles on the local network.
+- Goal: verify the real Android network path, implement any missing correction if needed, and persist the decision in logs and global state.
+
+Files reviewed
+--------------
+- `android/app/src/main/AndroidManifest.xml`
+- `src/shared/network/UdpTransport.ts`
+- `src/shared/network/LocalNetworkPermission.ts`
+- `src/shared/network/NativeNetworkInterfaces.ts`
+- `src/shared/network/NetworkScanner.ts`
+- `src/features/consoleDiscovery/services/ConsoleDiscoveryService.ts`
+
+Findings
+--------
+- Android already declares the manifest permissions used by the current network stack:
+  - `android.permission.INTERNET`
+  - `android.permission.ACCESS_WIFI_STATE`
+  - `android.permission.ACCESS_NETWORK_STATE`
+  - `android.permission.CHANGE_WIFI_MULTICAST_STATE`
+- The app does not use Android APIs that would require runtime permissions such as:
+  - `ACCESS_FINE_LOCATION`
+  - `ACCESS_COARSE_LOCATION`
+  - `NEARBY_WIFI_DEVICES`
+- `src/shared/network/LocalNetworkPermission.ts` is intentionally iOS-only:
+  - on non-iOS platforms it returns `{ granted: true, status: 'granted' }`
+  - therefore Android has no missing runtime prompt to implement for the current UDP/OSC path
+- `UdpTransport.bind()` always calls `ensureLocalNetworkPermission()`, but on Android that call is a no-op grant path by design.
+- Conclusion: no Android permission correction was required for local Wi-Fi/LAN access in the current app architecture.
+
+Important residual note
+-----------------------
+- Android does not currently have a native `TacimixNetworkInfo` module equivalent to iOS.
+- Because `src/shared/network/NativeNetworkInterfaces.ts` returns no native interfaces on Android, the subnet-targeted unicast discovery fallback in `NetworkScanner` is effectively iOS-only today.
+- This is not a permission problem; it is a platform capability gap for discovery hardening.
+- Current Android discovery still has:
+  - UDP broadcast send path
+  - fallback broadcast `255.255.255.255`
+  - Wi-Fi/multicast-related manifest permissions
+
+Action taken
+------------
+- No product code change was needed for Android permissions.
+- Recorded this audit in logs.
+- Updated global `.specs/project/STATE.md` so future sessions do not try to add an unnecessary Android permission prompt.
+
+Decision
+--------
+- Keep the current Android permission model.
+- Do not add iOS-style local network runtime permission handling on Android.
+- If Android discovery reliability later needs hardening, treat it as a network-interface/broadcast-address capability task, not a permission task.
