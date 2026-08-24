@@ -655,12 +655,13 @@ Cada log deve registrar:
 
 ```txt
 docs/global/
-docs/skills/
+.claude/skills/
 ```
 
 - `docs/global/`: auditorias e documentos maiores do projeto.
-- `docs/skills/`: guias reutilizáveis do projeto, em processo de alinhamento
-  ao padrão de Agent Skills.
+- `.claude/skills/`: skills do projeto no padrão Claude Agent Skills (cada uma
+  em sua própria pasta com um `SKILL.md`), descobertas automaticamente pelo
+  Claude Code.
 
 ## Limitações Conhecidas
 

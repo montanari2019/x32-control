@@ -25,6 +25,7 @@ This folder stores project skills in the filesystem-based Agent Skills shape: ea
 - [Log Economy Protocol](creating-logs/SKILL.md)
 - [Android Build AAB and APK](android-build-aab-apk/SKILL.md)
 - [Tech Lead's Club - Spec-Driven Development](tlc-spec-driven/SKILL.md)
+- [Liquid Glass Design System](liquid-glass-design-system/SKILL.md)
 
 ## Authoring Rules
 
