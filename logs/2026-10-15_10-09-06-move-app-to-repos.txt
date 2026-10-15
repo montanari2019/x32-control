@@ -1,0 +1,9 @@
+REFACTOR: MOVER APP P/ repos/x32-control
+
+Contexto: workspace estilo doninha; app inteiro deve ficar em repos/, externo = .claude/.doninha/.github/.vscode/.specs/docs/logs.
+Causa: n/a (reorg).
+Ação: mv src, android, ios, assets, scripts, __tests__, .husky, node_modules, configs (.env*, .eslintrc, .gitignore, babel/metro/jest/tsconfig, package*.json, yarn.lock, Gemfile*, README, app.json, index.js etc.) p/ repos/x32-control/. .git mantido na raiz; CLAUDE.md ganhou seção layout.
+Resultado: OK; git add -A detecta 306 renames + 204 novos (workspace), index resetado (nada staged).
+Arquivos: repos/x32-control/*; CLAUDE.md.
+Validação: tsc roda do novo path; 21 err só i18n (i18next/react-i18next/react-native-localize ausentes em node_modules, pré-existente).
+Pontos atenção: rodar yarn install em repos/x32-control; android/.gradle e ios/Pods podem ter paths antigos -> limpar cache (scripts/android-reset-gradle-cache.ps1); skills/.specs citam paths relativos src/ -> agora em repos/x32-control/src; DONINHA.md índice de repos ainda vazio; .git raiz vs repo aninhado a decidir.

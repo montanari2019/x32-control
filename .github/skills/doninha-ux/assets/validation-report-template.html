@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<!--
+  Relatório de Validação de Design UX — template esqueleto.
+
+  Este arquivo é um ponto de partida que a passagem de síntese preenche diretamente. Não há
+  motor de substituição. O LLM:
+    1. Lê {doc_workspace}/review-rubric.md e cada review-{slug}.md dos
+       revisores adicionais.
+    2. Copia este esqueleto.
+    3. Substitui o conteúdo placeholder (tudo entre os marcadores TEMPLATE)
+       pelo review consolidado, preservando a estrutura e o CSS.
+    4. Escreve o resultado em {doc_workspace}/validation-report.html.
+    5. Escreve um arquivo markdown equivalente em {doc_workspace}/validation-report.md.
+
+  Regras visuais que o LLM deve preservar:
+    - A largura do container, os tokens de cor, a tipografia.
+    - Uma dimensão = um <section class="dimension"> colapsável.
+    - O pill de veredicto usa a classe verdict-* correspondente ao seu julgamento.
+    - O badge de severidade usa a classe badge-sev-* correspondente ao seu nível.
+    - Cada revisor adicional (acessibilidade, adversarial, etc.) recebe sua própria
+      seção colapsável abaixo das dimensões da rubrica.
+    - O rodapé sempre exibe os caminhos dos artefatos e o timestamp.
+-->
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<title>Validação de Design UX: TEMPLATE_UX_SPEC_NAME</title>
+<style>
+  :root {
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e7e5e4;
+    --text: #1c1917;
+    --muted: #78716c;
+
+    --verdict-strong: #16a34a;
+    --verdict-adequate: #65a30d;
+    --verdict-thin: #d97706;
+    --verdict-broken: #dc2626;
+
+    --sev-low: #64748b;
+    --sev-medium: #ca8a04;
+    --sev-high: #ea580c;
+    --sev-critical: #dc2626;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+    font-size: 15px;
+  }
+  .container { max-width: 960px; margin: 0 auto; padding: 32px 24px 64px; }
+
+  header.report-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 24px;
+  }
+  .title h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.01em; }
+  .title .subtitle { color: var(--muted); font-size: 13px; margin-top: 4px; font-family: ui-monospace, "SF Mono", Menlo, monospace; }
+
+  .synthesis {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--muted);
+    border-radius: 8px;
+    padding: 18px 22px;
+    margin-bottom: 24px;
+    font-size: 15.5px;
+  }
+  .synthesis p { margin: 0 0 10px; }
+  .synthesis p:last-child { margin-bottom: 0; }
+
+  .dimension-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin-bottom: 24px;
+  }
+  .dim-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .dim-card .dim-name { font-size: 13px; color: var(--muted); margin-bottom: 6px; }
+  .dim-card .dim-verdict { font-size: 14px; font-weight: 600; }
+
+  section.dimension, section.reviewer-section { margin-bottom: 14px; }
+  section.dimension details, section.reviewer-section details {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  section summary {
+    padding: 14px 20px;
+    cursor: pointer;
+    user-select: none;
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  section summary::-webkit-details-marker { display: none; }
+  section summary::before {
+    content: "▸";
+    display: inline-block;
+    color: var(--muted);
+    transition: transform 0.15s ease;
+  }
+  section details[open] summary::before { transform: rotate(90deg); }
+  section summary h2 {
+    display: inline;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.005em;
+    flex: 1;
+  }
+  .verdict-pill {
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: white;
+  }
+  .verdict-strong { background: var(--verdict-strong); }
+  .verdict-adequate { background: var(--verdict-adequate); }
+  .verdict-thin { background: var(--verdict-thin); }
+  .verdict-broken { background: var(--verdict-broken); }
+
+  .dim-body { padding: 4px 20px 18px; }
+  .dim-judgment { color: var(--text); font-size: 14.5px; }
+  .dim-judgment p { margin: 0 0 10px; }
+
+  .findings-list { padding: 0 20px 4px; }
+  article.finding {
+    padding: 14px 0;
+    border-top: 1px solid var(--border);
+  }
+  article.finding:first-child { border-top: none; }
+  article.finding header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 6px;
+  }
+  .badge {
+    font-size: 10.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    line-height: 1.4;
+  }
+  .badge-sev-low { background: rgba(100, 116, 139, 0.12); color: var(--sev-low); }
+  .badge-sev-medium { background: rgba(202, 138, 4, 0.14); color: var(--sev-medium); }
+  .badge-sev-high { background: rgba(234, 88, 12, 0.14); color: var(--sev-high); }
+  .badge-sev-critical { background: rgba(220, 38, 38, 0.14); color: var(--sev-critical); }
+  .finding-title { margin: 0; font-size: 15px; font-weight: 500; flex: 1; min-width: 200px; }
+  .finding-location { font-family: ui-monospace, "SF Mono", Menlo, monospace; font-size: 12.5px; color: var(--muted); }
+  .finding-note, .finding-fix { margin-top: 6px; font-size: 14px; }
+  .finding-fix strong { color: var(--muted); font-weight: 500; }
+
+  .reviewer-source {
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+
+  .mechanical {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    margin-top: 24px;
+    font-size: 14px;
+  }
+  .mechanical h3 { margin: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  .mechanical ul { margin: 0; padding-left: 20px; }
+  .mechanical li { margin-bottom: 4px; color: var(--text); }
+
+  footer.report-footer {
+    margin-top: 40px;
+    padding-top: 16px;
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+    color: var(--muted);
+    font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  }
+  footer .meta { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- TEMPLATE: cabeçalho. Preencher com o nome e o caminho da spec UX. Sem nota geral —
+         os veredictos por categoria e as contagens de severidade abaixo compõem o quadro. -->
+    <header class="report-header">
+      <div class="title">
+        <h1>TEMPLATE_UX_SPEC_NAME — Relatório de Validação de Design UX</h1>
+        <div class="subtitle">TEMPLATE_UX_SPEC_PATH</div>
+      </div>
+    </header>
+
+    <!-- TEMPLATE: parágrafos de síntese geral. Extrair diretamente da seção
+         "Veredicto geral" do review-rubric.md; expandir se revisores adicionais
+         (acessibilidade, adversarial, etc.) alterarem materialmente o quadro.
+         Envolver cada parágrafo em <p>. -->
+    <div class="synthesis">
+      <p>TEMPLATE_SYNTHESIS_PARAGRAPH</p>
+    </div>
+
+    <!-- TEMPLATE: cards de resumo por dimensão. Um por categoria da rubrica, nesta
+         ordem canônica (de references/validate.md):
+           1. Cobertura de fluxo
+           2. Completude de tokens
+           3. Cobertura de componentes
+           4. Cobertura de estados
+           5. Cobertura de referência visual
+           6. Inchaço e superespecificação
+           7. Disciplina de herança
+           8. Adequação de forma
+         O texto de dim-verdict usa um dos seguintes valores: strong | adequate | thin | broken. -->
+    <div class="dimension-summary">
+      <div class="dim-card">
+        <div class="dim-name">TEMPLATE_CATEGORY_NAME</div>
+        <div class="dim-verdict" style="color: var(--verdict-TEMPLATE_VERDICT)">TEMPLATE_VERDICT_TEXT</div>
+      </div>
+      <!-- repetir para cada uma das oito categorias da rubrica -->
+    </div>
+
+    <!-- TEMPLATE: uma seção por categoria da rubrica, na mesma ordem canônica dos
+         cards de resumo acima. Omitir uma categoria inteiramente se o review da rubrica
+         a marcou como n/a para esta spec UX. Abrir a seção por padrão se o veredicto
+         for thin ou broken. -->
+    <section class="dimension">
+      <details open>
+        <summary>
+          <h2>TEMPLATE_CATEGORY_NAME</h2>
+          <span class="verdict-pill verdict-TEMPLATE_VERDICT">TEMPLATE_VERDICT_TEXT</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>TEMPLATE_DIMENSION_JUDGMENT</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <!-- TEMPLATE: zero ou mais achados -->
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-TEMPLATE_SEVERITY">TEMPLATE_SEVERITY</span>
+              <h3 class="finding-title">TEMPLATE_FINDING_TITLE</h3>
+              <span class="finding-location">TEMPLATE_LOCATION</span>
+            </header>
+            <div class="finding-note">TEMPLATE_FINDING_NOTE</div>
+            <div class="finding-fix"><strong>Correção:</strong> TEMPLATE_SUGGESTED_FIX</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- TEMPLATE: uma seção por revisor adicional que executou (acessibilidade,
+         adversarial, conformidade de marca, etc.). Omitir este bloco inteiramente se
+         apenas o percorredor de rubrica executou. -->
+    <section class="reviewer-section">
+      <details>
+        <summary>
+          <h2>Revisão de acessibilidade</h2>
+          <span class="reviewer-source">TEMPLATE_REVIEWER_SOURCE_FILE</span>
+        </summary>
+        <div class="dim-body">
+          <div class="dim-judgment">
+            <p>TEMPLATE_REVIEWER_PREAMBLE</p>
+          </div>
+        </div>
+        <div class="findings-list">
+          <article class="finding">
+            <header>
+              <span class="badge badge-sev-TEMPLATE_SEVERITY">TEMPLATE_SEVERITY</span>
+              <h3 class="finding-title">TEMPLATE_FINDING_TITLE</h3>
+              <span class="finding-location">TEMPLATE_LOCATION</span>
+            </header>
+            <div class="finding-note">TEMPLATE_FINDING_NOTE</div>
+            <div class="finding-fix"><strong>Correção:</strong> TEMPLATE_SUGGESTED_FIX</div>
+          </article>
+        </div>
+      </details>
+    </section>
+
+    <!-- TEMPLATE: notas mecânicas — curtas, em lista. Omitir se não houver nenhuma. -->
+    <div class="mechanical">
+      <h3>Notas mecânicas</h3>
+      <ul>
+        <li>TEMPLATE_MECHANICAL_NOTE</li>
+      </ul>
+    </div>
+
+    <footer class="report-footer">
+      <div class="meta">
+        <span>Rubrica: TEMPLATE_RUBRIC_PATH</span>
+        <span>Gerado em: TEMPLATE_TIMESTAMP</span>
+      </div>
+    </footer>
+  </div>
+</body>
+</html>

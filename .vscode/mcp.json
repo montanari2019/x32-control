@@ -1,0 +1,27 @@
+{
+    "servers": {
+        "doninha-mcp": {
+            "command": "npx",
+			"args": [
+				"-y",
+				"https://package.makuco.com.br/makuco-mcp/latest.tgz"
+			],
+ 			"envFile": "${workspaceFolder}/repos/x32-control/.env"
+        },
+        "doninha-docs-mcp": {
+            "type": "http",
+            "url": "https://mcp.docs.makuco.com.br/mcp",
+            "headers": {
+                "X-Product-Id": "${PRODUCT_ID}"
+            }
+        },
+        "context7": {
+            "type": "http",
+            "url": "https://mcp.context7.com/mcp/oauth"
+        },
+        "figma": {
+            "type": "http",
+            "url": "https://mcp.figma.com/mcp"
+        }
+    }
+}

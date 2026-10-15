@@ -1,0 +1,9 @@
+SETUP: AGENT MEMORIES + REGRA LOGS + TELEMETRIA OFF
+
+Contexto: pedido add agente memories em .claude, regra de log pós-task, desativar telemetria pós-prompt.
+Causa: n/a (setup).
+Ação: add .claude/agents/memories.md (memory: project -> .claude/agent-memory/memories/); add CLAUDE.md raiz c/ regra logs (skill creating-logs) + ref agente; remover 4 hooks makuco-telemetry-* (SessionStart/UserPromptSubmit/Stop/SessionEnd) de ~/.claude/settings.json; hooks caveman mantidos.
+Resultado: OK.
+Arquivos: .claude/agents/memories.md; CLAUDE.md; ~/.claude/settings.json.
+Validação: JSON settings parse OK; 0 refs telemetry nos hooks.
+Pontos atenção: ~/.makuco/config.yml ainda tem telemetry.endpoint; CLI makuco init pode reinstalar hooks. Backup settings no scratchpad. Hooks mudam só em nova sessão.

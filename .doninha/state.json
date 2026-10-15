@@ -1,0 +1,16 @@
+{
+  "version": "3.3.0",
+  "codegens": [
+    "vscode"
+  ],
+  "unit": "dgs-lughy",
+  "unitArtifacts": {
+    "skill/analista-de-negocios": {
+      "version": "0.1.2",
+      "digest": "6d3cf6829db3abd70f337af29eafaee5ed6523f6e7c57cf4b40b31ccf1ecee85",
+      "files": {
+        "skills/analista-de-negocios/SKILL.md": "fcc1808d109c050f3915f4c9aad515736f15aad124083759607c9afe406d97a2"
+      }
+    }
+  }
+}

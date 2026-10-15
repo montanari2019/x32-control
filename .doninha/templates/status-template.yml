@@ -1,0 +1,42 @@
+# status.yml — Source of truth for a feature's progress.
+# ONLY the doninha-copy-writer agent writes to this file. Main agents read it but never edit it.
+# Stage values (feature level): pending | in-progress | done
+# PBI stage values: pending | done   (except `review`)
+# review:           pending | approved | changes-requested
+# task values:      pending | review | done
+
+module: module_NNN_name
+feature: feature_NNN_name
+created_at: YYYY-MM-DD            # ISO date
+discovery_artifact: .doninha/docs/discovery/explorations/discovery_<slug>.md
+feature_prd_artifact: <path>                # opcional — escrito por doninha-copy-writer no stage `feature` (PRD de doninha-analisar), paralelo a discovery_artifact
+rca_artifact: <path>                        # opcional — escrito por doninha-copy-writer no stage `rca` (modo INVESTIGAÇÃO de doninha-analisar), paralelo aos dois acima
+
+# current_stage — estágio atual da feature/PBI no processo Doninha.
+# Valores feature-level (atualizado por doninha-copy-writer):
+#   pending | 1. Discovery | 2. Estruturação
+# Valores PBI-level (campo dentro de cada pbi-slug):
+#   pending | 3. Análise Req. | 4. Análise Téc. | 5. Planejamento |
+#   6. Implementação & Review | 7. Review | 8. Qualidade | 9. Deploy & Documentação
+current_stage: pending
+
+# Feature-level stages (run once per feature)
+stages:
+  discovery: pending
+  structure: pending
+
+# PBI-level stages (run once per PBI; different PBIs may progress in parallel).
+# The stage `pbi` (doninha-analisar, via doninha-copy-writer) seeds one entry per PBI here,
+# with all dev-stages below set to `pending` — this is the handoff point to doninha-desenvolver.
+pbis:
+  # <pbi-slug>:
+  #   current_stage: pending
+  #   business: pending
+  #   technical: pending
+  #   spec: pending
+  #   plan: pending
+  #   review: pending
+  #   documentation: pending
+  #   tasks:
+  #     task-01: pending
+  #     task-02: pending

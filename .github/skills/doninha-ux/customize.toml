@@ -1,0 +1,96 @@
+# DO NOT EDIT — overwritten on every update.
+#
+# Customization surface for the doninha-ux workflow.
+# To customize: edit this file directly.
+
+[workflow]
+
+# Steps run before/after the default activation. Append-only.
+activation_steps_prepend = []
+activation_steps_append = []
+
+# Optional persona. Empty by default — doninha-ux has no named persona and no
+# message-prefix icon. Leave unset for the neutral, professional default tone.
+# A team that wants a facilitator persona for standalone (interactive) use may
+# set a short descriptor here; it is ignored in headless runs.
+persona = ""
+
+# Run when the workflow completes. String or array of instructions.
+on_complete = ""
+
+# Reference DESIGN.md spines the distillation subagent reads to anchor form and
+# editorial richness. Conforms to the Google Labs DESIGN.md specification
+# (https://github.com/google-labs-code/design.md, Apache-2.0). Append entries via
+# an override TOML to pin a canonical house aesthetic.
+# Each entry: `file:PATH` (or a relative path, resolved relative to the skill).
+design_md_examples = [
+  "assets/design-example-mobile.md",
+  "assets/design-example-shadcn.md",
+]
+
+# Reference EXPERIENCE.md spines for the behavior/flow/IA layer.
+# Each entry: `file:PATH` (or a relative path, resolved relative to the skill).
+experience_md_examples = [
+  "assets/experience-example-mobile.md",
+  "assets/experience-example-shadcn.md",
+]
+
+# Design handoff targets — OPTIONAL external tools that can take over the design
+# and visual-identity work. Empty by default: no external producer is ever
+# mandatory. The user runs the external tool and saves the results (whatever the
+# output — DESIGN.md, design-tool files, components, HTML mocks) into
+# {doc_workspace}.
+# Each entry: `tool:NAME: <directive>`, `skill:NAME`, or a plain-text descriptor.
+# Optional producers a team may declare: HTML/mock generators, design-tool
+# exporters, component generators. Declare here; never depend on them hard.
+design_handoffs = []
+
+# HTML skeleton filled by the validation synthesis step.
+validation_report_template = "assets/validation-report-template.html"
+
+# Run folder. DESIGN.md, EXPERIENCE.md, .decision-log.md, .working/ (creative-tool
+# artifacts), imports/ (user-provided screens / brand decks / design exports /
+# sketches), optional mockups/ and wireframes/ (promoted artifacts), optional
+# validation-report.* — all live inside {ux_output_path}/{run_folder_pattern}/.
+# NOTE: when invoked by a caller (doninha-analisar / doninha-desenvolver), the
+# output path is the PBI folder supplied by the caller and these two values are
+# not used. They are the standalone (human-invoked) fallback only.
+ux_output_path = "ux-designs"
+run_folder_pattern = "ux-{slug}-{date}"
+
+# Creative-tools registry. Collaborative renderers invoked on demand during
+# Discovery and Finalize. Input forms: `file:PATH`, `skill:NAME`,
+# `tool:MCP_TOOL: <directive>`, or plain text. Defaults are self-contained
+# HTML/Excalidraw renderers with NO external MCP dependency: HTML color themes,
+# HTML design directions, Excalidraw wireframes (Discovery), and 1:1 HTML mocks
+# of key screens (Finalize). Working artifacts live in {doc_workspace}/.working/;
+# Finalize promotes the ones with lasting reference value to mockups/ or
+# wireframes/. See references/creative-tools.md.
+creative_tools = [
+  "file:assets/color-themes.md",
+  "file:assets/design-directions.md",
+  "file:assets/excalidraw-wireframe.md",
+  "file:assets/key-screens.md",
+]
+
+# Polish passes applied to DESIGN.md and EXPERIENCE.md in Finalize.
+# Entries: `skill:NAME`, `file:PATH`, or a plain-text directive.
+# Suggested order: structural → content/voice → prose mechanics.
+doc_standards = [
+]
+
+# Information-retrieval registry. Consulted on demand when the conversation
+# presents a matching need. Distinct from creative_tools (artifact production).
+# Example: "When researching component patterns, consult corp:design_system_search."
+external_sources = []
+
+# Routes outputs beyond local files at Finalize. Returned URLs/IDs are presented
+# to the user. Unavailable tools are skipped and flagged.
+# Example: "Upload DESIGN.md to the external doc store via corp:doc_upload (space='DESIGN')."
+external_handoffs = []
+
+# Reviewers instantiated in Finalize step 4 and in Validate intent, alongside the
+# rubric walker. Entries: `skill:NAME`, `file:PATH`, or plain text. Common ad-hoc
+# additions (judged by the skill): an accessibility-focused reviewer for
+# consumer-facing or regulated products.
+finalize_reviewers = []

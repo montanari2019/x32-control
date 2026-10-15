@@ -1,0 +1,9 @@
+FIX: BUILD APÓS MOVER APP P/ repos/x32-control
+
+Contexto: app movido p/ repos/x32-control; garantir builds sem falha.
+Causa: paths abs stale em android/app/build, android/build (autolinking.json), android/.gradle; core.hooksPath git apontava .husky/_ da raiz; .vscode/mcp.json envFile apontava .env da raiz; node_modules s/ i18next, react-i18next, react-native-localize (pré-existente).
+Ação: scripts/android-reset-gradle-cache.ps1 (limpa .gradle/build); rm .eslintcache; git config core.hooksPath repos/x32-control/.husky/_; mcp.json envFile -> repos/x32-control/.env; yarn install --frozen-lockfile.
+Resultado: OK. Configs do app já usavam paths relativos (settings.gradle, metro, babel, jest, tsconfig, scripts ps1) -> sem edição.
+Arquivos: .vscode/mcp.json; .git/config (hooksPath).
+Validação: tsc 0 err; gradlew projects OK (online); metro bundle android OK; jest 103/106 pass.
+Pontos atenção: NetworkScanner.test.ts 3 tests timeout 5s (timing, n/a paths); gradlew --offline falha (AGP 8.13.0 s/ cache); .nvmrc 24 vs node 22 local; assemble Android completo não rodado; iOS pod install só em macOS.

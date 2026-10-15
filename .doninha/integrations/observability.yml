@@ -1,0 +1,42 @@
+# Observabilidade e fontes de investigação (gerado pelo `doninha init`).
+#
+# Cada bloco é um PAPEL, não um produto: uma unidade usa OpenSearch + Grafana, outra usa
+# Datadog, outra não usa nada — e o texto das skills não muda, só este arquivo.
+#
+# Comentado = descoberta em runtime. Na primeira vez que precisar do papel, a skill procura
+# nos docs de codebase, sonda o ambiente, PERGUNTA ao usuário e GRAVA a resposta aqui —
+# então a pergunta acontece uma vez por projeto, não uma vez por sessão.
+#
+# SEGREDO NÃO FICA AQUI. Token, senha e chave vêm do ambiente ou do `.env`.
+#
+# Campos de cada papel:
+#   provider — nome livre da ferramenta (opensearch, datadog, loki, grafana, sentry...)
+#              ou `none` quando o projeto não tem esse papel
+#   access   — como se chega nela: 'mcp:<servidor>', 'cli:<binário>', 'url:<endpoint>',
+#              `manual` (alguém exporta e cola) ou `none`
+#   scope    — o recorte que a consulta precisa: índice, nome do serviço, id do dashboard
+#   notes    — o que o próximo run precisa saber, inclusive por que algo é `none`
+#
+# `provider: none` é resposta válida e deliberada: vira LACUNA declarada no laudo e teto
+# de confiança, nunca um silêncio.
+
+# source — o código, fixado num commit. Único papel obrigatório para investigar.
+# source: { provider: gitlab, access: 'cli:glab', scope: 'grupo/servico' }
+
+# tracker — o relato do bug, comentários e itens irmãos já fechados.
+# tracker: { provider: azure-devops, access: 'mcp:azure-devops' }
+
+# logs — qual linha emitiu a mensagem; o que mais falhou na janela.
+# logs: { provider: opensearch, access: 'mcp:opensearch', scope: '*logstash-v2*' }
+
+# metrics — throughput, latência, taxa de erro: acompanhou carga ou release?
+# metrics: { provider: grafana, access: 'mcp:grafana', scope: 'dash/gateway' }
+
+# code_index — fan-in, busca de símbolo, raio de impacto.
+# code_index: { provider: none }
+
+# runtime — thread/heap/profiler de um processo vivo ou capturado.
+# runtime: { provider: none }
+
+# edge — quem respondeu quando a aplicação não logou nada (proxy, gateway, ingress, WAF).
+# edge: { provider: nginx, access: manual, notes: 'config pedida ao time de infra' }

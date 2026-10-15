@@ -1,0 +1,4 @@
+interface:
+  display_name: "Backend Harness Engineer"
+  short_description: "Backend-work discipline: preserve the engineering harness on any backend change, with detail sourced from the project's own docs"
+  default_prompt: "Use doninha-backend for backend design and implementation work, applying the project's own conventions and harness gates from .doninha/docs/codebase/* and DONINHA.md."
