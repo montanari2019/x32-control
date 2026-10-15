@@ -102,9 +102,10 @@ Ao rodar `doninha init`, responda **"sim"** para "Usa Azure DevOps?" e informe:
 1. **Projeto**
 2. **Personal Access Token (PAT)** — perguntado apenas se o VSCode estiver entre as ferramentas selecionadas (o Claude não precisa de PAT)
 
-A **organização** não é perguntada: é fixa em `db1global`. Para apontar para outra
-organização, edite `org:` em `.doninha/integrations/azure-devops.yml` e o argumento
-da org nos `mcp.json` (`.mcp.json` e/ou `.vscode/mcp.json`).
+A **organização** não é perguntada: ela vem com um valor padrão fixo no fluxo de
+`init`. Para apontar para outra organização, edite `org:` em
+`.doninha/integrations/azure-devops.yml` e o argumento da org nos `mcp.json`
+(`.mcp.json` e/ou `.vscode/mcp.json`).
 
 O `init` já grava:
 
