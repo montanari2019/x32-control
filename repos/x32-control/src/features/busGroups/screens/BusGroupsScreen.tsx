@@ -80,7 +80,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const isCompactLayout = width > height;
   const {
     masterFaderRaw,
-    masterMeterDbfs,
+    masterMeterStore,
     masterMuted,
     mcas,
     availableChannels,
@@ -205,7 +205,11 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
         {isLoading ? <LoadingState label={t('busGroups.loading')} /> : null}
         {!isLoading && error ? (
           <View style={styles.errorBlock}>
-            <ErrorState message={error} actionLabel={t('common.actions.reload')} onAction={reload} />
+            <ErrorState
+              message={error}
+              actionLabel={t('common.actions.reload')}
+              onAction={reload}
+            />
           </View>
         ) : null}
 
@@ -233,7 +237,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                 compact={isCompactLayout}
                 dragSensitivity={isCompactLayout ? LANDSCAPE_FADER_DRAG_SENSITIVITY : undefined}
                 isMuted={masterMuted}
-                meterDbfs={masterMeterDbfs}
+                meterStore={masterMeterStore}
                 onFaderChange={setMasterFader}
                 onFaderInteractionEnd={handleFaderInteractionEnd}
                 onFaderInteractionStart={handleFaderInteractionStart}

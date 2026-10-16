@@ -1,7 +1,7 @@
 # Spec - BusGroups Master Fader Drag Stability
 
 Date: 2026-10-15
-Status: planned (analysis only, no code changed)
+Status: done 2026-10-15 (root cause: master dB label without fixed lineHeight; Android and iOS confirmed by the user)
 Scope: `src/features/busGroups` (Bus Master fader), shared fader helpers only if proven necessary
 
 ## Problem
@@ -61,31 +61,38 @@ Reported on the BusGroups ("Personal Mix Grupos") screen, Bus Master fader:
 ## Requirements
 
 REQ-001: Smooth Android drag
+
 - Dragging the Bus Master fader on a physical Android device against a real
   console must move thumb, scale and meter without visible jitter.
 
 REQ-002: No fight with remote values
+
 - While the user is dragging the master fader, remote/echoed fader values must
   not move the thumb. After release, the final local value must win for a short
   protection window and then the console value is accepted.
 
 REQ-003: Bounded OSC send rate
+
 - The master fader must send a bounded rate of OSC messages while dragging and
   always send the final value on release.
 
 REQ-004: Isolated re-render cost
+
 - Meter updates and fader moves must not re-render unrelated strips or the whole
   screen on every frame.
 
 REQ-005: iOS touch/scroll safety
+
 - On iOS, horizontal scroll over the master strip must scroll the strip, and an
   accidental touch must not change the value. Fine adjustment must be possible.
 
 REQ-006: Non-regression
+
 - MCA faders, BusMix faders, meter behavior, mute, mca proportional logic, demo
   console and landscape layout stay unchanged unless a task says otherwise.
 
 REQ-007: Evidence first
+
 - No behavior change is merged before the cause is proven with captured evidence
   (profiler or timing logs, logcat) on the physical Android device.
 

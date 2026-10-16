@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: FIX TREMOR (LINEHEIGHT FIXO NO ROTULO DB)
+
+Contexto: tremor do fader Bus Master no Android; MCAs nao tremem.
+Causa: rotulo dB do master sem lineHeight fixo + adjustsFontSizeToFit -> altura do rodape/faderSlot oscila 462<->466 dp (~6 eventos onLayout/s) durante o arrasto -> trackHeight e regua mudam. MCA ja tem lineHeight 12 + includeFontPadding false.
+Ação: GroupStrip.tsx: novo estilo masterLabelPlateText (lineHeight 16, includeFontPadding false) aplicado ao master em retrato (compact mantem o proprio lineHeight). Verificacao A/B no Redmi com swipe adb: estilo antigo 60 eventos onLayout em 8 s, com fix 0. Log temporario removido.
+Resultado: OK em aparelho (sem oscilacao de layout); confirmacao com dedo real e iOS pendentes.
+Arquivos: repos/x32-control/src/features/busGroups/components/GroupStrip.tsx; spec tasks.md.
+Validação: tsc OK (so i18n pre-existente); jest busGroups 16 OK; A/B manual via adb/logcat.
+Pontos atenção: rotulo "-21.5d" ainda corta o "B" (cosmetico); sensibilidade iOS (T-002/T-008) aberta.

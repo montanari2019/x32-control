@@ -17,7 +17,7 @@ type MasterStripProps = {
   value: number;
 };
 
-export const MasterStrip = React.memo( ({
+export const MasterStrip = ({
   busId,
   busName,
   compact = false,
@@ -31,24 +31,25 @@ export const MasterStrip = React.memo( ({
   stripHeight,
   value,
 }: MasterStripProps): JSX.Element => {
+  // The meter lives in an external store so its ~20 Hz updates re-render only this strip.
   const meterDbfs = useValueStore(meterStore);
 
   return (
-  <GroupStrip
-    accentColor="#D8DDE5"
-    compact={compact}
-    dragSensitivity={dragSensitivity}
-    isMaster
-    isMuted={isMuted}
-    label={`BUS ${busId.toString().padStart(2, '0')}`}
-    meterDbfs={meterDbfs}
-    name={busName}
-    onFaderChange={onFaderChange}
-    onFaderInteractionEnd={onFaderInteractionEnd}
-    onFaderInteractionStart={onFaderInteractionStart}
-    onToggleMute={onToggleMute}
-    stripHeight={stripHeight}
-    value={value}
-  />
+    <GroupStrip
+      accentColor="#D8DDE5"
+      compact={compact}
+      dragSensitivity={dragSensitivity}
+      isMaster
+      isMuted={isMuted}
+      label={`BUS ${busId.toString().padStart(2, '0')}`}
+      meterDbfs={meterDbfs}
+      name={busName}
+      onFaderChange={onFaderChange}
+      onFaderInteractionEnd={onFaderInteractionEnd}
+      onFaderInteractionStart={onFaderInteractionStart}
+      onToggleMute={onToggleMute}
+      stripHeight={stripHeight}
+      value={value}
+    />
   );
 };

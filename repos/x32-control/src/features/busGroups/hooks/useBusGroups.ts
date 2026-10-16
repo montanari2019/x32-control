@@ -134,15 +134,18 @@ export const useBusGroups = (
     );
   }, [state.mcas]);
 
-  const updateMasterMeterDbfs = useCallback((dbfs: number): void => {
-    const nextDbfs = clampMeterValue(dbfs);
-    if (Math.abs(nextDbfs - masterMeterDbfsRef.current) < MASTER_METER_UPDATE_THRESHOLD_DB) {
-      return;
-    }
+  const updateMasterMeterDbfs = useCallback(
+    (dbfs: number): void => {
+      const nextDbfs = clampMeterValue(dbfs);
+      if (Math.abs(nextDbfs - masterMeterDbfsRef.current) < MASTER_METER_UPDATE_THRESHOLD_DB) {
+        return;
+      }
 
-    masterMeterDbfsRef.current = nextDbfs;
-    masterMeterStore.set(nextDbfs);
-  }, [masterMeterStore]);
+      masterMeterDbfsRef.current = nextDbfs;
+      masterMeterStore.set(nextDbfs);
+    },
+    [masterMeterStore],
+  );
 
   useEffect(() => {
     masterMeterDbfsRef.current = METER_MIN_DBFS;

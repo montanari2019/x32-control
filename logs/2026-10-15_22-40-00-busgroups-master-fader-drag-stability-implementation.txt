@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: IMPLEMENTACAO ANTI-TREMOR / GESTO
+
+Contexto: master fader treme no Android e e sensivel demais no iOS (spec master-fader-drag-stability).
+Causa: nao provada em aparelho; atacadas as hipoteses H1-H5 por leitura de codigo.
+Ação: janela de protecao 250ms p/ remoto no master; throttle 40ms + envio final no setMasterFader; meter movido p/ ValueStore externo (so MasterStrip re-renderiza); filhos do fader com pointerEvents none (locationX/Y corretos); captura de move so se |dy|>|dx|; 2 testes novos.
+Resultado: OK em testes; validacao em aparelho pendente.
+Arquivos: busGroups/{hooks/useBusGroups.ts,components/MasterStrip.tsx,components/VerticalGroupFader.tsx,screens/BusGroupsScreen.tsx}; shared/utils/valueStore.ts; __tests__/features/busGroups/hooks/useBusGroups.test.ts; spec tasks.md.
+Validação: tsc OK (so erros i18n pre-existentes); jest busGroups+busMix OK.
+Pontos atenção: T-001/T-002/T-008/T-010 abertas (Redmi + X32, iPhone). VerticalGroupFader e compartilhado c/ 8 MCAs: retestar. Prettier reformatou arquivos fora do escopo (BusGroupsHeader, McaChannelSelectionModal, tasks.md de outras features); reversao bloqueada, so formatacao. Commit 457329c do outro agente incluiu parte do meu codigo (useBusGroups, valueStore).

@@ -6,7 +6,7 @@ export type ValueStore<T> = {
   subscribe: (listener: () => void) => () => void;
 };
 
-export const createValueStore = <T,>(initial: T): ValueStore<T> => {
+export const createValueStore = <T>(initial: T): ValueStore<T> => {
   let value = initial;
   const listeners = new Set<() => void>();
 
@@ -29,5 +29,5 @@ export const createValueStore = <T,>(initial: T): ValueStore<T> => {
   };
 };
 
-export const useValueStore = <T,>(store: ValueStore<T>): T =>
+export const useValueStore = <T>(store: ValueStore<T>): T =>
   useSyncExternalStore(store.subscribe, store.get, store.get);

@@ -204,7 +204,9 @@ export const VerticalGroupFader = ({
       PanResponder.create({
         onStartShouldSetPanResponder: (event) =>
           isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
-        onMoveShouldSetPanResponder: (event) =>
+        // Claim only vertical drags so horizontal swipes still scroll the strips.
+        onMoveShouldSetPanResponder: (event, gestureState) =>
+          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
           isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
         onPanResponderTerminationRequest: () => false,
         onPanResponderGrant: () => {
@@ -262,6 +264,7 @@ export const VerticalGroupFader = ({
       {...(disabled ? {} : responder.panHandlers)}
     >
       <View
+        pointerEvents="none"
         style={[
           styles.track,
           isMaster ? styles.masterTrack : styles.mcaTrack,
@@ -272,6 +275,7 @@ export const VerticalGroupFader = ({
         {renderMasterMeterFill(isMaster, meterDbfs)}
       </View>
       <View
+        pointerEvents="none"
         style={[
           styles.dbScale,
           {
@@ -283,6 +287,7 @@ export const VerticalGroupFader = ({
         <FaderDbScale height={availableHeight} />
       </View>
       <Animated.View
+        pointerEvents="none"
         style={[
           styles.thumb,
           {
