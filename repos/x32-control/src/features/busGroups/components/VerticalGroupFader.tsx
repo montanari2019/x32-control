@@ -22,7 +22,7 @@ import {
   METER_MIN_DBFS,
   METER_YELLOW_MAX_DB,
 } from '@features/busMix/utils/meterDecoder';
-import { shouldClaimVerticalDrag } from '../utils/faderGesture';
+import { getDragPosition, isTouchOnThumb, shouldClaimVerticalDrag } from '../utils/faderGesture';
 import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
 type VerticalGroupFaderProps = {
@@ -157,6 +157,11 @@ export const VerticalGroupFader = ({
     disabledRef.current = disabled;
     if (disabled) {
       setIsThumbPressed(false);
+      // panHandlers are removed while disabled, so a drag in flight would never get its release.
+      if (isDragging.current) {
+        isDragging.current = false;
+        onInteractionEndRef.current?.();
+      }
     }
   }, [disabled]);
 
@@ -164,6 +169,16 @@ export const VerticalGroupFader = ({
   useEffect(() => {
     dragSensitivityRef.current = dragSensitivity;
   }, [dragSensitivity]);
+
+  useEffect(
+    () => () => {
+      if (isDragging.current) {
+        isDragging.current = false;
+        onInteractionEndRef.current?.();
+      }
+    },
+    [],
+  );
 
   const handleLayout = useCallback((event: LayoutChangeEvent): void => {
     layoutWidth.current = event.nativeEvent.layout.width;
@@ -177,10 +192,15 @@ export const VerticalGroupFader = ({
 
       const width = layoutWidth.current || 70;
       const centerX = width / 2;
-      const isOnThumb =
-        Math.abs(x - centerX) <= THUMB_WIDTH / 2 + THUMB_TOUCH_MARGIN &&
-        y >= currentY.current &&
-        y <= currentY.current + THUMB_HEIGHT;
+      const isOnThumb = isTouchOnThumb({
+        centerX,
+        margin: THUMB_TOUCH_MARGIN,
+        thumbHeight: THUMB_HEIGHT,
+        thumbTop: currentY.current,
+        thumbWidth: THUMB_WIDTH,
+        x,
+        y,
+      });
       const isOnTrack =
         Math.abs(x - centerX) <= TRACK_TOUCH_WIDTH / 2 &&
         y >= TRACK_EDGE_PADDING &&
@@ -225,12 +245,22 @@ export const VerticalGroupFader = ({
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(
-            startY.current + (gestureState.dy - grantDy.current) * dragSensitivityRef.current,
+            getDragPosition(
+              startY.current,
+              gestureState.dy,
+              grantDy.current,
+              dragSensitivityRef.current,
+            ),
           );
         },
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
           updateFromPosition(
-            startY.current + (gestureState.dy - grantDy.current) * dragSensitivityRef.current,
+            getDragPosition(
+              startY.current,
+              gestureState.dy,
+              grantDy.current,
+              dragSensitivityRef.current,
+            ),
           );
           isDragging.current = false;
           setIsThumbPressed(false);

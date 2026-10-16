@@ -93,4 +93,58 @@ describe('useMasterFaderSync', () => {
 
     expect(onValue).toHaveBeenCalledWith(0.1);
   });
+  it('drops a deferred remote value that a later local change made stale', () => {
+    const { onValue, result } = setup();
+
+    act(() => {
+      result.current.setInteractionActive(true);
+      result.current.setMasterFader(0.5);
+      result.current.handleRemoteFader(0.3);
+      result.current.setMasterFader(0.9);
+      result.current.setInteractionActive(false);
+    });
+    onValue.mockClear();
+
+    act(() => {
+      jest.advanceTimersByTime(LOCAL_PROTECTION_WINDOW_MS * 2);
+    });
+
+    expect(onValue).not.toHaveBeenCalled();
+  });
+
+  it('does not poll with timers while the finger is held down', () => {
+    const { result } = setup();
+
+    act(() => {
+      result.current.setInteractionActive(true);
+      result.current.setMasterFader(0.6);
+      jest.advanceTimersByTime(LOCAL_PROTECTION_WINDOW_MS * 2);
+      result.current.handleRemoteFader(0.1);
+    });
+
+    expect(jest.getTimerCount()).toBe(0);
+  });
+  it('restores the deferred remote value when the trailing local send fails', async () => {
+    const { onError, onValue, result, setBusMasterFader } = setup();
+    setBusMasterFader.mockResolvedValueOnce(undefined).mockRejectedValueOnce(new Error('udp down'));
+
+    act(() => {
+      result.current.setMasterFader(0.5); // sent immediately
+      result.current.setMasterFader(0.8); // waits for the trailing timer
+      result.current.handleRemoteFader(0.3); // arrives before that send
+    });
+    onValue.mockClear();
+
+    await act(async () => {
+      jest.advanceTimersByTime(60); // trailing send runs and rejects; the remote value is brought back
+      await Promise.resolve();
+    });
+    expect(onError).toHaveBeenCalledTimes(1);
+
+    act(() => {
+      jest.advanceTimersByTime(LOCAL_PROTECTION_WINDOW_MS * 2);
+    });
+
+    expect(onValue).toHaveBeenCalledWith(0.3);
+  });
 });

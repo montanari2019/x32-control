@@ -45,4 +45,104 @@ status: done
 
 ---
 
-Próximo passo: review APROVADO; acionar o `doninha-documentation` para este PBI. Os 5 achados minor ficam registrados e não bloqueiam.
+## Rodada de revisão 2 — 2026-10-16
+
+**Veredicto:** NECESSITA CORREÇÕES
+**Tasks revisadas:** _não se aplica_ (modo PBI, local-only; sem spec.md/task.md retroativos)
+
+**Tipo:** re-review de correção (escopo incremental: apenas o passe 3 de correção sobre o diff da correção + verificação dos achados da rodada 1).
+**Perfil de revisão:** `profundo` (mantido).
+**Base:** 4d05743.
+
+### Resumo
+
+Dos achados da rodada 1: F-02, F-03 e F-05 CORRIGIDOS; F-01 e F-04 PARCIAIS. Dois achados novos, ambos confirmados pelo orquestrador lendo o código: N-01 (major) e N-02 (minor). O veredicto NECESSITA CORREÇÕES decorre somente do N-01 major (corrigido na sequência, antes da rodada 3).
+
+### Verificação dos achados anteriores
+
+| Achado | Estado |
+| ------ | ------ |
+| F-01 | PARCIAL |
+| F-02 | CORRIGIDO |
+| F-03 | CORRIGIDO |
+| F-04 | PARCIAL |
+| F-05 | CORRIGIDO |
+
+### Achados novos
+
+| #   | Severidade | Arquivo | Linha | Categoria | Descrição | Recomendação |
+| --- | ---------- | ------- | ----- | --------- | --------- | ------------ |
+| N-01 | major (CONFIRMED) | `src/features/busGroups/hooks/useMasterFaderSync.ts` | L95-99 / L131 | concorrência / valores remotos | O valor remoto adiado era aplicado depois do envio local final, ficando obsoleto. | _não informada_ (corrigido na sequência; ver rodada 3) |
+| N-02 | minor (CONFIRMED) | `src/features/busGroups/hooks/useMasterFaderSync.ts` | L84-92 | concorrência / ciclo de vida | Reagendamento do timer em ~1 ms com o dedo parado (polling); além disso, `isInteractingRef` ficava preso se o fader desmontasse no meio do gesto. | _não informada_ (corrigido na sequência; ver rodada 3) |
+
+## Rodada de revisão 3 — 2026-10-16
+
+**Veredicto:** APROVADO
+**Tasks revisadas:** _não se aplica_ (modo PBI, local-only)
+
+**Tipo:** re-review de correção (escopo incremental, só passe 3 de correção sobre o diff da correção + verificação dos achados anteriores).
+**Perfil de revisão:** `profundo` (mantido).
+**Base:** 1106282 + alterações.
+
+### Resumo
+
+0 critical e 0 major em aberto. N-01, N-02 e F-01 CORRIGIDOS. Um achado novo minor e um achado extra fora de escopo (pré-existente).
+
+### Verificação dos achados anteriores
+
+| Achado | Estado | Como foi corrigido |
+| ------ | ------ | ------------------ |
+| N-01 | CORRIGIDO | `sendNow` e `setMasterFader` zeram o valor remoto adiado. |
+| N-02 | CORRIGIDO | `scheduleDeferredRemote` não agenda com o dedo pressionado e o release agenda; piso de espera de 10 ms; `VerticalGroupFader` chama `onInteractionEnd` no unmount. |
+| F-01 | CORRIGIDO | Helpers puros `isTouchOnThumb` e `getDragPosition`, com testes. |
+
+### Achados novos
+
+| #   | Severidade | Arquivo | Linha | Categoria | Descrição | Recomendação |
+| --- | ---------- | ------- | ----- | --------- | --------- | ------------ |
+| N-03 | minor | `src/features/busGroups/hooks/useMasterFaderSync.ts` | L53 | concorrência / tratamento de erro | `sendNow` zerava o remoto adiado antes de saber se o envio deu certo; se o envio rejeitasse, o app ficava divergente da mesa. O teste só cobria a limpeza de `setMasterFader`. | _não informada_ (corrigido na rodada 4) |
+
+### Achado extra fora de escopo (pré-existente)
+
+`disabled` virando true no meio do arrasto remove os `panHandlers` e o release não chega (só MCAs): `isDragging` fica preso e o scroll fica travado. Pré-existente, fora do escopo desta correção (tratado na rodada 4).
+
+## Rodada de revisão 4 — 2026-10-16 (final)
+
+**Veredicto:** APROVADO
+**Tasks revisadas:** _não se aplica_ (modo PBI, local-only)
+
+**Tipo:** re-review de correção (escopo incremental, só passe 3 de correção sobre o diff da correção + verificação dos achados anteriores).
+**Perfil de revisão:** `profundo` (mantido).
+
+### Resumo
+
+Sem achados abertos. Os dois pontos da rodada 3 estão CORRIGIDOS. Um achado novo minor foi encontrado e corrigido na própria rodada.
+
+### Verificação dos achados anteriores
+
+| Achado | Estado | Como foi corrigido |
+| ------ | ------ | ------------------ |
+| N-03 | CORRIGIDO | Restauração do valor remoto adiado no `.catch` do envio; teste novo `restores the deferred remote value when the trailing local send fails`. |
+| Extra (`disabled` no meio do arrasto) | CORRIGIDO | O efeito de `disabled` encerra o arrasto em andamento. |
+
+### Achados novos
+
+| #   | Severidade | Arquivo | Linha | Categoria | Descrição | Recomendação |
+| --- | ---------- | ------- | ----- | --------- | --------- | ------------ |
+| N-04 | minor (corrigido) | `src/features/busGroups/hooks/useMasterFaderSync.ts` | _não informada_ | concorrência | A restauração no `.catch` não verificava se um envio local posterior já saiu: a rejeição tardia do envio A depois do envio B restauraria um remoto obsoleto. | Corrigido com o contador `sendSeqRef` (só o último envio restaura). |
+
+### Validação
+
+- `tsc` limpo (apenas os erros de i18n pré-existentes).
+- Jest busGroups + busMix + shared utils/hooks: 85/85.
+- Observação: o `scheduleDeferredRemote()` do `.catch` não é testado isoladamente.
+
+### Pendentes não bloqueantes
+
+- UAT com dedo real no iOS e no Android.
+- Medidor com sinal real.
+- 3 falhas pré-existentes em `NetworkScanner.test.ts`, fora do escopo.
+
+---
+
+Próximo passo: review APROVADO (rodada 4 final, sem achados abertos); acionar o `doninha-documentation` para este PBI. Os achados minor da rodada 1 e as correções das rodadas 2 a 4 ficam registrados e não bloqueiam.
