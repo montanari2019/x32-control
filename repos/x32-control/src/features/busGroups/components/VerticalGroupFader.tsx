@@ -22,6 +22,7 @@ import {
   METER_MIN_DBFS,
   METER_YELLOW_MAX_DB,
 } from '@features/busMix/utils/meterDecoder';
+import { shouldClaimVerticalDrag } from '../utils/faderGesture';
 import { clampFader, faderToPosition, positionToFader } from '../utils/audio';
 
 type VerticalGroupFaderProps = {
@@ -42,6 +43,7 @@ const THUMB_HEIGHT = FADER_THUMB_METRICS.height;
 const TRACK_EDGE_PADDING = THUMB_HEIGHT / 2;
 const THUMB_BOTTOM_GUARD = 8;
 const TRACK_TOUCH_WIDTH = 24;
+const THUMB_TOUCH_MARGIN = 8;
 const METER_TOTAL_RANGE = METER_MAX_DBFS - METER_MIN_DBFS;
 
 type MeterLayerRatios = {
@@ -119,6 +121,8 @@ export const VerticalGroupFader = ({
   const currentY = useRef(0);
   const layoutWidth = useRef(0);
   const startY = useRef(0);
+  // dy already travelled when the responder was granted (capture can happen mid-gesture).
+  const grantDy = useRef(0);
   const isDragging = useRef(false);
   const [isThumbPressed, setIsThumbPressed] = useState(false);
   const thumbPalette = useMemo(
@@ -173,7 +177,10 @@ export const VerticalGroupFader = ({
 
       const width = layoutWidth.current || 70;
       const centerX = width / 2;
-      const isOnThumb = y >= currentY.current && y <= currentY.current + THUMB_HEIGHT;
+      const isOnThumb =
+        Math.abs(x - centerX) <= THUMB_WIDTH / 2 + THUMB_TOUCH_MARGIN &&
+        y >= currentY.current &&
+        y <= currentY.current + THUMB_HEIGHT;
       const isOnTrack =
         Math.abs(x - centerX) <= TRACK_TOUCH_WIDTH / 2 &&
         y >= TRACK_EDGE_PADDING &&
@@ -206,20 +213,25 @@ export const VerticalGroupFader = ({
           isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
         // Claim only vertical drags so horizontal swipes still scroll the strips.
         onMoveShouldSetPanResponder: (event, gestureState) =>
-          Math.abs(gestureState.dy) > Math.abs(gestureState.dx) &&
+          shouldClaimVerticalDrag(gestureState.dx, gestureState.dy) &&
           isInsideInteractiveArea(event.nativeEvent.locationX, event.nativeEvent.locationY),
         onPanResponderTerminationRequest: () => false,
-        onPanResponderGrant: () => {
+        onPanResponderGrant: (_event, gestureState: PanResponderGestureState) => {
           isDragging.current = true;
           setIsThumbPressed(true);
           startY.current = currentY.current;
+          grantDy.current = gestureState.dy;
           onInteractionStartRef.current?.();
         },
         onPanResponderMove: (_event, gestureState: PanResponderGestureState) => {
-          updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
+          updateFromPosition(
+            startY.current + (gestureState.dy - grantDy.current) * dragSensitivityRef.current,
+          );
         },
         onPanResponderRelease: (_event, gestureState: PanResponderGestureState) => {
-          updateFromPosition(startY.current + gestureState.dy * dragSensitivityRef.current);
+          updateFromPosition(
+            startY.current + (gestureState.dy - grantDy.current) * dragSensitivityRef.current,
+          );
           isDragging.current = false;
           setIsThumbPressed(false);
           onInteractionEndRef.current?.();

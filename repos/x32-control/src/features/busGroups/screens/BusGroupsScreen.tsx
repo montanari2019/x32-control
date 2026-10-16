@@ -88,6 +88,7 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
     error,
     reload,
     setMasterFader,
+    setMasterInteractionActive,
     toggleMasterMute,
     setMcaFader,
     toggleMcaMute,
@@ -134,6 +135,16 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
   const handleFaderInteractionEnd = useCallback((): void => {
     setIsFaderInteractionActive(false);
   }, []);
+
+  const handleMasterInteractionStart = useCallback((): void => {
+    setIsFaderInteractionActive(true);
+    setMasterInteractionActive(true);
+  }, [setMasterInteractionActive]);
+
+  const handleMasterInteractionEnd = useCallback((): void => {
+    setIsFaderInteractionActive(false);
+    setMasterInteractionActive(false);
+  }, [setMasterInteractionActive]);
 
   const mcaFaderCallbacks = useMemo(
     () =>
@@ -239,8 +250,8 @@ export const BusGroupsScreen = ({ navigation, route }: Props): JSX.Element => {
                 isMuted={masterMuted}
                 meterStore={masterMeterStore}
                 onFaderChange={setMasterFader}
-                onFaderInteractionEnd={handleFaderInteractionEnd}
-                onFaderInteractionStart={handleFaderInteractionStart}
+                onFaderInteractionEnd={handleMasterInteractionEnd}
+                onFaderInteractionStart={handleMasterInteractionStart}
                 onToggleMute={toggleMasterMute}
                 stripHeight={stripsHeight}
                 value={masterFaderRaw}

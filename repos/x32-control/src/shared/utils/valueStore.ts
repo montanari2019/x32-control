@@ -1,5 +1,3 @@
-import { useSyncExternalStore } from 'react';
-
 export type ValueStore<T> = {
   get: () => T;
   set: (next: T) => void;
@@ -28,6 +26,3 @@ export const createValueStore = <T>(initial: T): ValueStore<T> => {
     },
   };
 };
-
-export const useValueStore = <T>(store: ValueStore<T>): T =>
-  useSyncExternalStore(store.subscribe, store.get, store.get);

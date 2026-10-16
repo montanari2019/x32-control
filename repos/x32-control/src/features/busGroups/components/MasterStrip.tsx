@@ -1,5 +1,6 @@
 import React from 'react';
-import { ValueStore, useValueStore } from '@shared/utils/valueStore';
+import { useValueStore } from '@shared/hooks/useValueStore';
+import type { ValueStore } from '@shared/utils/valueStore';
 import { GroupStrip } from './GroupStrip';
 
 type MasterStripProps = {

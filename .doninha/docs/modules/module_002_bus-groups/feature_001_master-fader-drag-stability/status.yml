@@ -20,18 +20,18 @@ stages:
 
 pbis:
   fader-master-altura-estavel:
-    current_stage: "Review (doninha-code-review) pendente"
+    current_stage: "Review (doninha-code-review) aprovado"
     business: pending
     technical: pending
     spec: pending
     plan: pending
-    review: pending
+    review: approved
     documentation: pending
   fader-master-gesto-osc-medidor:
-    current_stage: "Review (doninha-code-review) pendente"
+    current_stage: "Review (doninha-code-review) aprovado"
     business: pending
     technical: pending
     spec: pending
     plan: pending
-    review: pending
+    review: approved
     documentation: pending
