@@ -1,0 +1,9 @@
+DONINHA: CODE-REVIEW + FECHAMENTO DESENVOLVER (DOCUMENTAL)
+
+Contexto: usuario pediu doninha-code-review e depois doninha-desenvolver sobre o PBI historico da correcao Android.
+Causa: n/a.
+Ação: review PBI modo padrao (orquestrador, sem subagentes de passe): APROVADO, 0 critical/major, 5 minors (F-01..F-05). Verificacao extra no aparelho: 0 send_error/send_timeout, scan acha X32. review.md via copy-writer, status.yml review=approved. desenvolver documental: sessao-dev done (review approved), .doninha/STATE.md criado. Nenhum codigo alterado.
+Resultado: OK.
+Arquivos: .doninha/docs/modules/module_001_console-discovery/.../pbis/pbi-001-*/{review.md,sessao-dev.md}; .doninha/STATE.md.
+Validação: manual; review com leitura do NetworkScanner completo + diff dos demais.
+Pontos atenção: UAT manual pendente (mesa desligada, Wi-Fi sem internet, iPhone); passes 3-5 por subagente nao executados (declarado no review); doninha-documentation nao rodado.

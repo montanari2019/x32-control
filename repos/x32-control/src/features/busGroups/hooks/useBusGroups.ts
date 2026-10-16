@@ -10,6 +10,7 @@ import { x32RawToDb } from '@shared/utils/faderDb';
 import { BusMixService } from '@features/busMix/services/BusMixService';
 import { busMixChannelStore } from '@features/busMix/services/BusMixChannelStore';
 import { Channel } from '@features/busMix/types/Channel';
+import { createValueStore } from '@shared/utils/valueStore';
 import { clampMeterValue, METER_MIN_DBFS } from '@features/busMix/utils/meterDecoder';
 import { useOscSubscription } from './useOscSubscription';
 import { MCA_DEFAULT_RAW_VALUE, McaChannelFaderService } from '../services/McaChannelFaderService';
@@ -38,6 +39,8 @@ const PERSIST_DEBOUNCE_MS = 250;
 const MCA_FADER_SEND_INTERVAL_MS = 30;
 const MCA_LOCAL_PROTECTION_WINDOW_MS = 250;
 const MASTER_METER_UPDATE_THRESHOLD_DB = 0.35;
+const MASTER_FADER_LOCAL_PROTECTION_WINDOW_MS = 250;
+const MASTER_FADER_SEND_INTERVAL_MS = 40;
 
 const LEGACY_DEMO_MCA_NAMES: Record<number, string> = {
   1: 'Bateria',
@@ -101,7 +104,7 @@ export const useBusGroups = (
     [consoleIp, isMockConsole],
   );
   const [state, setState] = useState<BusGroupsState>(() => INITIAL_STATE(busId));
-  const [masterMeterDbfs, setMasterMeterDbfs] = useState(METER_MIN_DBFS);
+  const masterMeterStore = useMemo(() => createValueStore(METER_MIN_DBFS), []);
   const [availableChannels, setAvailableChannels] = useState<Channel[]>(() =>
     busMixChannelStore.getSnapshot(consoleIp, busId),
   );
@@ -119,6 +122,10 @@ export const useBusGroups = (
   const mcaFaderValuesRef = useRef<Map<number, number>>(new Map());
   const mcaLastLocalChangeAtRef = useRef<Map<number, number>>(new Map());
   const masterMeterDbfsRef = useRef(METER_MIN_DBFS);
+  const masterLastLocalChangeAtRef = useRef(0);
+  const masterLastSentAtRef = useRef(0);
+  const masterPendingValueRef = useRef<number | null>(null);
+  const masterSendTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     mcasRef.current = state.mcas;
@@ -134,13 +141,13 @@ export const useBusGroups = (
     }
 
     masterMeterDbfsRef.current = nextDbfs;
-    setMasterMeterDbfs(nextDbfs);
-  }, []);
+    masterMeterStore.set(nextDbfs);
+  }, [masterMeterStore]);
 
   useEffect(() => {
     masterMeterDbfsRef.current = METER_MIN_DBFS;
-    setMasterMeterDbfs(METER_MIN_DBFS);
-  }, [busId, consoleIp]);
+    masterMeterStore.set(METER_MIN_DBFS);
+  }, [busId, consoleIp, masterMeterStore]);
 
   const computeMcaFaderValue = useCallback(
     (assignedChannels: McaAssignedChannel[]): number =>
@@ -574,18 +581,60 @@ export const useBusGroups = (
     [busId, consoleIp, demoProvider, mcaFaderService, state.mcas],
   );
 
-  const setMasterFader = useCallback(
+  const sendMasterFader = useCallback(
     (value: number): void => {
-      const nextValue = clamp(value);
-      setState((current) => ({
-        ...current,
-        masterFaderRaw: nextValue,
-      }));
-      service.setBusMasterFader(busId, nextValue).catch((error) => {
+      masterLastSentAtRef.current = Date.now();
+      service.setBusMasterFader(busId, value).catch((error) => {
         setState((current) => ({ ...current, error: getErrorMessage(error) }));
       });
     },
     [busId, service],
+  );
+
+  const flushMasterFader = useCallback((): void => {
+    masterSendTimerRef.current = null;
+    const pending = masterPendingValueRef.current;
+    masterPendingValueRef.current = null;
+    if (pending != null) {
+      sendMasterFader(pending);
+    }
+  }, [sendMasterFader]);
+
+  useEffect(
+    () => () => {
+      if (masterSendTimerRef.current) {
+        clearTimeout(masterSendTimerRef.current);
+        masterSendTimerRef.current = null;
+      }
+    },
+    [],
+  );
+
+  const setMasterFader = useCallback(
+    (value: number): void => {
+      const nextValue = clamp(value);
+      const now = Date.now();
+      masterLastLocalChangeAtRef.current = now;
+      setState((current) =>
+        current.masterFaderRaw === nextValue ? current : { ...current, masterFaderRaw: nextValue },
+      );
+
+      // Coalesce OSC sends while dragging; the trailing timer always sends the last value.
+      masterPendingValueRef.current = nextValue;
+      const elapsed = now - masterLastSentAtRef.current;
+      if (elapsed >= MASTER_FADER_SEND_INTERVAL_MS && !masterSendTimerRef.current) {
+        flushMasterFader();
+        return;
+      }
+
+      if (!masterSendTimerRef.current) {
+        masterSendTimerRef.current = setTimeout(
+          flushMasterFader,
+          MASTER_FADER_SEND_INTERVAL_MS - elapsed,
+        );
+      }
+    },
+    [flushMasterFader],
   );
 
   const toggleMasterMute = useCallback((): void => {
@@ -654,6 +703,13 @@ export const useBusGroups = (
   );
 
   const handleRemoteMasterFader = useCallback((value: number): void => {
+    const isWithinLocalProtectionWindow =
+      Date.now() - masterLastLocalChangeAtRef.current < MASTER_FADER_LOCAL_PROTECTION_WINDOW_MS ||
+      masterPendingValueRef.current != null;
+    if (isWithinLocalProtectionWindow) {
+      return;
+    }
+
     setState((current) =>
       current.masterFaderRaw === value ? current : { ...current, masterFaderRaw: value },
     );
@@ -674,7 +730,7 @@ export const useBusGroups = (
 
   return {
     ...state,
-    masterMeterDbfs,
+    masterMeterStore,
     availableChannels,
     reload: load,
     setMcaFader,

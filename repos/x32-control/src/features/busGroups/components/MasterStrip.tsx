@@ -1,4 +1,5 @@
 import React from 'react';
+import { ValueStore, useValueStore } from '@shared/utils/valueStore';
 import { GroupStrip } from './GroupStrip';
 
 type MasterStripProps = {
@@ -7,7 +8,7 @@ type MasterStripProps = {
   compact?: boolean;
   dragSensitivity?: number;
   isMuted: boolean;
-  meterDbfs?: number;
+  meterStore: ValueStore<number>;
   onFaderChange: (value: number) => void;
   onFaderInteractionEnd?: () => void;
   onFaderInteractionStart?: () => void;
@@ -16,20 +17,23 @@ type MasterStripProps = {
   value: number;
 };
 
-export const MasterStrip = ({
+export const MasterStrip = React.memo( ({
   busId,
   busName,
   compact = false,
   dragSensitivity,
   isMuted,
-  meterDbfs,
+  meterStore,
   onFaderChange,
   onFaderInteractionEnd,
   onFaderInteractionStart,
   onToggleMute,
   stripHeight,
   value,
-}: MasterStripProps): JSX.Element => (
+}: MasterStripProps): JSX.Element => {
+  const meterDbfs = useValueStore(meterStore);
+
+  return (
   <GroupStrip
     accentColor="#D8DDE5"
     compact={compact}
@@ -46,4 +50,5 @@ export const MasterStrip = ({
     stripHeight={stripHeight}
     value={value}
   />
-);
+  );
+};

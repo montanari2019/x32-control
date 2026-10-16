@@ -123,6 +123,12 @@ Feature specs live under this directory.
   - Validation requirement: BusGroups and BusMix automated gates plus manual portrait/compact visual UAT.
   - Automated gates passed: `yarn tsc --noEmit`, palette helper test, BusGroups tests, BusMix tests, `git diff --check`.
 
+- `feature/master-fader-drag-stability/`
+  - Status: planned (analysis only, 2026-10-15); no code changed.
+  - Scope: Bus Master fader jitter on Android (thumb and ruler shake while dragging with the meter active against a real X32) and over-sensitivity to touch/scroll on iOS.
+  - Leading hypotheses (unproven): meter/state re-renders saturating JS, no local protection window or OSC throttle for the master, `locationX/Y` hit test in `VerticalGroupFader`, non-directional gesture capture.
+  - First step: T-001/T-002 evidence on device before any fix.
+
 ## Suggested Future Specs
 
 - `mca-assignment-persistence`.
