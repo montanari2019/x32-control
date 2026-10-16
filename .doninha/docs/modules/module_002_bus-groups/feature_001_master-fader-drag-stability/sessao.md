@@ -1,6 +1,6 @@
 ---
-status: 'analyzing'
-stepsCompleted: [1, 2]
+status: 'analyzed'
+stepsCompleted: [1, 2, 3, 6]
 feature_id: 'feature_001'
 feature_title: 'Tremor do fader Bus Master no Android e sensibilidade no iOS'
 feature_slug: 'master-fader-drag-stability'
@@ -15,9 +15,11 @@ ideation_technique: ''
 grilling: {}
 derivado: {}
 alternativas: ''
-validation_approved: false
+validation_approved: true
 brainstorming_notes: ''
-pbis_created: []
+pbis_created:
+  - {n: 1, id_local: 'pbi-001', slug: 'fader-master-altura-estavel', invest_ok: true}
+  - {n: 2, id_local: 'pbi-002', slug: 'fader-master-gesto-osc-medidor', invest_ok: true}
 ux_proposals: []
 symptom_class: ['dado-errado']
 capabilities: { source: { provider: git-local, access: 'cli:git', scope: 'x32-control @ 457329c' }, logs: { provider: none, access: 'manual', notes: 'adb logcat nao carrega logs JS; sem log de layout do app' }, runtime: { provider: adb, access: 'cli:adb', scope: 'Redmi Note 9S 7b877dc7 (gfxinfo, screencap, input swipe)' } }

@@ -1,0 +1,37 @@
+# status.yml — Source of truth for a feature's progress.
+# ONLY the doninha-copy-writer agent writes to this file. Main agents read it but never edit it.
+# Stage values (feature level): pending | in-progress | done
+# PBI stage values: pending | done   (except `review`)
+# review:           pending | approved | changes-requested
+# task values:      pending | review | done
+
+module: module_002_bus-groups
+feature: feature_001_master-fader-drag-stability
+created_at: 2026-10-15
+rca_artifact: .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/rca.md
+feature_prd_artifact: .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/feature.md
+
+current_stage: "Documentation (pendente)"
+
+# Feature-level stages (run once per feature)
+stages:
+  discovery: pending
+  structure: done
+
+pbis:
+  fader-master-altura-estavel:
+    current_stage: "Review (doninha-code-review) pendente"
+    business: pending
+    technical: pending
+    spec: pending
+    plan: pending
+    review: pending
+    documentation: pending
+  fader-master-gesto-osc-medidor:
+    current_stage: "Review (doninha-code-review) pendente"
+    business: pending
+    technical: pending
+    spec: pending
+    plan: pending
+    review: pending
+    documentation: pending
