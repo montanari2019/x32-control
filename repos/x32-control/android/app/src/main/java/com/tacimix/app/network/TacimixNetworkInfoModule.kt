@@ -31,6 +31,7 @@ class TacimixNetworkInfoModule(reactContext: ReactApplicationContext) :
   override fun getName(): String = "TacimixNetworkInfo"
 
   private var multicastLock: WifiManager.MulticastLock? = null
+  private var multicastLockHolders = 0
 
   @ReactMethod
   fun log(message: String) {
@@ -51,8 +52,11 @@ class TacimixNetworkInfoModule(reactContext: ReactApplicationContext) :
         it.setReferenceCounted(false)
         multicastLock = it
       }
-      if (!lock.isHeld) {
-        lock.acquire()
+      synchronized(this) {
+        multicastLockHolders += 1
+        if (!lock.isHeld) {
+          lock.acquire()
+        }
       }
       promise.resolve(lock.isHeld)
     } catch (error: Exception) {
@@ -63,9 +67,12 @@ class TacimixNetworkInfoModule(reactContext: ReactApplicationContext) :
   @ReactMethod
   fun releaseMulticastLock(promise: Promise) {
     try {
-      val lock = multicastLock
-      if (lock != null && lock.isHeld) {
-        lock.release()
+      synchronized(this) {
+        multicastLockHolders = maxOf(0, multicastLockHolders - 1)
+        val lock = multicastLock
+        if (multicastLockHolders == 0 && lock != null && lock.isHeld) {
+          lock.release()
+        }
       }
       promise.resolve(true)
     } catch (error: Exception) {

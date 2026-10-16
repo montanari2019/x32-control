@@ -1,4 +1,9 @@
 import { logUdpDiagnostic } from '@shared/network/UdpDiagnostics';
+import { logNativeDiscovery } from '@shared/network/NativeNetworkInterfaces';
+
+jest.mock('@shared/network/NativeNetworkInterfaces', () => ({
+  logNativeDiscovery: jest.fn(),
+}));
 
 const setDevMode = (value: boolean): void => {
   (globalThis as unknown as { __DEV__: boolean }).__DEV__ = value;
@@ -66,5 +71,27 @@ describe('UdpDiagnostics', () => {
     expect(infoSpy).not.toHaveBeenCalled();
     expect(warnSpy).not.toHaveBeenCalled();
     expect(errorSpy).not.toHaveBeenCalled();
+  });
+
+  describe('logcat mirroring', () => {
+    const mirror = logNativeDiscovery as jest.Mock;
+
+    beforeEach(() => mirror.mockClear());
+
+    it('mirrors every event to the native log in dev', () => {
+      logUdpDiagnostic({ event: 'discovery_scan_start' });
+
+      expect(mirror).toHaveBeenCalledTimes(1);
+    });
+
+    it('mirrors only errors in release so local IPs are not written to logcat', () => {
+      setDevMode(false);
+
+      logUdpDiagnostic({ event: 'discovery_send_batch', host: '192.168.1.10' });
+      expect(mirror).not.toHaveBeenCalled();
+
+      logUdpDiagnostic({ event: 'send_error', host: '192.168.1.10', nativeError: new Error('x') });
+      expect(mirror).toHaveBeenCalledTimes(1);
+    });
   });
 });

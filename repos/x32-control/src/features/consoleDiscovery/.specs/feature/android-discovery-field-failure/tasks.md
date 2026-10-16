@@ -88,3 +88,13 @@ Run commands from `repos/x32-control/`.
 - T-010 result: scan on Redmi Note 9S shows `osc-server` / `X32` / `192.168.1.250:10023` in ~3.5s.
   Still to run manually: console-off run, Wi-Fi without internet, iPhone regression.
 - Automated: tsc OK; jest 28 suites / 117 tests OK; `compileDevelopDebugKotlin` OK.
+
+## Follow-up do code-review (2026-10-15, rodada de melhorias)
+
+- F-01 corrigido: liberação de MulticastLock/vínculo Wi-Fi agora é aguardada em `scanOnce` (também quando o watchdog vence) e os scans são enfileirados (nunca sobrepõem).
+- F-02 corrigido: unbind do Wi-Fi reexecutado 1x quando não confirmado.
+- F-03 corrigido: em release só erros vão ao logcat (eventos normais, com IPs, só em __DEV__).
+- F-04 corrigido: MulticastLock com contagem de portadores no módulo Kotlin.
+- F-05 parcial: teste do hook `useConsoleDiscovery` (mensagem Android/iOS, sem spinner preso) e testes de fila/retry/release; Kotlin segue sem teste unitário (apenas compilação).
+- Teste com Wi-Fi desligado no Redmi Note 9S: scan terminou sozinho (0 mesas, `send_error ENETUNREACH`, desvínculo da rede OK); com Wi-Fi religado achou a X32 de novo. Este cenário cobre mesa desligada / sem rede (UAT CA-02).
+- iOS: simulador carregou a build nova; UAT manual em `uat-ios-iphone-fisico.md`.

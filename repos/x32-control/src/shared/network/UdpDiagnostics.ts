@@ -87,7 +87,10 @@ export const logUdpDiagnostic = (context: UdpDiagnosticContext): void => {
     nativeError: stringifyUnknown(context.nativeError),
   };
 
-  logNativeDiscovery(`${context.event} ${JSON.stringify(details)}`);
+  // Release builds only mirror errors to logcat: the other events carry local-network IPs.
+  if (__DEV__ || UDP_ERROR_EVENTS.has(context.event)) {
+    logNativeDiscovery(`${context.event} ${JSON.stringify(details)}`);
+  }
 
   if (__DEV__) {
     if (UDP_ERROR_EVENTS.has(context.event)) {

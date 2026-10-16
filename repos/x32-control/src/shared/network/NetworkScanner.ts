@@ -54,7 +54,7 @@ const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, onTimeout: () =>
     );
   });
 
-type ScanState = { cancelled: boolean };
+type ScanState = { cancelled: boolean; androidNetworkPrepared: boolean };
 
 const pad4 = (length: number): number => (4 - (length % 4)) % 4;
 
@@ -182,15 +182,34 @@ const parseInfo = (ip: string, port: number, response: OscMessage): ConsoleDevic
 };
 
 export class NetworkScanner {
+  // Scans never overlap: the Android native helpers (MulticastLock, process-wide Wi-Fi binding) are
+  // shared state, so a late release from one scan must not undo the setup of the next one.
+  private static scanQueue: Promise<void> = Promise.resolve();
+
   constructor(
     private readonly clientFactory: () => OscClient = () => new OscClient(),
     private readonly transportFactory: () => UdpTransport = () => new UdpTransport(),
   ) {}
 
   async scanForConsoles(): Promise<ConsoleDevice[]> {
+    const previousScan = NetworkScanner.scanQueue;
+    let finishScan: () => void = () => undefined;
+    NetworkScanner.scanQueue = new Promise<void>((resolve) => {
+      finishScan = resolve;
+    });
+
+    try {
+      await previousScan;
+      return await this.scanOnce();
+    } finally {
+      finishScan();
+    }
+  }
+
+  private async scanOnce(): Promise<ConsoleDevice[]> {
     const transport = this.transportFactory();
     const devices = new Map<string, ConsoleDevice>();
-    const state: ScanState = { cancelled: false };
+    const state: ScanState = { cancelled: false, androidNetworkPrepared: false };
     const isAndroid = Platform.OS === 'android';
     let watchdog: ReturnType<typeof setTimeout> | undefined;
 
@@ -227,6 +246,10 @@ export class NetworkScanner {
         clearTimeout(watchdog);
       }
       transport.close();
+      if (state.androidNetworkPrepared) {
+        // Awaited here (not inside runScan) so it also completes when the watchdog won the race.
+        await this.releaseAndroidNetwork();
+      }
       logUdpDiagnostic({
         event: 'discovery_scan_complete',
         nativeError: { deviceCount: devices.size },
@@ -243,11 +266,10 @@ export class NetworkScanner {
     isAndroid: boolean,
   ): Promise<void> {
     let unsubscribe: (() => void) | undefined;
-    let androidNetworkPrepared = false;
 
     try {
       if (isAndroid) {
-        androidNetworkPrepared = true;
+        state.androidNetworkPrepared = true;
         await this.prepareAndroidNetwork();
       }
 
@@ -309,9 +331,6 @@ export class NetworkScanner {
       }
     } finally {
       unsubscribe?.();
-      if (androidNetworkPrepared) {
-        await this.releaseAndroidNetwork();
-      }
     }
   }
 
@@ -326,7 +345,12 @@ export class NetworkScanner {
   }
 
   private async releaseAndroidNetwork(): Promise<void> {
-    await withTimeout(unbindAndroidProcessFromWifi(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+    // The Wi-Fi binding is process-wide state, so an unconfirmed unbind is retried once.
+    let unbound = await withTimeout(unbindAndroidProcessFromWifi(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+    if (!unbound) {
+      unbound = await withTimeout(unbindAndroidProcessFromWifi(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+      logUdpDiagnostic({ event: 'android_unbind_wifi_retry', nativeError: { ok: unbound } });
+    }
     await withTimeout(releaseAndroidMulticastLock(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
   }
 
