@@ -74,10 +74,7 @@ export const McaChannelSelectionModal = ({
   const [selectedIds, setSelectedIds] = useState<number[]>(
     mca.assignedChannels.map((channel) => channel.channelId),
   );
-  const modalMaxHeight = Math.max(
-    360,
-    height - insets.top - insets.bottom - spacing.lg * 2,
-  );
+  const modalMaxHeight = Math.max(360, height - insets.top - insets.bottom - spacing.lg * 2);
 
   useEffect(() => {
     setDisplayName(mca.name);

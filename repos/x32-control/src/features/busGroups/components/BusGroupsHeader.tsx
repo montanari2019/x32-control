@@ -29,7 +29,9 @@ export const BusGroupsHeader = ({
       rightVariant="channels"
       rightContent={
         <View style={styles.channelsContent}>
-          <AppHeaderActionText compact={compact}>{t('busGroups.channelsAction')}</AppHeaderActionText>
+          <AppHeaderActionText compact={compact}>
+            {t('busGroups.channelsAction')}
+          </AppHeaderActionText>
           <View style={styles.forwardIcon}>
             <Icons.ArrowLeft
               color={colors.button.channels.text}
