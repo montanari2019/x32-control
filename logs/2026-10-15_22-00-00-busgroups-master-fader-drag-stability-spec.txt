@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: SPEC + TASKS (TREMOR ANDROID / SENSIBILIDADE iOS)
+
+Contexto: master fader da tela Personal Mix Grupos treme no Android (thumb e regua) ao arrastar e fica sensivel demais ao toque/scroll no iOS.
+Causa: nao provada. Hipoteses: re-render por meter + setState a cada move, sem janela de protecao nem throttle OSC no master, hit test por locationX/Y em VerticalGroupFader, captura de gesto nao direcional.
+Ação: leitura de VerticalGroupFader, useBusGroups, BusGroupsScreen, servico e BusMix VerticalFader; criada spec busGroups/.specs/feature/master-fader-drag-stability (spec, context, tasks T-001..T-011); STATE local atualizado.
+Resultado: OK (planejamento); nenhum codigo alterado.
+Arquivos: repos/x32-control/src/features/busGroups/.specs/feature/master-fader-drag-stability/*; src/features/busGroups/.specs/STATE.md.
+Validação: manual (leitura de codigo); aparelho 7b877dc7 detectado via adb, sem captura ainda.
+Pontos atenção: T-001/T-002 (evidencia em aparelho) antes de qualquer fix; VerticalGroupFader e compartilhado com MCA, retestar os 9 faders.

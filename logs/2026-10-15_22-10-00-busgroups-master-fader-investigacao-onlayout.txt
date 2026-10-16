@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: INVESTIGACAO (DONINHA ANALISAR) - ONLAYOUT OSCILA NO ARRASTO
+
+Contexto: tremor do fader Bus Master no Android persistia apos correcao de gesto/OSC/medidor.
+Causa: faderSlot do GroupStrip oscila 466.9<->462.9<->465.8 dp (~6x/s) durante o arrasto (rotulo dB com adjustsFontSizeToFit muda a altura do rodape) -> trackHeight/availableHeight 406<->402<->405 -> regua e trilho tremem. Sem TERMINATE, sem eco remoto, throttle OSC ok (~14/s).
+Ação: swipes adb (nao reproduziram), estagio adversarial (subagente), logs temporarios fdbg + arrasto manual no Redmi; logs e faderDebug.ts removidos; sessao em .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/ (sessao.md, refutacao.md).
+Resultado: OK (causa confirmada p/ a oscilacao de altura); correcao NAO feita; rca.md/feature/PBIs ainda nao gerados.
+Arquivos: .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/*; (temporarios removidos) src/shared/utils/faderDebug.ts, VerticalGroupFader, GroupStrip, useBusGroups.
+Validação: tsc OK (so i18n pre-existente); jest busGroups 16 OK apos remocao; manual no aparelho.
+Pontos atenção: iOS sem dado; meter com sinal nao testado; outro agente reinstalou o app as 21:16.

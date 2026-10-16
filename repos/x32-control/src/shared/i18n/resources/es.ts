@@ -48,6 +48,8 @@ export const es = {
     failureTitle: 'Error en el descubrimiento',
     noConsoleFound:
       'No se pudo encontrar una consola X32/M32 en la red local. Verifica que el iPhone esté en el mismo Wi-Fi que la consola y que el permiso de Red Local esté activo.',
+    noConsoleFoundAndroid:
+      'No se pudo encontrar una consola X32/M32 en la red local. Verifica que el teléfono esté en el mismo Wi-Fi que la consola e inténtalo de nuevo.',
     availableConsole: 'Consola disponible',
     demoModel: 'Consola Demo',
   },

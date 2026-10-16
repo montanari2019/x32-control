@@ -1,0 +1,9 @@
+DONINHA: PBIs HISTORICOS DO FADER MASTER (INVESTIGACAO + REGISTRO)
+
+Contexto: usuario pediu gerar os PBIs para fator historico da correcao do tremor do fader Bus Master.
+Causa: n/a (documentacao); causa raiz ja registrada no rca.md (rotulo dB sem lineHeight fixo -> faderSlot oscila no arrasto).
+Ação: doninha-copy-writer gerou rca.md, feature.md, decisions.md (DEC-01..07), pbis.md, status.yml e 2 PBIs (pbi-001-fader-master-altura-estavel, pbi-002-fader-master-gesto-osc-medidor); sessao.md atualizado p/ status analyzed, stepsCompleted [1,2,3,6], validation_approved true.
+Resultado: OK.
+Arquivos: .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/**.
+Validação: manual (estrutura e status.yml conferidos).
+Pontos atenção: review (doninha-code-review) dos 2 PBIs pendente; tabela INVEST com justificativas "nao informado"; medidor com sinal real nao testado.

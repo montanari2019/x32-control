@@ -97,3 +97,8 @@ This directory is intentionally empty for now except for scaffolding.
 - `network-troubleshooting-empty-state`.
 - `local-network-permission-ux`.
 
+
+## 2026-10-15 Field Failure
+
+- Android Redmi Note 9S + X32 (192.168.1.250) on same subnet: scan spinner stuck 45s+; console reachable from Mac. Earlier hardening did not fix it.
+- Planned feature spec: `.specs/feature/android-discovery-field-failure/` (spec/context/design/tasks). Stall step still unproven; first tasks are logcat-visible diagnostics (T-001) and proof (T-002).

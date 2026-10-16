@@ -8,9 +8,13 @@ import { Buffer } from 'buffer';
 import { Platform } from 'react-native';
 import { i18next } from '@shared/i18n';
 import {
+  acquireAndroidMulticastLock,
+  bindAndroidProcessToWifi,
   getNativeBroadcastAddresses,
   getNativeNetworkInterfaces,
   NativeNetworkInterface,
+  releaseAndroidMulticastLock,
+  unbindAndroidProcessFromWifi,
 } from './NativeNetworkInterfaces';
 import { logUdpDiagnostic } from './UdpDiagnostics';
 import { UdpTransport } from './UdpTransport';
@@ -22,6 +26,35 @@ const UNICAST_RESPONSE_WAIT_MS = 3000;
 const UNICAST_BATCH_SIZE = 32;
 const UNICAST_BATCH_GAP_MS = 25;
 const MAX_UNICAST_DISCOVERY_HOSTS = 512;
+// Android guards: no native call or socket step may keep the scan (and the UI spinner) alive forever.
+// iOS is intentionally unbounded on bind because the first scan waits for the Local Network prompt.
+const ANDROID_BIND_TIMEOUT_MS = 4000;
+const ANDROID_NATIVE_SETUP_TIMEOUT_MS = 1500;
+const ANDROID_SCAN_WATCHDOG_MS = 9000;
+const NATIVE_INFO_TIMEOUT_MS = 1500;
+
+const withTimeout = <T>(promise: Promise<T>, timeoutMs: number, onTimeout: () => T): Promise<T> =>
+  new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      try {
+        resolve(onTimeout());
+      } catch (error) {
+        reject(error);
+      }
+    }, timeoutMs);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+
+type ScanState = { cancelled: boolean; androidNetworkPrepared: boolean };
 
 const pad4 = (length: number): number => (4 - (length % 4)) % 4;
 
@@ -31,7 +64,10 @@ const encodeAddressOnly = (address: string): Buffer => {
 };
 
 const getDiscoveryBroadcastAddresses = async (): Promise<string[]> => {
-  const nativeBroadcasts = await getNativeBroadcastAddresses();
+  const nativeBroadcasts = await withTimeout(getNativeBroadcastAddresses(), NATIVE_INFO_TIMEOUT_MS, () => {
+    logUdpDiagnostic({ event: 'native_broadcasts_timeout', timeoutMs: NATIVE_INFO_TIMEOUT_MS });
+    return [] as string[];
+  });
   if (Platform.OS === 'android' && nativeBroadcasts.length === 0) {
     logUdpDiagnostic({
       event: 'android_native_broadcasts_unavailable',
@@ -84,7 +120,10 @@ const getInterfaceHostAddresses = (networkInterface: NativeNetworkInterface): st
 };
 
 const getUnicastDiscoveryAddresses = async (): Promise<string[]> => {
-  const networkInterfaces = await getNativeNetworkInterfaces();
+  const networkInterfaces = await withTimeout(getNativeNetworkInterfaces(), NATIVE_INFO_TIMEOUT_MS, () => {
+    logUdpDiagnostic({ event: 'native_interfaces_timeout', timeoutMs: NATIVE_INFO_TIMEOUT_MS });
+    return [] as NativeNetworkInterface[];
+  });
   if (Platform.OS === 'android' && networkInterfaces.length === 0) {
     logUdpDiagnostic({
       event: 'android_native_interfaces_unavailable',
@@ -143,15 +182,36 @@ const parseInfo = (ip: string, port: number, response: OscMessage): ConsoleDevic
 };
 
 export class NetworkScanner {
+  // Scans never overlap: the Android native helpers (MulticastLock, process-wide Wi-Fi binding) are
+  // shared state, so a late release from one scan must not undo the setup of the next one.
+  private static scanQueue: Promise<void> = Promise.resolve();
+
   constructor(
     private readonly clientFactory: () => OscClient = () => new OscClient(),
     private readonly transportFactory: () => UdpTransport = () => new UdpTransport(),
   ) {}
 
   async scanForConsoles(): Promise<ConsoleDevice[]> {
+    const previousScan = NetworkScanner.scanQueue;
+    let finishScan: () => void = () => undefined;
+    NetworkScanner.scanQueue = new Promise<void>((resolve) => {
+      finishScan = resolve;
+    });
+
+    try {
+      await previousScan;
+      return await this.scanOnce();
+    } finally {
+      finishScan();
+    }
+  }
+
+  private async scanOnce(): Promise<ConsoleDevice[]> {
     const transport = this.transportFactory();
     const devices = new Map<string, ConsoleDevice>();
-    let unsubscribe: (() => void) | undefined;
+    const state: ScanState = { cancelled: false, androidNetworkPrepared: false };
+    const isAndroid = Platform.OS === 'android';
+    let watchdog: ReturnType<typeof setTimeout> | undefined;
 
     logUdpDiagnostic({
       event: 'discovery_scan_start',
@@ -160,12 +220,73 @@ export class NetworkScanner {
     });
 
     try {
+      const scan = this.runScan(transport, devices, state, isAndroid);
+
+      if (isAndroid) {
+        const timeout = new Promise<void>((resolve) => {
+          watchdog = setTimeout(() => {
+            state.cancelled = true;
+            logUdpDiagnostic({
+              event: 'discovery_watchdog_timeout',
+              timeoutMs: ANDROID_SCAN_WATCHDOG_MS,
+              nativeError: { deviceCount: devices.size },
+            });
+            resolve();
+          }, ANDROID_SCAN_WATCHDOG_MS);
+        });
+        // The losing scan promise must not surface an unhandled rejection after the watchdog wins.
+        scan.catch(() => undefined);
+        await Promise.race([scan, timeout]);
+      } else {
+        await scan;
+      }
+    } finally {
+      state.cancelled = true;
+      if (watchdog) {
+        clearTimeout(watchdog);
+      }
+      transport.close();
+      if (state.androidNetworkPrepared) {
+        // Awaited here (not inside runScan) so it also completes when the watchdog won the race.
+        await this.releaseAndroidNetwork();
+      }
+      logUdpDiagnostic({
+        event: 'discovery_scan_complete',
+        nativeError: { deviceCount: devices.size },
+      });
+    }
+
+    return [...devices.values()];
+  }
+
+  private async runScan(
+    transport: UdpTransport,
+    devices: Map<string, ConsoleDevice>,
+    state: ScanState,
+    isAndroid: boolean,
+  ): Promise<void> {
+    let unsubscribe: (() => void) | undefined;
+
+    try {
+      if (isAndroid) {
+        state.androidNetworkPrepared = true;
+        await this.prepareAndroidNetwork();
+      }
+
       logUdpDiagnostic({
         event: 'discovery_bind_start',
         port: X32Protocol.defaultPort,
         broadcast: true,
       });
-      await transport.bind(0, { broadcast: true });
+      const bind = transport.bind(0, { broadcast: true });
+      if (isAndroid) {
+        await withTimeout(bind, ANDROID_BIND_TIMEOUT_MS, () => {
+          logUdpDiagnostic({ event: 'discovery_bind_timeout', timeoutMs: ANDROID_BIND_TIMEOUT_MS });
+          throw new AppError('UDP_TIMEOUT', i18next.t('consoleDiscovery.noConsoleFoundAndroid'));
+        });
+      } else {
+        await bind;
+      }
       logUdpDiagnostic({
         event: 'discovery_bind_complete',
         port: X32Protocol.defaultPort,
@@ -190,6 +311,14 @@ export class NetworkScanner {
       const broadcasts = await getDiscoveryBroadcastAddresses();
       this.sendDiscoveryBatch(payload, transport, broadcasts);
 
+      if (isAndroid) {
+        // Android broadcast reception is the least reliable path, so sweep the subnet right away
+        // instead of waiting for a silent broadcast window first. Replies are collected meanwhile.
+        await this.sendUnicastDiscovery(payload, transport, devices, state);
+        await this.waitForResponses(devices, UNICAST_RESPONSE_WAIT_MS, 'unicast');
+        return;
+      }
+
       await this.waitForResponses(devices, BROADCAST_RESPONSE_WAIT_MS, 'broadcast');
 
       if (devices.size === 0) {
@@ -197,19 +326,32 @@ export class NetworkScanner {
           event: 'discovery_no_response_after_broadcast',
           timeoutMs: BROADCAST_RESPONSE_WAIT_MS,
         });
-        await this.sendUnicastDiscovery(payload, transport, devices);
+        await this.sendUnicastDiscovery(payload, transport, devices, state);
         await this.waitForResponses(devices, UNICAST_RESPONSE_WAIT_MS, 'unicast');
       }
     } finally {
       unsubscribe?.();
-      transport.close();
-      logUdpDiagnostic({
-        event: 'discovery_scan_complete',
-        nativeError: { deviceCount: devices.size },
-      });
     }
+  }
 
-    return [...devices.values()];
+  private async prepareAndroidNetwork(): Promise<void> {
+    const attempt = async (event: string, call: () => Promise<boolean>): Promise<void> => {
+      const result = await withTimeout(call(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+      logUdpDiagnostic({ event, nativeError: { ok: result } });
+    };
+
+    await attempt('android_multicast_lock_acquire', acquireAndroidMulticastLock);
+    await attempt('android_bind_wifi_network', bindAndroidProcessToWifi);
+  }
+
+  private async releaseAndroidNetwork(): Promise<void> {
+    // The Wi-Fi binding is process-wide state, so an unconfirmed unbind is retried once.
+    let unbound = await withTimeout(unbindAndroidProcessFromWifi(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+    if (!unbound) {
+      unbound = await withTimeout(unbindAndroidProcessFromWifi(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
+      logUdpDiagnostic({ event: 'android_unbind_wifi_retry', nativeError: { ok: unbound } });
+    }
+    await withTimeout(releaseAndroidMulticastLock(), ANDROID_NATIVE_SETUP_TIMEOUT_MS, () => false);
   }
 
   async validateConsole(ip: string, timeoutMs = 5000): Promise<ConsoleDevice> {
@@ -238,6 +380,7 @@ export class NetworkScanner {
     payload: Buffer,
     transport: UdpTransport,
     devices: Map<string, ConsoleDevice>,
+    state: ScanState,
   ): Promise<void> {
     const addresses = await getUnicastDiscoveryAddresses();
     if (addresses.length === 0) {
@@ -248,7 +391,7 @@ export class NetworkScanner {
     }
 
     for (let index = 0; index < addresses.length; index += UNICAST_BATCH_SIZE) {
-      if (devices.size > 0) {
+      if (devices.size > 0 || state.cancelled) {
         return;
       }
 

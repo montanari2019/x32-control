@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: CORRECAO DOS 5 MINOR DO REVIEW (DESENVOLVER)
+
+Contexto: review do PBI-002 aprovou com 5 minor; usuario pediu corrigir todos em sequencia sem piorar o comportamento atual.
+Causa: envio final perdido no unmount; valor remoto descartado sem reconciliacao e sem protecao durante o toque parado; captura no start em toda a largura do thumb; valueStore sem teste; duplicacao/tamanho de useBusGroups.
+Ação: novo hook useMasterFaderSync (throttle 40 ms, flush no unmount, remoto adiado e reaplicado, protecao enquanto interage); constante unica LOCAL_PROTECTION_WINDOW_MS; masterMeterDbfsRef removido; useValueStore movido p/ shared/hooks; thumb restrito ao X (+8 dp); shouldClaimVerticalDrag puro; grantDy evita salto quando captura ocorre no meio do gesto; BusGroupsScreen compõe interacao do master; 4 arquivos de teste novos.
+Resultado: OK.
+Arquivos: busGroups/hooks/{useMasterFaderSync,useBusGroups}.ts; components/{VerticalGroupFader,MasterStrip}.tsx; screens/BusGroupsScreen.tsx; utils/faderGesture.ts; shared/hooks/useValueStore.ts; shared/utils/valueStore.ts; __tests__ (valueStore, useValueStore, faderGesture, useMasterFaderSync); docs doninha dos PBIs.
+Validação: tsc OK (so i18n pre-existente); jest 134/137 (3 falhas pre-existentes em NetworkScanner.test.ts, fora deste escopo); manual no Redmi via adb: arrasto, varredura que passa pelo thumb sem salto, swipe horizontal rola a faixa.
+Pontos atenção: re-review rodada 2 e UAT com dedo real (iOS e Android) pendentes; NetworkScanner.test 3 timeouts de outro agente.

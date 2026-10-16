@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react-native';
 import { MCA_DEFAULT_RAW_VALUE } from '@features/busGroups/services/McaChannelFaderService';
 import { BusGroupsState } from '@features/busGroups/types/busGroups.types';
+import { useOscSubscription } from '@features/busGroups/hooks/useOscSubscription';
 import { useBusGroups } from '@features/busGroups/hooks/useBusGroups';
 import { busMixChannelStore } from '@features/busMix/services/BusMixChannelStore';
 import { Channel } from '@features/busMix/types/Channel';
@@ -301,14 +302,14 @@ describe('useBusGroups', () => {
       expect(subscribeToBusMasterMeterMock).toHaveBeenCalledWith(TEST_BUS_ID, expect.any(Function)),
     );
 
-    expect(result.current.masterMeterDbfs).toBe(-60);
+    expect(result.current.masterMeterStore.get()).toBe(-60);
     expect(result.current.mcas[0]?.faderRawValue).toBe(MCA_DEFAULT_RAW_VALUE);
 
     act(() => {
       busMasterMeterListener?.(-18);
     });
 
-    expect(result.current.masterMeterDbfs).toBe(-18);
+    expect(result.current.masterMeterStore.get()).toBe(-18);
     expect(result.current.mcas[0]?.faderRawValue).toBe(MCA_DEFAULT_RAW_VALUE);
 
     unmount();
@@ -334,12 +335,12 @@ describe('useBusGroups', () => {
       busMasterMeterListener?.(-20);
     });
 
-    expect(result.current.masterMeterDbfs).toBe(-20);
+    expect(result.current.masterMeterStore.get()).toBe(-20);
 
     rerender({ isMasterMeterActive: false });
 
     await waitFor(() => expect(unsubscribeBusMasterMeterMock).toHaveBeenCalledTimes(1));
-    expect(result.current.masterMeterDbfs).toBe(-60);
+    expect(result.current.masterMeterStore.get()).toBe(-60);
 
     rerender({ isMasterMeterActive: true });
 
@@ -349,7 +350,7 @@ describe('useBusGroups', () => {
       busMasterMeterListener?.(-12);
     });
 
-    expect(result.current.masterMeterDbfs).toBe(-12);
+    expect(result.current.masterMeterStore.get()).toBe(-12);
 
     unmount();
   });
@@ -410,5 +411,57 @@ describe('useBusGroups', () => {
     expect(result.current.mcas[0]?.isMuted).toBe(false);
 
     unmount();
+  });
+  describe('master fader drag', () => {
+    afterEach(() => {
+      jest.useRealTimers();
+    });
+
+    it('coalesces OSC sends during a drag burst and always sends the final value', async () => {
+      const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      setBusMasterFaderMock.mockClear();
+      jest.useFakeTimers();
+
+      act(() => {
+        for (let i = 1; i <= 20; i += 1) {
+          result.current.setMasterFader(i / 20);
+        }
+      });
+      act(() => {
+        jest.advanceTimersByTime(100);
+      });
+
+      expect(setBusMasterFaderMock.mock.calls.length).toBeLessThan(5);
+      const lastCall = setBusMasterFaderMock.mock.calls[
+        setBusMasterFaderMock.mock.calls.length - 1
+      ] as unknown[];
+      expect(lastCall[1]).toBe(1);
+      expect(result.current.masterFaderRaw).toBe(1);
+
+      unmount();
+    });
+
+    it('ignores remote master fader values inside the local protection window', async () => {
+      const { result, unmount } = renderHook(() => useBusGroups(TEST_CONSOLE_IP, TEST_BUS_ID));
+      await waitFor(() => expect(result.current.isLoading).toBe(false));
+      const onMasterFader = (useOscSubscription as jest.Mock).mock.calls.at(-1)?.[0]
+        .onMasterFader as (value: number) => void;
+      jest.useFakeTimers();
+
+      act(() => {
+        result.current.setMasterFader(0.9);
+        onMasterFader(0.3);
+      });
+      expect(result.current.masterFaderRaw).toBe(0.9);
+
+      act(() => {
+        jest.advanceTimersByTime(400);
+        onMasterFader(0.3);
+      });
+      expect(result.current.masterFaderRaw).toBe(0.3);
+
+      unmount();
+    });
   });
 });

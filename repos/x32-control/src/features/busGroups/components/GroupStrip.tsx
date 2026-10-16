@@ -116,9 +116,10 @@ const getLabelPlateBackgroundStyle = (isMaster: boolean, accentColor: string) =>
   return { backgroundColor: accentColor };
 };
 
-const getMcaLabelPlateTextStyle = (isMaster: boolean) => {
+const getMcaLabelPlateTextStyle = (compact: boolean, isMaster: boolean) => {
   if (isMaster) {
-    return undefined;
+    // Compact already fixes lineHeight through labelPlateTextCompact.
+    return compact ? undefined : styles.masterLabelPlateText;
   }
 
   return styles.mcaLabelPlateText;
@@ -281,7 +282,7 @@ export const GroupStrip = ({
               style={[
                 styles.labelPlateText,
                 compact && styles.labelPlateTextCompact,
-                getMcaLabelPlateTextStyle(isMaster),
+                getMcaLabelPlateTextStyle(compact, isMaster),
                 getCompactMcaLabelPlateTextStyle(compact, isMaster),
               ]}
             >
@@ -402,6 +403,12 @@ const styles = StyleSheet.create({
   mcaLabelPlateTextCompact: {
     fontSize: 8.5,
     lineHeight: 10,
+  },
+  // Fixed line box: with adjustsFontSizeToFit the Android text height would otherwise follow the
+  // fitted font size, resizing the fader slot (and the dB ruler) on every value change while dragging.
+  masterLabelPlateText: {
+    includeFontPadding: false,
+    lineHeight: 16,
   },
   masterCard: {
     backgroundColor: colors.surface.stripMaster,

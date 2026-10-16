@@ -1,0 +1,9 @@
+PROTÓTIPO HTML/CSS DO APP (ARQUIVO ÚNICO)
+
+Contexto: criar protótipo fiel de todas as telas do app, em um só arquivo compartilhável.
+Causa: iOS sem permissão de Acessibilidade; navegação feita no Android via adb + dados reais da X32 via OSC (leitura).
+Ação: capturadas 9 telas/modais no Android e 1 no iOS; lidos nomes/cores/níveis da mesa; tokens e estilos extraídos do código; gerado docs/prototipo/index.html (HTML+CSS+JS inline, toggle Android/iOS, deep-links por hash).
+Resultado: OK
+Arquivos: docs/prototipo/index.html, docs/prototipo/referencias/*.png
+Validação: render headless no Chrome comparado com screenshots do aparelho (visual)
+Pontos atenção: faders/mute do protótipo não enviam nada à mesa; níveis por bus usam os do Bus 03/04 para todos; iOS só tem 1 captura de referência (demais telas iguais ao Android com safe-area iOS); Presets com itens e restauração derivados do código, não vistos no aparelho.

@@ -1,0 +1,9 @@
+ANDROID DISCOVERY: MELHORIAS DO CODE-REVIEW + TESTE WI-FI OFF
+
+Contexto: aplicar achados F-01..F-05 do review e testar (Android wifi off, iOS simulador, checklist iPhone fisico).
+Causa: n/a (melhorias).
+Ação: NetworkScanner: fila de scans, release nativo aguardado em scanOnce (inclusive no watchdog), unbind Wi-Fi com 1 retry; UdpDiagnostics: logcat so erros em release; Kotlin: MulticastLock com contagem de portadores; testes novos (fila, retry, release no watchdog, logcat release/dev, hook useConsoleDiscovery); checklist uat-ios-iphone-fisico.md.
+Resultado: OK. Android (Redmi Note 9S): Wi-Fi off -> scan termina sozinho, 0 mesas, desvinculo OK; Wi-Fi on -> acha X32. iOS simulador: build instalada e app carregou; toque em Buscar nao automatizavel (sem acessibilidade) -> manual.
+Arquivos: src/shared/network/{NetworkScanner,UdpDiagnostics}.ts; TacimixNetworkInfoModule.kt; __tests__/shared/network/*; __tests__/features/consoleDiscovery/*; spec uat-ios-iphone-fisico.md.
+Validação: tsc OK; jest consoleDiscovery+network 35 testes OK; install Android OK; yarn ios OK.
+Pontos atencao: outro agente editava busGroups em paralelo (bundle iOS quebrou momentaneamente por import faderDebug do WIP dele) - arquivos dele NAO foram commitados; UAT iOS manual pendente.

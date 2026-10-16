@@ -10,7 +10,9 @@ import { x32RawToDb } from '@shared/utils/faderDb';
 import { BusMixService } from '@features/busMix/services/BusMixService';
 import { busMixChannelStore } from '@features/busMix/services/BusMixChannelStore';
 import { Channel } from '@features/busMix/types/Channel';
+import { createValueStore } from '@shared/utils/valueStore';
 import { clampMeterValue, METER_MIN_DBFS } from '@features/busMix/utils/meterDecoder';
+import { useMasterFaderSync, LOCAL_PROTECTION_WINDOW_MS } from './useMasterFaderSync';
 import { useOscSubscription } from './useOscSubscription';
 import { MCA_DEFAULT_RAW_VALUE, McaChannelFaderService } from '../services/McaChannelFaderService';
 import { BusGroupsSecureStoreService } from '../services/BusGroupsSecureStoreService';
@@ -36,7 +38,7 @@ const normalizeEditedMcaName = (dcaNumber: number, name: string): string => {
 
 const PERSIST_DEBOUNCE_MS = 250;
 const MCA_FADER_SEND_INTERVAL_MS = 30;
-const MCA_LOCAL_PROTECTION_WINDOW_MS = 250;
+const MCA_LOCAL_PROTECTION_WINDOW_MS = LOCAL_PROTECTION_WINDOW_MS;
 const MASTER_METER_UPDATE_THRESHOLD_DB = 0.35;
 
 const LEGACY_DEMO_MCA_NAMES: Record<number, string> = {
@@ -101,7 +103,22 @@ export const useBusGroups = (
     [consoleIp, isMockConsole],
   );
   const [state, setState] = useState<BusGroupsState>(() => INITIAL_STATE(busId));
-  const [masterMeterDbfs, setMasterMeterDbfs] = useState(METER_MIN_DBFS);
+  const masterMeterStore = useMemo(() => createValueStore(METER_MIN_DBFS), []);
+  const applyMasterFaderRaw = useCallback((value: number): void => {
+    setState((current) =>
+      current.masterFaderRaw === value ? current : { ...current, masterFaderRaw: value },
+    );
+  }, []);
+  const reportMasterFaderError = useCallback((message: string): void => {
+    setState((current) => ({ ...current, error: message }));
+  }, []);
+  // Declared before the load effect so its cleanup (final OSC send) runs before service.disconnect().
+  const masterFaderSync = useMasterFaderSync({
+    busId,
+    onError: reportMasterFaderError,
+    onValue: applyMasterFaderRaw,
+    service,
+  });
   const [availableChannels, setAvailableChannels] = useState<Channel[]>(() =>
     busMixChannelStore.getSnapshot(consoleIp, busId),
   );
@@ -118,7 +135,6 @@ export const useBusGroups = (
   const pendingMcaBaseRawRef = useRef<Map<number, number>>(new Map());
   const mcaFaderValuesRef = useRef<Map<number, number>>(new Map());
   const mcaLastLocalChangeAtRef = useRef<Map<number, number>>(new Map());
-  const masterMeterDbfsRef = useRef(METER_MIN_DBFS);
 
   useEffect(() => {
     mcasRef.current = state.mcas;
@@ -127,20 +143,21 @@ export const useBusGroups = (
     );
   }, [state.mcas]);
 
-  const updateMasterMeterDbfs = useCallback((dbfs: number): void => {
-    const nextDbfs = clampMeterValue(dbfs);
-    if (Math.abs(nextDbfs - masterMeterDbfsRef.current) < MASTER_METER_UPDATE_THRESHOLD_DB) {
-      return;
-    }
+  const updateMasterMeterDbfs = useCallback(
+    (dbfs: number): void => {
+      const nextDbfs = clampMeterValue(dbfs);
+      if (Math.abs(nextDbfs - masterMeterStore.get()) < MASTER_METER_UPDATE_THRESHOLD_DB) {
+        return;
+      }
 
-    masterMeterDbfsRef.current = nextDbfs;
-    setMasterMeterDbfs(nextDbfs);
-  }, []);
+      masterMeterStore.set(nextDbfs);
+    },
+    [masterMeterStore],
+  );
 
   useEffect(() => {
-    masterMeterDbfsRef.current = METER_MIN_DBFS;
-    setMasterMeterDbfs(METER_MIN_DBFS);
-  }, [busId, consoleIp]);
+    masterMeterStore.set(METER_MIN_DBFS);
+  }, [busId, consoleIp, masterMeterStore]);
 
   const computeMcaFaderValue = useCallback(
     (assignedChannels: McaAssignedChannel[]): number =>
@@ -574,20 +591,6 @@ export const useBusGroups = (
     [busId, consoleIp, demoProvider, mcaFaderService, state.mcas],
   );
 
-  const setMasterFader = useCallback(
-    (value: number): void => {
-      const nextValue = clamp(value);
-      setState((current) => ({
-        ...current,
-        masterFaderRaw: nextValue,
-      }));
-      service.setBusMasterFader(busId, nextValue).catch((error) => {
-        setState((current) => ({ ...current, error: getErrorMessage(error) }));
-      });
-    },
-    [busId, service],
-  );
-
   const toggleMasterMute = useCallback((): void => {
     const nextMuted = !state.masterMuted;
     setState((current) => ({
@@ -653,12 +656,6 @@ export const useBusGroups = (
     [demoProvider],
   );
 
-  const handleRemoteMasterFader = useCallback((value: number): void => {
-    setState((current) =>
-      current.masterFaderRaw === value ? current : { ...current, masterFaderRaw: value },
-    );
-  }, []);
-
   const handleRemoteMasterMute = useCallback((isMuted: boolean): void => {
     setState((current) =>
       current.masterMuted === isMuted ? current : { ...current, masterMuted: isMuted },
@@ -668,18 +665,19 @@ export const useBusGroups = (
   useOscSubscription({
     busId,
     service,
-    onMasterFader: handleRemoteMasterFader,
+    onMasterFader: masterFaderSync.handleRemoteFader,
     onMasterMute: handleRemoteMasterMute,
   });
 
   return {
     ...state,
-    masterMeterDbfs,
+    masterMeterStore,
     availableChannels,
     reload: load,
     setMcaFader,
     toggleMcaMute,
-    setMasterFader,
+    setMasterFader: masterFaderSync.setMasterFader,
+    setMasterInteractionActive: masterFaderSync.setInteractionActive,
     toggleMasterMute,
     toggleMcaChannelAssignment,
     clearMcaChannels,

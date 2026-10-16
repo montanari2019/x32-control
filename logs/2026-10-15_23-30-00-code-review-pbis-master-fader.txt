@@ -1,0 +1,9 @@
+DONINHA CODE REVIEW: PBIs DO FADER MASTER (RODADA 1, PERFIL PROFUNDO)
+
+Contexto: review dos 2 PBIs historicos (pbi-001-fader-master-altura-estavel, pbi-002-fader-master-gesto-osc-medidor), codigo em 4d05743.
+Causa: n/a (review). Perfil profundo por sinal de concorrencia (timers, valores remotos).
+Ação: passes 3 (opus), 4 (sonnet), 5 (haiku) em paralelo + passes 1-2 pelo orquestrador; consolidacao: 2 major candidatos (gesto onStartShouldSet vs CA-04; valueStore sem teste) rebaixados a minor; review.md x2 e status.yml via copy-writer.
+Resultado: OK. PBI-001 APROVADO sem achados; PBI-002 APROVADO com 5 minor (testes do valueStore/gesto, start captura no thumb vs CA-04, envio final perdido ao desmontar, janela de protecao sem reconciliacao, duplicacao/tamanho de useBusGroups).
+Arquivos: .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/{status.yml,pbis/*/review.md}.
+Validação: n/a (review nao roda testes); evidencias por leitura de codigo.
+Pontos atenção: sem spec.md/task.md retroativos; pre-correcao do T-003 nao verificado; doninha-documentation (pos-aprovacao) nao rodada.

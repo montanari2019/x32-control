@@ -117,11 +117,18 @@ Feature specs live under this directory.
   - Automated gates passed: `yarn tsc`, BusGroups tests, BusMix tests, shared X32Protocol test, `git diff --check`.
   - Follow-up fix 2026-05-31: focus-aware meter lifecycle added after return-from-Channels UAT showed the Bus Master meter could freeze on stale `/meters/2` telemetry.
 - `feature/fader-thumb-busmix-style/`
+
   - Status: implemented; manual visual UAT pending.
   - Scope: create a reusable BusMix-style physical fader thumb and apply it to BusGroups Bus Master and MCA faders while preserving each strip's current predominant color.
   - Key decision: extract the BusMix thumb visual into a shared visual-only component so BusMix remains the style source and BusGroups does not copy/paste the layer tree.
   - Validation requirement: BusGroups and BusMix automated gates plus manual portrait/compact visual UAT.
   - Automated gates passed: `yarn tsc --noEmit`, palette helper test, BusGroups tests, BusMix tests, `git diff --check`.
+
+- `feature/master-fader-drag-stability/`
+  - Status: done (2026-10-15). Root cause: master dB label without fixed lineHeight made the fader slot height oscillate while dragging; fixed plus gesture/OSC/meter hardening. Confirmed on Android and iOS.
+  - Scope: Bus Master fader jitter on Android (thumb and ruler shake while dragging with the meter active against a real X32) and over-sensitivity to touch/scroll on iOS.
+  - Leading hypotheses (unproven): meter/state re-renders saturating JS, no local protection window or OSC throttle for the master, `locationX/Y` hit test in `VerticalGroupFader`, non-directional gesture capture.
+  - First step: T-001/T-002 evidence on device before any fix.
 
 ## Suggested Future Specs
 

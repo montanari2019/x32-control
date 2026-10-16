@@ -1,0 +1,9 @@
+BUSGROUPS MASTER FADER: RE-REVIEW (RODADAS 2-4) + DOCUMENTACAO
+
+Contexto: usuario pediu rodar review ate nao haver mais pontos; depois documentacao e fechamento da feature.
+Causa: n/a (review). Rodada 2 achou N-01 major (remoto adiado aplicado apos o envio local final) e N-02 minor (polling de 1 ms com o dedo parado / interacao presa); rodada 3 achou minor (sendNow zerava o adiado antes de o envio dar certo) e um pre-existente (disabled no meio do arrasto); rodada 4 achou minor (restauracao tardia de envio antigo).
+Ação: useMasterFaderSync zera o adiado em sendNow/setMasterFader, nao agenda com o dedo pressionado (release agenda), piso 10 ms, restaura o adiado se o ultimo envio falhar (sendSeqRef); VerticalGroupFader encerra a interacao no unmount e ao ficar disabled; helpers puros isTouchOnThumb/getDragPosition + testes; review.md com rodadas 2-4; doninha-documentation gerou learnings.md dos 2 PBIs e atualizou busGroups.md, architecture.md, concerns.md e testing.md (repos/x32-control/.doninha, fora do git).
+Resultado: OK; rodada 4 APROVADO sem achados abertos; status.yml com review approved e documentation done nos 2 PBIs.
+Arquivos: busGroups/hooks/useMasterFaderSync.ts; components/VerticalGroupFader.tsx; utils/faderGesture.ts; __tests__ (useMasterFaderSync, faderGesture); .doninha/docs/modules/module_002_bus-groups/feature_001_master-fader-drag-stability/**.
+Validação: tsc OK (so i18n pre-existente); jest busGroups+busMix+shared utils/hooks 85/85; 3 falhas pre-existentes em NetworkScanner.test.ts fora do escopo.
+Pontos atenção: celular desconectado, sem teste em aparelho das rodadas 3-4; UAT com dedo real (iOS/Android) e medidor com sinal real pendentes; current_stage de feature no status.yml segue "Documentation (pendente)" (so o copy-writer escreve).

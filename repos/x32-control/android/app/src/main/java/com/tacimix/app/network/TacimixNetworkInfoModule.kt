@@ -1,5 +1,10 @@
 package com.tacimix.app.network
 
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.net.wifi.WifiManager
+import android.util.Log
 import com.facebook.react.bridge.Arguments
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
@@ -10,6 +15,7 @@ import java.net.InterfaceAddress
 import java.net.NetworkInterface
 import java.util.Collections
 
+private const val LOG_TAG = "TacimixDiscovery"
 private const val NETWORK_INFO_ERROR_CODE = "network_interfaces_error"
 private const val NETWORK_INFO_ERROR_MESSAGE = "Nao foi possivel ler interfaces de rede."
 
@@ -23,6 +29,88 @@ class TacimixNetworkInfoModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
   override fun getName(): String = "TacimixNetworkInfo"
+
+  private var multicastLock: WifiManager.MulticastLock? = null
+  private var multicastLockHolders = 0
+
+  @ReactMethod
+  fun log(message: String) {
+    Log.i(LOG_TAG, message)
+  }
+
+  @ReactMethod
+  fun acquireMulticastLock(promise: Promise) {
+    try {
+      val wifiManager =
+          reactApplicationContext.applicationContext.getSystemService(Context.WIFI_SERVICE)
+              as? WifiManager
+      if (wifiManager == null) {
+        promise.resolve(false)
+        return
+      }
+      val lock = multicastLock ?: wifiManager.createMulticastLock("tacimix-discovery").also {
+        it.setReferenceCounted(false)
+        multicastLock = it
+      }
+      synchronized(this) {
+        multicastLockHolders += 1
+        if (!lock.isHeld) {
+          lock.acquire()
+        }
+      }
+      promise.resolve(lock.isHeld)
+    } catch (error: Exception) {
+      promise.reject(NETWORK_INFO_ERROR_CODE, NETWORK_INFO_ERROR_MESSAGE, error)
+    }
+  }
+
+  @ReactMethod
+  fun releaseMulticastLock(promise: Promise) {
+    try {
+      synchronized(this) {
+        multicastLockHolders = maxOf(0, multicastLockHolders - 1)
+        val lock = multicastLock
+        if (multicastLockHolders == 0 && lock != null && lock.isHeld) {
+          lock.release()
+        }
+      }
+      promise.resolve(true)
+    } catch (error: Exception) {
+      promise.reject(NETWORK_INFO_ERROR_CODE, NETWORK_INFO_ERROR_MESSAGE, error)
+    }
+  }
+
+  @ReactMethod
+  fun bindProcessToWifi(promise: Promise) {
+    try {
+      val manager =
+          reactApplicationContext.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE)
+              as? ConnectivityManager
+      if (manager == null) {
+        promise.resolve(false)
+        return
+      }
+      @Suppress("DEPRECATION")
+      val wifi = manager.allNetworks.firstOrNull { network ->
+        manager.getNetworkCapabilities(network)?.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) == true
+      }
+      promise.resolve(wifi != null && manager.bindProcessToNetwork(wifi))
+    } catch (error: Exception) {
+      promise.reject(NETWORK_INFO_ERROR_CODE, NETWORK_INFO_ERROR_MESSAGE, error)
+    }
+  }
+
+  @ReactMethod
+  fun unbindProcessFromWifi(promise: Promise) {
+    try {
+      val manager =
+          reactApplicationContext.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE)
+              as? ConnectivityManager
+      promise.resolve(manager?.bindProcessToNetwork(null) == true)
+    } catch (error: Exception) {
+      promise.reject(NETWORK_INFO_ERROR_CODE, NETWORK_INFO_ERROR_MESSAGE, error)
+    }
+  }
 
   @ReactMethod
   fun getBroadcastAddresses(promise: Promise) {

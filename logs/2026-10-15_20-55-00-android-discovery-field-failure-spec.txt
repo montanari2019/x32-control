@@ -1,0 +1,9 @@
+ANDROID DISCOVERY FIELD FAILURE: SPEC + TASKS
+
+Contexto: usuario relatou que Android (mesma rede da X32 ligada) nao acha a mesa; iOS ok. Pediu analise + pesquisa + tasks via tlc-spec-driven.
+Causa: nao provada. Evidencia: Redmi Note 9S (Android 12, 192.168.1.36, Wi-Fi validado default) com spinner preso 45s+; X32 responde /info em 192.168.1.250 para o Mac. Hipoteses: bind/native promise sem timeout (H1), sem MulticastLock (react-native-udp so adquire em addMembership) (H2), socket fora da rede Wi-Fi quando Wi-Fi sem internet (H3), permissao local network Android 16+ (futuro).
+Ação: leitura de UdpTransport/NetworkScanner/Kotlin/manifest, adb dumpsys + scan real no aparelho, probe UDP do Mac, 3 pesquisas web; criada spec src/features/consoleDiscovery/.specs/feature/android-discovery-field-failure/ (spec, context, design, tasks T-001..T-011); STATE local atualizado.
+Resultado: OK (planejamento); nenhum codigo alterado.
+Arquivos: src/features/consoleDiscovery/.specs/feature/android-discovery-field-failure/*; .specs/STATE.md local.
+Validação: manual (adb, screenshots, probe Python).
+Pontos atenção: passo exato do travamento segue nao provado (logs JS nao chegam ao logcat) -> T-001/T-002 primeiro; spec global android-console-discovery-hardening T-001/T-009 ficam superadas.

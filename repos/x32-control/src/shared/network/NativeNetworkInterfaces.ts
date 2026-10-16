@@ -3,6 +3,11 @@ import { NativeModules, Platform } from 'react-native';
 type TacimixNetworkInfoModule = {
   getBroadcastAddresses?: () => Promise<string[]>;
   getNetworkInterfaces?: () => Promise<NativeNetworkInterface[]>;
+  acquireMulticastLock?: () => Promise<boolean>;
+  releaseMulticastLock?: () => Promise<boolean>;
+  bindProcessToWifi?: () => Promise<boolean>;
+  unbindProcessFromWifi?: () => Promise<boolean>;
+  log?: (message: string) => void;
 };
 
 export type NativeNetworkInterface = {
@@ -71,5 +76,48 @@ export const getNativeNetworkInterfaces = async (): Promise<NativeNetworkInterfa
     return networkInterfaces.filter(isNativeNetworkInterface);
   } catch {
     return [];
+  }
+};
+
+const getAndroidNetworkInfoModule = (): TacimixNetworkInfoModule | undefined =>
+  Platform.OS === 'android'
+    ? (NativeModules.TacimixNetworkInfo as TacimixNetworkInfoModule | undefined)
+    : undefined;
+
+const callAndroidBooleanMethod = async (
+  method: 'acquireMulticastLock' | 'releaseMulticastLock' | 'bindProcessToWifi' | 'unbindProcessFromWifi',
+): Promise<boolean> => {
+  const fn = getAndroidNetworkInfoModule()?.[method];
+  if (!fn) {
+    return false;
+  }
+
+  try {
+    return (await fn()) === true;
+  } catch {
+    return false;
+  }
+};
+
+/** Keeps the Wi-Fi chip delivering broadcast/multicast frames while discovery runs (Android only). */
+export const acquireAndroidMulticastLock = (): Promise<boolean> =>
+  callAndroidBooleanMethod('acquireMulticastLock');
+
+export const releaseAndroidMulticastLock = (): Promise<boolean> =>
+  callAndroidBooleanMethod('releaseMulticastLock');
+
+/** Routes this process' sockets through the Wi-Fi network even when cellular is the default (Android only). */
+export const bindAndroidProcessToWifi = (): Promise<boolean> =>
+  callAndroidBooleanMethod('bindProcessToWifi');
+
+export const unbindAndroidProcessFromWifi = (): Promise<boolean> =>
+  callAndroidBooleanMethod('unbindProcessFromWifi');
+
+/** Writes a line to `adb logcat` (tag TacimixDiscovery). No-op outside Android. */
+export const logNativeDiscovery = (message: string): void => {
+  try {
+    getAndroidNetworkInfoModule()?.log?.(message);
+  } catch {
+    // Diagnostics must never break discovery.
   }
 };

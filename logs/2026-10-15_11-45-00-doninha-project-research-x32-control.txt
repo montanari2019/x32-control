@@ -1,0 +1,9 @@
+DONINHA: PESQUISA COMPLETA DO REPO x32-control
+
+Contexto: start-doninha.prompt.md pedido; criar knowledge base inicial Doninha (skill doninha-project-research, em .github/skills/).
+Causa: workspace multi-repo (repos/x32-control) sem <CODEBASE_DIR> ainda; DONINHA.md index vazio (descrição pendente).
+Ação: resolvido modo "pesquisa completa" (único repo em repos/, prompt pede OVERVIEW+módulos+8 arqs técnicos). Rodado Steps 0->11: 0.5 inventário (305 arqs, 5 features), delegado Steps 1-7.5 a sub-agentes (1 por arq, Step 3 após Step 2 retornar), Step 8 (OVERVIEW.md) escrito pelo orquestrador sem leitura nova de código, Step 9 módulos delegado (4 de 5 features: consoleDiscovery, busSelection, busGroups, busMix; about pulado por trivial), Step 10 DONINHA.md index atualizado, Step 11 .research-state.md gravado. Add ".doninha/" ao .gitignore do repo (contexto regenerável não deve ir pro git do cliente).
+Resultado: OK. 9 arqs em .doninha/docs/codebase/ (stack, structure, architecture, conventions, integrations, concerns, testing, risks, OVERVIEW) + 4 modules/*.md + .research-state.md. Nenhum teto de tamanho/entrada excedido.
+Arquivos: repos/x32-control/.doninha/docs/codebase/{OVERVIEW,stack,structure,architecture,conventions,integrations,concerns,testing,risks}.md; repos/x32-control/.doninha/docs/codebase/modules/{consoleDiscovery,busSelection,busGroups,busMix}.md; repos/x32-control/.doninha/docs/codebase/.research-state.md; repos/x32-control/.gitignore; DONINHA.md.
+Validação: manual — cada arq verificado via wc -w contra teto do template; nenhum excedeu. Conteúdo revisado pelo orquestrador ao consolidar OVERVIEW.md.
+Pontos atenção: risks.md achou race em OscClient.request() (correlação só por endereço OSC, sem id por chamada); sem CI (.github/workflows ausente) apesar de scripts *:ci existirem; about/busSelection/consoleDiscovery/app/theme/types sem teste. módulo "about" ficou sem doc próprio (trivial, resumido inline no mapa).

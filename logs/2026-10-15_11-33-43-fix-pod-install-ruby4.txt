@@ -1,0 +1,9 @@
+FIX: POD INSTALL FALHANDO C/ RUBY 4.0
+
+Contexto: bundle exec pod install falhava c/ LoadError base64; objetivo final é rodar app no simulador iOS via Xcode.
+Causa: Ruby 4.0 removeu gems base64 e nkf da stdlib default; activesupport/cocoapods dependem delas (kconv -> nkf).
+Ação: add gem 'base64' e gem 'nkf' no Gemfile; bundle install p/ regenerar Gemfile.lock; yarn pod (pod install) OK.
+Resultado: OK; pod install c/ 79 pods; yarn ios buildou e lançou app com sucesso no simulador iPhone 17 (bundle com.tacimix.app booted).
+Arquivos: repos/x32-control/Gemfile; repos/x32-control/Gemfile.lock.
+Validação: yarn pod OK; yarn ios OK (build + launch); xcrun simctl confirma app booted.
+Pontos atenção: projeto app ficou em repos/x32-control (movido da raiz); .xcodeproj/.xcworkspace/Podfile/.xcode.env usam só paths relativos, nada hardcoded p/ ajustar; só abrir workspace do novo local no Xcode (entrada antiga em Open Recent é só cache de UI, sem impacto). Gemfile foi revertido 1x durante a sessão por sync externo (iCloud Desktop?) antes de persistir — se reaparecer, verificar sync de Desktop.

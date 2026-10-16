@@ -48,6 +48,8 @@ export const ptBR = {
     failureTitle: 'Falha na descoberta',
     noConsoleFound:
       'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o iPhone está no mesmo Wi-Fi da mesa e se a permissão de Rede Local está ativa.',
+    noConsoleFoundAndroid:
+      'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o celular está no mesmo Wi-Fi da mesa e tente novamente.',
     availableConsole: 'Console disponível',
     demoModel: 'Console de Demonstração',
   },

@@ -69,7 +69,7 @@ describe('UdpTransport', () => {
     };
   };
 
-  it('settles Android bind when native broadcast confirmation never returns', async () => {
+  it('never calls setBroadcast on Android because it blocks the native worker threads', async () => {
     const nativeSetBroadcast = jest.fn();
     const { UdpTransport, ensureLocalNetworkPermission, socket } = loadTransportModule({
       nativeUdpSockets: {
@@ -80,15 +80,21 @@ describe('UdpTransport', () => {
 
     const transport = new UdpTransport();
     const bindPromise = transport.bind(0, { broadcast: true });
-    void bindPromise.catch(() => undefined);
 
     await Promise.resolve();
     await jest.advanceTimersByTimeAsync(1000);
 
     await expect(bindPromise).resolves.toBeUndefined();
     expect(ensureLocalNetworkPermission).toHaveBeenCalledTimes(1);
-    expect(nativeSetBroadcast).toHaveBeenCalledWith(7, true, expect.any(Function));
-    expect(socket.setBroadcast).toHaveBeenCalledWith(true);
+    expect(nativeSetBroadcast).not.toHaveBeenCalled();
+    expect(socket.setBroadcast).not.toHaveBeenCalled();
+  });
+
+  it('binds on Android without waiting when broadcast is not requested', async () => {
+    const { UdpTransport, socket } = loadTransportModule({ platform: 'android' });
+
+    await expect(new UdpTransport().bind(0)).resolves.toBeUndefined();
+    expect(socket.setBroadcast).not.toHaveBeenCalled();
   });
 
   it('preserves the awaited iOS broadcast failure path', async () => {
