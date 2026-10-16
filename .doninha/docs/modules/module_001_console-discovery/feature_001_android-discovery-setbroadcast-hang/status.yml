@@ -1,0 +1,28 @@
+# status.yml — Source of truth for a feature's progress.
+# ONLY the doninha-copy-writer agent writes to this file. Main agents read it but never edit it.
+# Stage values (feature level): pending | in-progress | done
+# PBI stage values: pending | done   (except `review`)
+# review:           pending | approved | changes-requested
+# task values:      pending | review | done
+
+module: module_001_console-discovery
+feature: feature_001_android-discovery-setbroadcast-hang
+created_at: 2026-10-15
+feature_prd_artifact: .doninha/docs/modules/module_001_console-discovery/feature_001_android-discovery-setbroadcast-hang/feature.md
+
+current_stage: "PBI express (doninha-analisar)"
+
+# Feature-level stages (run once per feature)
+stages:
+  discovery: pending
+  structure: done
+
+pbis:
+  descoberta-android-setbroadcast:
+    current_stage: "PBI express (doninha-analisar)"
+    business: pending
+    technical: pending
+    spec: pending
+    plan: pending
+    review: pending
+    documentation: pending

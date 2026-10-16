@@ -1,0 +1,9 @@
+EXECUÇÃO DO APP NO ANDROID (XIAOMI) E VALIDAÇÃO DE FLUXOS
+
+Contexto: Usuário pediu para rodar o app Tacimix (x32-control) no Android físico (Redmi Note 9S) e corrigir problemas encontrados.
+Causa: android/gradlew estava versionado no git com modo 100644 (sem bit de execução), causando "spawn ./gradlew EACCES" ao rodar `yarn android`.
+Ação: chmod +x android/gradlew (local). yarn install executado (postinstall falhou só no pod install iOS, irrelevante para Android). Metro iniciado com --reset-cache. Build via `./gradlew app:installDevelopDebug` concluído e instalado no dispositivo (com.tacimix.app).
+Resultado: OK. App abriu, navegação testada: Descoberta de Console -> Selecione seu Monitor -> Personal Mix Grupos (MCA) -> Personal Mix Channel. Fader, MUTE (toggle visual correto), botão voltar, e "Buscar mesas na rede" (scan UDP completo, sem resultados por não haver X32 real na rede, tratado graciosamente sem crash). Nenhum erro JS/nativo relevante no logcat durante toda a sessão.
+Arquivos: repos/x32-control/android/gradlew (permissão local corrigida, não commitada); repos/x32-control/android/local.properties (sdk.dir já existia).
+Validação: manual via adb (logcat, screenshots, input tap) no dispositivo físico Redmi Note 9S (Android, arm64).
+Pontos atenção: gradlew segue com modo 100644 no git (índice) — recomenda-se `git update-index --chmod=+x android/gradlew` + commit para evitar o mesmo erro em outros clones/CI. Não commitado por não ter sido solicitado explicitamente.

@@ -33,8 +33,6 @@ type BindOptions = {
   broadcast?: boolean;
 };
 
-type UdpSocketSetBroadcast = NonNullable<UdpSocket['setBroadcast']>;
-
 export type UdpMessage = {
   data: Buffer;
   remoteAddress: string;
@@ -45,8 +43,6 @@ export type UdpMessageHandler = (message: UdpMessage) => void;
 export type UdpErrorHandler = (error: AppError) => void;
 
 const SEND_TIMEOUT_MS = 5000;
-const ANDROID_BROADCAST_CONFIRM_TIMEOUT_MS = 250;
-const ANDROID_BROADCAST_FALLBACK_SETTLE_MS = 50;
 const IOS_BROADCAST_DELAY_MS = 500;
 
 export class UdpTransport {
@@ -185,6 +181,20 @@ export class UdpTransport {
       return;
     }
 
+    if (Platform.OS === 'android') {
+      // react-native-udp's Android setBroadcast() blocks forever (upstream issue #82) and each call pins
+      // one of the module's two worker threads, which then starves every later bind/send. Android
+      // sockets are broadcast-capable by default and discovery also sweeps the subnet by unicast, so
+      // the call is skipped entirely.
+      this.broadcastConfigured = true;
+      logUdpDiagnostic({
+        event: 'broadcast_enable_skipped_android',
+        socketId: socket._id,
+        broadcast: true,
+      });
+      return;
+    }
+
     this.broadcastConfigured = true;
     try {
       const socketId = socket._id;
@@ -201,11 +211,6 @@ export class UdpTransport {
       }
 
       if (this.isClosing || socket !== this.socket) {
-        return;
-      }
-
-      if (Platform.OS === 'android') {
-        await this.configureAndroidBroadcast(socket, setBroadcast, socketId, nativeUdpSockets);
         return;
       }
 
@@ -249,106 +254,6 @@ export class UdpTransport {
       this.errorHandlers.forEach((handler) => handler(appError));
       throw appError;
     }
-  }
-
-  private async configureAndroidBroadcast(
-    socket: UdpSocket,
-    setBroadcast: UdpSocketSetBroadcast,
-    socketId: number | undefined,
-    nativeUdpSockets: UdpSocketsNativeModule | undefined,
-  ): Promise<void> {
-    const requestAsyncFallback = async (event: string, context?: { nativeError?: unknown; timeoutMs?: number }) => {
-      logUdpDiagnostic({
-        event,
-        socketId,
-        broadcast: true,
-        nativeError: context?.nativeError,
-        timeoutMs: context?.timeoutMs,
-      });
-
-      try {
-        setBroadcast.call(socket, true);
-        logUdpDiagnostic({
-          event: 'broadcast_enable_async_requested',
-          socketId,
-          broadcast: true,
-        });
-      } catch (fallbackError) {
-        logUdpDiagnostic({
-          event: 'broadcast_enable_async_error',
-          socketId,
-          broadcast: true,
-          nativeError: fallbackError,
-        });
-      }
-
-      await this.delay(ANDROID_BROADCAST_FALLBACK_SETTLE_MS);
-    };
-
-    if (typeof socketId !== 'number' || !nativeUdpSockets?.setBroadcast) {
-      await requestAsyncFallback('broadcast_enable_native_unavailable');
-      return;
-    }
-
-    const nativeAttempt = new Promise<void>((resolve, reject) => {
-      nativeUdpSockets.setBroadcast?.(socketId, true, (error) => {
-        if (error) {
-          reject(error);
-          return;
-        }
-
-        resolve();
-      });
-    });
-
-    try {
-      const result = await Promise.race([
-        nativeAttempt.then(() => 'success' as const),
-        this.delay(ANDROID_BROADCAST_CONFIRM_TIMEOUT_MS).then(() => 'timeout' as const),
-      ]);
-
-      if (result === 'success') {
-        logUdpDiagnostic({
-          event: 'broadcast_enabled',
-          socketId,
-          broadcast: true,
-        });
-        return;
-      }
-    } catch (error) {
-      await requestAsyncFallback('broadcast_enable_fallback_after_error', {
-        nativeError: error,
-      });
-      return;
-    }
-
-    logUdpDiagnostic({
-      event: 'broadcast_enable_timeout',
-      socketId,
-      broadcast: true,
-      timeoutMs: ANDROID_BROADCAST_CONFIRM_TIMEOUT_MS,
-    });
-
-    void nativeAttempt
-      .then(() => {
-        logUdpDiagnostic({
-          event: 'broadcast_enable_late_success',
-          socketId,
-          broadcast: true,
-        });
-      })
-      .catch((error) => {
-        logUdpDiagnostic({
-          event: 'broadcast_enable_late_error',
-          socketId,
-          broadcast: true,
-          nativeError: error,
-        });
-      });
-
-    await requestAsyncFallback('broadcast_enable_fallback_after_timeout', {
-      timeoutMs: ANDROID_BROADCAST_CONFIRM_TIMEOUT_MS,
-    });
   }
 
   private async sendNow(data: Buffer, ip: string, port: number): Promise<void> {

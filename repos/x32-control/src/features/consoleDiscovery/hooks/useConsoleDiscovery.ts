@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react';
+import { Platform } from 'react-native';
 import { getErrorMessage } from '@shared/errors/AppError';
 import { i18next } from '@shared/i18n';
 import { DEMO_CONSOLE_ID, DEMO_CONSOLE_IP } from '@shared/mixer/mock/mockMixerProvider';
@@ -35,7 +36,11 @@ export const useConsoleDiscovery = () => {
       setDevices(appendDemoDevice(found));
       if (found.length === 0) {
         setError(
-          i18next.t('consoleDiscovery.noConsoleFound'),
+          i18next.t(
+            Platform.OS === 'android'
+              ? 'consoleDiscovery.noConsoleFoundAndroid'
+              : 'consoleDiscovery.noConsoleFound',
+          ),
         );
       }
     } catch (scanError) {

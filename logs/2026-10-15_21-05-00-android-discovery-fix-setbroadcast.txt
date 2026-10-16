@@ -1,0 +1,9 @@
+ANDROID DISCOVERY FIX: SETBROADCAST BLOQUEIA THREADS NATIVAS
+
+Contexto: Android nao achava a X32 (mesma rede); iOS ok.
+Causa: setBroadcast() do react-native-udp trava p/ sempre no Android e prende as 2 threads do modulo nativo (native + fallback JS); binds/sends seguintes nunca rodam, nenhum pacote sai. Provado c/ logs nativos temporarios (removidos).
+Ação: UdpTransport pula setBroadcast no Android; NetworkScanner c/ timeouts (bind 4s, nativos 1.5s), watchdog 9s Android, unicast sweep paralelo, MulticastLock + bind do processo na rede Wi-Fi (scan-scoped, release em finally); Kotlin TacimixNetworkInfo (+log, locks, bindProcessToWifi); diagnosticos no logcat (tag TacimixDiscovery); copy Android (en/pt-BR/es); testes novos.
+Resultado: OK; Redmi Note 9S lista osc-server / X32 / 192.168.1.250:10023 em ~3.5s.
+Arquivos: src/shared/network/{UdpTransport,NetworkScanner,NativeNetworkInterfaces,UdpDiagnostics}.ts; TacimixNetworkInfoModule.kt; useConsoleDiscovery.ts; i18n en/pt-BR/es; __tests__/shared/network/*; spec android-discovery-field-failure.
+Validação: tsc OK; jest 28 suites/117 testes OK; compileDevelopDebugKotlin OK; manual no aparelho OK.
+Pontos atenção: falta UAT: mesa desligada, Wi-Fi sem internet, regressao iPhone. Broadcast em si segue sem confirmacao (descoberta depende do sweep unicast).

@@ -48,6 +48,8 @@ export const en = {
     failureTitle: 'Discovery failed',
     noConsoleFound:
       'Could not find an X32/M32 console on the local network. Check that the iPhone is on the same Wi-Fi as the console and that Local Network permission is enabled.',
+    noConsoleFoundAndroid:
+      'Could not find an X32/M32 console on the local network. Check that the phone is on the same Wi-Fi as the console and try again.',
     availableConsole: 'Available console',
     demoModel: 'Demo Console',
   },

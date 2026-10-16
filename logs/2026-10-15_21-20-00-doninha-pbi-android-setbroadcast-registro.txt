@@ -1,0 +1,9 @@
+DONINHA: PBI HISTORICO ANDROID SETBROADCAST (EXPRESS + DESENVOLVER DOCUMENTAL)
+
+Contexto: usuario pediu registrar como artefato tecnico/historico a correcao ja implementada da descoberta Android, sem executar nada novo.
+Causa: n/a (documentacao).
+Ação: doninha-analisar EXPRESS local-only (modulo module_001_console-discovery, feature_001_android-discovery-setbroadcast-hang); copy-writer gerou feature.md, decisions.md, pbis.md, pbi.md, status.yml; sessao.md status analyzed. doninha-desenvolver apenas documental: sessao-dev.md (paused), spec.md, task.md retroativos, sem codigo.
+Resultado: OK.
+Arquivos: .doninha/docs/modules/module_001_console-discovery/feature_001_android-discovery-setbroadcast-hang/**.
+Validação: manual (conferido estrutura e status.yml).
+Pontos atenção: sessao-dev paused (code-review e UAT pendentes, nao marcado done); decisoes assumidas sem perguntar: modo express, local-only, modulo novo; PRD/PBI em nivel de negocio, detalhes tecnicos na spec/log referenciados.

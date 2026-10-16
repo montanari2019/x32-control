@@ -1,5 +1,6 @@
 import { AppError } from '@shared/errors/AppError';
 import { i18next } from '@shared/i18n';
+import { logNativeDiscovery } from './NativeNetworkInterfaces';
 
 const getLocalNetworkBlockedMessage = (): string => i18next.t('errors.localNetworkBlocked');
 
@@ -85,6 +86,8 @@ export const logUdpDiagnostic = (context: UdpDiagnosticContext): void => {
     ...context,
     nativeError: stringifyUnknown(context.nativeError),
   };
+
+  logNativeDiscovery(`${context.event} ${JSON.stringify(details)}`);
 
   if (__DEV__) {
     if (UDP_ERROR_EVENTS.has(context.event)) {

@@ -59,4 +59,44 @@ describe('NativeNetworkInterfaces', () => {
     await expect(module.getNativeBroadcastAddresses()).resolves.toEqual([]);
     await expect(module.getNativeNetworkInterfaces()).resolves.toEqual([]);
   });
+
+  describe('Android discovery helpers', () => {
+    it('calls the native multicast lock and Wi-Fi binding methods on Android', async () => {
+      const native = {
+        acquireMulticastLock: jest.fn().mockResolvedValue(true),
+        releaseMulticastLock: jest.fn().mockResolvedValue(true),
+        bindProcessToWifi: jest.fn().mockResolvedValue(true),
+        unbindProcessFromWifi: jest.fn().mockResolvedValue(true),
+        log: jest.fn(),
+      };
+      const module = loadModule('android', { TacimixNetworkInfo: native });
+
+      await expect(module.acquireAndroidMulticastLock()).resolves.toBe(true);
+      await expect(module.bindAndroidProcessToWifi()).resolves.toBe(true);
+      await expect(module.unbindAndroidProcessFromWifi()).resolves.toBe(true);
+      await expect(module.releaseAndroidMulticastLock()).resolves.toBe(true);
+      module.logNativeDiscovery('hello');
+
+      expect(native.acquireMulticastLock).toHaveBeenCalledTimes(1);
+      expect(native.log).toHaveBeenCalledWith('hello');
+    });
+
+    it('returns false instead of throwing when the native call rejects or is missing', async () => {
+      const rejecting = loadModule('android', {
+        TacimixNetworkInfo: { bindProcessToWifi: jest.fn().mockRejectedValue(new Error('boom')) },
+      });
+      await expect(rejecting.bindAndroidProcessToWifi()).resolves.toBe(false);
+      await expect(rejecting.acquireAndroidMulticastLock()).resolves.toBe(false);
+    });
+
+    it('is a no-op on iOS', async () => {
+      const native = { acquireMulticastLock: jest.fn(), log: jest.fn() };
+      const module = loadModule('ios', { TacimixNetworkInfo: native });
+
+      await expect(module.acquireAndroidMulticastLock()).resolves.toBe(false);
+      module.logNativeDiscovery('hello');
+      expect(native.acquireMulticastLock).not.toHaveBeenCalled();
+      expect(native.log).not.toHaveBeenCalled();
+    });
+  });
 });

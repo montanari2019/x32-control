@@ -1881,7 +1881,7 @@ SPEC CHECKSUMS:
   hermes-engine: f493b0a600aed5dc06532141603688a30a5b2f61
   lottie-ios: 8f959969761e9c45d70353667d00af0e5b9cadb3
   lottie-react-native: 43d1c7c1c297871637d535ee825eaced717827eb
-  RCT-Folly: e78785aa9ba2ed998ea4151e314036f6c49e6d82
+  RCT-Folly: 36fe2295e44b10d831836cc0d1daec5f8abcf809
   RCTDeprecation: 082fbc90409015eac1366795a0b90f8b5cb28efe
   RCTRequired: ca966f4da75b62ce3ea8c538d82cb5ecbb06f12a
   RCTTypeSafety: 2f0bc11f9584fde4c7e6d8b26577c97681051c00
@@ -1914,7 +1914,7 @@ SPEC CHECKSUMS:
   react-native-keep-awake: afad8a51dfef9fe9655a6344771be32c8596d774
   react-native-safe-area-context: 37b720094bcaa36abcd593e08f2ad16507a94769
   react-native-slider: e84c034a5575b8aee6275b1e0089fd28fc907d6f
-  react-native-udp: df79c3cb72c4e71240cd3ce4687bfb8a137140d5
+  react-native-udp: eb7529f9fbe3c012258d531a8f226bf75310e750
   React-NativeModulesApple: fb48894de492e6f9a73e53d8f92a6a792e40666c
   React-perflogger: e1c8cc9ba55dfabb670966d73622eabcfa0ac29e
   React-performancetimeline: 6f8984a509036b7adc382b8d15193733f88ee749
@@ -1949,7 +1949,7 @@ SPEC CHECKSUMS:
   RNScreens: de623eecde9991bf75034b80ff5b05b014f0ffdf
   RNSVG: 2ba49f3376c72d0ee88ee190f6be95e915f238bc
   SocketRocket: d4aabe649be1e368d1318fdf28a022d714d65748
-  Yoga: dea3cbe52f93ef8f722493a505c1add295fe7fba
+  Yoga: b94ff2d7559cb66837c97a3f394ddb817faad4d6
 
 PODFILE CHECKSUM: fd86077e0d7b015a7a6f87518a00402bb8a33e68
 

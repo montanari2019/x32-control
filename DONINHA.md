@@ -13,6 +13,13 @@ research:
 
 ## Repositórios
 
-_Nenhum repositório em `repos/` ainda._
+- **x32-control** — `repos/x32-control` — App mobile (Tacimix) que controla mixes de monitor em consoles Behringer X32/Midas M32 via OSC sobre UDP — React Native 0.78/TypeScript, sem backend
+  → docs: `repos/x32-control/.doninha/docs/codebase/OVERVIEW.md` (6 módulos)
+  - consoleDiscovery — `src/features/consoleDiscovery/` — Descoberta de consoles X32/M32 reais na rede ou console Demo para teste
+  - busSelection — `src/features/busSelection/` — Lista os BUS do console, com nomes/cores do desk e pares estéreo
+  - busGroups — `src/features/busGroups/` — Hub do BUS: master fader/mute e 8 MCAs locais sobre DCA 1–8
+  - busMix — `src/features/busMix/` — Mixagem em tempo real das 48 fontes do bus, com presets locais e meters
+  - about — `src/features/about/` — Tela informativa do app
+  - app, services, shared, theme, types — `src/app/`, `src/services/`, `src/shared/`, `src/theme/`, `src/types/` — Camadas transversais compartilhadas
 
 <!-- doninha:repos:end -->
