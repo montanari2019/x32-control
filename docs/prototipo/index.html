@@ -1,0 +1,1046 @@
+<!doctype html>
+<!-- TaciMix / X32 Control — protótipo autocontido (1 arquivo: HTML + CSS + JS). Edite as seções <style> e <script> abaixo. Atalhos: index.html#groups | #mca1 | #mix | #pan | #presets | #selection | #about | #splash | #groups,ios -->
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TaciMix · Protótipo X32 Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700;900&display=swap" rel="stylesheet" />
+  <style>
+/* ==========================================================================
+   TaciMix / X32 Control — protótipo HTML/CSS
+   Tokens copiados de repos/x32-control/src/theme/tokens.*.ts
+   Unidades em px == dp do React Native (viewport 393 x 873, densidade 2.75)
+   ========================================================================== */
+
+:root {
+  /* colors */
+  --bg-primary: #040b1a;
+  --bg-secondary: #0b1324;
+  --bg-deep: #07101d;
+  --surface-elevated: #131d31;
+  --surface-glass: rgba(255, 255, 255, 0.03);
+  --surface-strip: #182233;
+  --surface-strip-master: #1c2636;
+  --surface-control: #3f4856;
+  --surface-modal: #121a27;
+  --border-primary: #1e3a5f;
+  --border-blue: #1d6fff;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-active: #3e506f;
+  --text-primary: #ffffff;
+  --text-secondary: #8a94a6;
+  --text-tertiary: #5b6577;
+  --text-inverse: #040b1a;
+  --text-muted: #7e8897;
+  --accent: #35c2ff;
+  --status-success: #3ddc97;
+  --status-danger: #ff5a6a;
+  --btn-channels-border: #1d6fff;
+  --btn-channels-text: #eaf2ff;
+  --btn-presets-bg: #1e63f0;
+  --btn-success-bg: #1f8e4b;
+  --btn-success-border: #37d973;
+  --btn-success-text: #95ffbc;
+  --mute-on-bg: #571919;
+  --mute-on-border: #ff4d57;
+  --mute-on-text: #ff8a92;
+  --mute-off-bg: #202938;
+  --mute-off-border: #778193;
+  --mute-off-text: #d7dee8;
+  --meter-green: #00c853;
+  --meter-yellow: #ffd600;
+  --meter-red: #ff1744;
+  --fader-track: #0c1523;
+  --fader-zero: #bfc7d3;
+  --fader-scale-text: #b7c0cc;
+  --pan-axis: #2a364a;
+  --pan-knob: #e8edf5;
+  --pan-indicator: #55a7ff;
+  --backdrop: rgba(0, 0, 0, 0.5);
+  --mixer-track: #27313f;
+  --master-track: #5d6572;
+  --master-thumb: #d8dde5;
+  --master-label: #e7ebf0;
+
+  /* radius / spacing */
+  --r-xs: 4px;
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* device */
+  --dev-w: 393px;
+  --dev-h: 873px;
+  --safe-top: 53px;
+  --safe-bottom: 33px;
+  --font-ui: Roboto, "Helvetica Neue", Arial, system-ui, sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+html, body { height: 100%; }
+body {
+  background: #01040b;
+  color: var(--text-primary);
+  font-family: var(--font-ui);
+  display: flex;
+  min-height: 100vh;
+  overflow: hidden;
+}
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input { font: inherit; }
+
+/* ---------- Page chrome (fora do app) ---------- */
+.sidebar {
+  width: 270px;
+  flex: none;
+  background: #070d1a;
+  border-right: 1px solid #14203a;
+  padding: 20px 16px;
+  overflow-y: auto;
+  font-size: 13px;
+}
+.sidebar h1 { font-size: 16px; font-weight: 800; letter-spacing: .4px; color: var(--accent); }
+.sidebar p.sub { color: var(--text-secondary); font-size: 12px; margin: 4px 0 16px; line-height: 1.4; }
+.sidebar h2 { font-size: 10px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-tertiary); margin: 18px 0 6px; }
+.sidebar .nav-btn {
+  display: block; width: 100%; text-align: left;
+  padding: 8px 10px; margin-bottom: 4px;
+  border-radius: 8px; border: 1px solid transparent;
+  color: #c9d3e3; font-size: 13px;
+}
+.sidebar .nav-btn:hover { background: #0f1a30; }
+.sidebar .nav-btn.active { background: #12203d; border-color: var(--border-primary); color: #fff; }
+.seg { display: flex; border: 1px solid var(--border-primary); border-radius: 8px; overflow: hidden; }
+.seg button { flex: 1; padding: 7px 0; font-size: 12px; font-weight: 700; color: var(--text-secondary); }
+.seg button.active { background: var(--border-primary); color: #fff; }
+.hint { margin-top: 18px; font-size: 11px; color: var(--text-tertiary); line-height: 1.5; }
+
+.stage { flex: 1; display: flex; align-items: center; justify-content: center; position: relative; }
+.scaler { transform-origin: center center; }
+
+/* ---------- Device ---------- */
+.device {
+  position: relative;
+  width: var(--dev-w);
+  height: var(--dev-h);
+  background: var(--bg-primary);
+  border-radius: 38px;
+  overflow: hidden;
+  box-shadow: 0 0 0 10px #0b0d12, 0 0 0 11px #2a2f3a, 0 30px 80px rgba(0, 0, 0, .7);
+  font-family: var(--font-ui);
+  isolation: isolate;
+}
+.device.ios {
+  --dev-w: 402px;
+  --dev-h: 874px;
+  --safe-top: 79px;
+  --safe-bottom: 34px;
+  --font-ui: -apple-system, "SF Pro Text", "SF Pro Display", "Helvetica Neue", system-ui, sans-serif;
+  border-radius: 52px;
+}
+
+/* status bar */
+.statusbar {
+  position: absolute; top: 0; left: 0; right: 0; height: 44px; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 18px; pointer-events: none; color: #fff;
+  font-size: 14px; font-weight: 500;
+}
+.statusbar .icons { display: flex; gap: 6px; align-items: center; }
+.statusbar svg { height: 13px; width: auto; fill: #fff; }
+.device.ios .statusbar { height: 59px; padding: 6px 34px 0 36px; align-items: center; font-size: 17px; font-weight: 600; }
+.device.ios .statusbar .time { padding-top: 2px; }
+.island { display: none; }
+.device.ios .island {
+  display: block; position: absolute; top: 11px; left: 50%; width: 124px; height: 36px;
+  margin-left: -62px; background: #000; border-radius: 20px; z-index: 201;
+}
+.gesture {
+  position: absolute; bottom: 8px; left: 50%; width: 134px; height: 5px; margin-left: -67px;
+  background: #fff; border-radius: 3px; z-index: 200; opacity: .95; pointer-events: none;
+}
+.device.ios .gesture { bottom: 8px; width: 139px; margin-left: -69.5px; }
+
+/* ---------- Screens ---------- */
+.screen {
+  position: absolute; inset: 0;
+  background: var(--bg-primary);
+  padding: var(--safe-top) 16px var(--safe-bottom);
+  display: flex; flex-direction: column;
+  transform: translateX(100%);
+  transition: transform .26s ease;
+  visibility: hidden;
+  overflow: hidden;
+}
+.screen.active { transform: translateX(0); visibility: visible; z-index: 2; }
+.screen.behind { transform: translateX(-24%); visibility: visible; z-index: 1; }
+.screen.no-anim { transition: none; }
+.screen.scroll { overflow-y: auto; }
+.screen.scroll::-webkit-scrollbar { display: none; }
+
+/* ---------- AppHeader ---------- */
+.app-header { display: flex; align-items: center; gap: 8px; min-height: 44px; justify-content: space-between; flex: none; }
+.icon-btn, .action-btn {
+  display: flex; align-items: center; justify-content: center;
+  background: var(--bg-secondary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--r-md);
+  height: 44px; flex: none; z-index: 1;
+}
+.icon-btn { width: 44px; }
+.icon-btn svg { width: 24px; height: 24px; stroke: #fff; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.icon-btn.ghost-space { visibility: hidden; }
+.action-btn { min-width: 44px; padding: 0 12px; font-size: 13px; font-weight: 900; color: #fff; gap: 4px; }
+.action-btn.channels { background: transparent; border-color: var(--btn-channels-border); min-width: 96px; color: var(--btn-channels-text); }
+.action-btn.channels svg { width: 16px; height: 16px; stroke: #fff; fill: none; stroke-width: 2.2; stroke-linecap: round; stroke-linejoin: round; }
+.action-btn.success { background: var(--btn-success-bg); border-color: var(--btn-success-border); min-width: 88px; color: var(--btn-success-text); }
+.title-wrap { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
+.title-wrap .t { font-size: 16px; font-weight: 900; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.title-wrap .s { font-size: 12px; font-weight: 700; color: var(--text-secondary); margin-top: 4px; text-align: center; }
+.pressable:active { opacity: .78; }
+
+/* ---------- Discovery ---------- */
+#discovery { background: var(--bg-primary); }
+.hero-card {
+  background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--r-lg);
+  padding: 24px; display: flex; flex-direction: column; gap: 20px; margin-bottom: 20px; overflow: hidden; flex: none;
+}
+.hero-badge {
+  align-self: flex-start; background: var(--bg-primary); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-pill); padding: 8px 12px; color: var(--accent);
+  font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase;
+}
+.hero { display: flex; flex-direction: column; gap: 12px; }
+.hero h2 { font-size: 28px; font-weight: 900; line-height: 33px; }
+.hero p { color: var(--text-secondary); font-size: 15px; line-height: 21px; }
+.btn {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 18px;
+  border-radius: 8px; font-size: 16px; font-weight: 700; width: 100%;
+}
+.btn.primary { background: var(--accent); color: #fff; }
+.btn.secondary { background: var(--bg-secondary); border: 1px solid var(--border-primary); }
+.btn.disabled { opacity: .55; }
+.spinner {
+  width: 22px; height: 22px; border-radius: 50%; border: 2.5px solid rgba(4, 11, 26, .25); border-top-color: var(--text-inverse);
+  animation: spin .8s linear infinite;
+}
+.spinner.big { width: 32px; height: 32px; border-color: rgba(255,255,255,.15); border-top-color: var(--accent); }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-state { display: flex; flex-direction: column; align-items: center; gap: 12px; padding: 24px; color: var(--text-secondary); font-size: 15px; }
+.console-list { display: flex; flex-direction: column; gap: 12px; margin-top: 16px; }
+.console-card {
+  background: var(--bg-primary); border: 1px solid var(--border-primary); border-radius: var(--r-lg);
+  padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: left; width: 100%;
+}
+.console-card.demo { border-color: var(--accent); border-style: dashed; }
+.console-card .top { display: flex; align-items: flex-start; justify-content: space-between; }
+.console-card .eyebrow { color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; margin-bottom: 8px; }
+.console-card.demo .eyebrow { color: var(--accent); letter-spacing: 1.2px; }
+.console-card .name { font-size: 18px; font-weight: 800; }
+.console-card .meta { color: var(--text-secondary); font-size: 13px; margin-top: 4px; }
+.console-card .ip { color: var(--accent); font-size: 14px; font-weight: 700; }
+.status-pill {
+  display: flex; align-items: center; gap: 8px; background: var(--bg-primary); border: 1px solid var(--border-subtle);
+  border-radius: var(--r-pill); padding: 8px 12px; font-size: 12px; font-weight: 700; text-transform: capitalize;
+}
+.status-pill i { width: 10px; height: 10px; border-radius: 5px; background: var(--status-success); display: block; }
+
+/* ---------- Splash ---------- */
+#splash { align-items: center; justify-content: center; padding: 0; }
+#splash h1 { color: var(--accent); font-size: 34px; font-weight: 800; letter-spacing: 1.1px; margin-bottom: 20px; }
+.bars { display: flex; align-items: center; justify-content: center; gap: 7px; height: 132px; width: 132px; }
+.bars i { width: 9px; border-radius: 5px; background: var(--accent); animation: bar 1.1s ease-in-out infinite; height: 30px; }
+.bars i:nth-child(2) { animation-delay: -.9s; } .bars i:nth-child(3) { animation-delay: -.7s; }
+.bars i:nth-child(4) { animation-delay: -.5s; } .bars i:nth-child(5) { animation-delay: -.3s; } .bars i:nth-child(6) { animation-delay: -.1s; }
+@keyframes bar { 0%, 100% { height: 24px; } 50% { height: 100px; } }
+
+/* ---------- Bus selection ---------- */
+.bus-list { display: flex; flex-direction: column; gap: 12px; margin-top: 28px; padding-bottom: 12px; }
+.bus-card {
+  position: relative; border-radius: 14px; padding: 14px; display: flex; flex-direction: column; gap: 10px;
+  overflow: hidden; text-align: left; width: 100%; transition: transform .1s;
+}
+.bus-card::before { content: ""; position: absolute; inset: 0; background: var(--surface-glass); pointer-events: none; }
+.bus-card:active { transform: scale(.985); opacity: .92; }
+.bus-card .row { display: flex; justify-content: space-between; align-items: flex-start; }
+.bus-card .nm { font-size: 18px; font-weight: 900; flex: 1; padding-right: 12px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bus-card .meta { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; }
+.bus-card .st { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: 999px; padding: 3px 8px; font-size: 11px; font-weight: 900; letter-spacing: .5px; color: var(--text-secondary); }
+.bus-card .id { color: var(--text-secondary); font-size: 12px; font-weight: 800; }
+.bus-card .ch { color: var(--text-tertiary); font-size: 12px; font-weight: 700; }
+.bus-card.mono .row { align-items: center; }
+.bus-card.mono .meta { flex-direction: row; }
+
+/* ---------- About ---------- */
+.about-content { flex: 1; display: flex; flex-direction: column; gap: 16px; justify-content: center; }
+.about-content h2 { font-size: 24px; font-weight: 900; text-align: center; margin-bottom: 8px; }
+.about-card { background: var(--bg-secondary); border: 1px solid var(--border-subtle); border-radius: var(--r-lg); padding: 20px; display: flex; flex-direction: column; gap: 8px; }
+.about-card .l { color: var(--text-secondary); font-size: 12px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; }
+.about-card .v { font-size: 20px; font-weight: 900; }
+.about-year { color: var(--text-muted); font-size: 13px; font-weight: 700; text-align: center; }
+
+/* ---------- Fader thumb (FaderThumb.tsx) ---------- */
+.thumb {
+  position: absolute; width: 32px; height: 52px; border-radius: 14px; left: 50%; margin-left: -16px; margin-top: -26px;
+  filter: drop-shadow(0 8px 5.5px rgba(0, 0, 0, .42)); z-index: 3; touch-action: none; pointer-events: none;
+}
+.thumb .surf {
+  position: absolute; inset: 0; border-radius: 14px; border: 1px solid var(--tb); background: var(--ts); overflow: hidden;
+}
+.thumb .surf > * { position: absolute; }
+.thumb .ls { left: 0; top: 0; bottom: 0; width: 7px; background: rgba(0,0,0,.08); }
+.thumb .rs { right: 0; top: 0; bottom: 0; width: 8px; background: rgba(0,0,0,.14); }
+.thumb .tl { left: 0; right: 0; top: 0; height: 16px; background: rgba(255,255,255,.42); }
+.thumb .bs { left: 0; right: 0; bottom: 0; height: 16px; background: rgba(0,0,0,.08); }
+.thumb .g { left: 50%; margin-left: -11px; width: 22px; height: 4px; border-radius: 2px; background: var(--tg); border-top: 1px solid rgba(0,0,0,.18); border-bottom: 1px solid rgba(255,255,255,.65); }
+.thumb .g1 { top: 10px; } .thumb .g2 { top: 17px; } .thumb .g3 { top: 34px; } .thumb .g4 { top: 41px; }
+.thumb .cl { left: 50%; margin-left: -11.5px; width: 23px; height: 2px; border-radius: 1px; top: 25px; background: var(--tc); }
+.thumb.dim { opacity: .4; }
+
+/* dB scale (FaderDbScale.tsx) */
+.dbscale { position: absolute; left: 50%; margin-left: 4px; top: 0; bottom: 0; width: 26px; opacity: .58; pointer-events: none; z-index: 1; }
+.dbscale span {
+  position: absolute; right: 0; margin-top: -6px; min-width: 20px; text-align: right;
+  font-size: 9px; line-height: 12px; font-weight: 700; color: var(--fader-scale-text);
+}
+
+/* ---------- Bus groups ---------- */
+.groups-content { flex: 1; display: flex; flex-direction: column; gap: 20px; min-height: 0; margin-top: 20px; }
+.strips-scroll { flex: 1; min-height: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; cursor: grab; }
+.strips-scroll::-webkit-scrollbar { display: none; }
+.strips { display: flex; gap: 8px; height: 100%; padding: 0 4px 4px; width: max-content; align-items: stretch; }
+.g-wrapper { display: flex; flex-direction: column; gap: 12px; height: 100%; }
+.g-wrapper.master { width: 72px; } .g-wrapper.mca { width: 70px; }
+.g-card {
+  flex: 1; min-height: 0; border: 1px solid; display: flex; flex-direction: column; gap: 12px;
+  padding: 16px 8px 16px; width: 100%; border-radius: 20px; background: var(--surface-strip);
+}
+.g-card.master { background: var(--surface-strip-master); border-color: var(--border-subtle); }
+.g-card.mca { border-radius: 16px; cursor: pointer; }
+.g-head { display: flex; flex-direction: column; gap: 8px; }
+.kicker { color: var(--text-secondary); font-size: 11px; font-weight: 800; letter-spacing: .8px; text-align: center; text-transform: uppercase; }
+.g-name { font-size: 15px; font-weight: 900; min-height: 38px; text-align: center; display: flex; align-items: flex-start; justify-content: center; line-height: 16px; word-break: break-word; }
+.g-card.mca .g-name { font-size: 13px; line-height: 16px; }
+.g-card.master .g-name { color: #fff; font-size: 13px; }
+.fader-slot { flex: 1; display: flex; align-items: center; justify-content: center; margin-top: 8px; min-height: 220px; position: relative; }
+.g-fader { position: relative; width: 100%; height: 100%; touch-action: none; cursor: ns-resize; }
+.g-fader .inner { position: absolute; left: 0; right: 0; top: 26px; bottom: 26px; }
+.g-fader .trk { position: absolute; left: 50%; top: 0; bottom: 0; width: 5px; margin-left: -2.5px; border-radius: 999px; overflow: hidden; background: var(--mixer-track); }
+.g-card.master .trk { background: var(--master-track); }
+.g-fader .meter { position: absolute; left: 0; right: 0; bottom: 0; background: var(--meter-green); }
+.g-fader .meter.y { background: var(--meter-yellow); } .g-fader .meter.r { background: var(--meter-red); }
+.g-pill {
+  align-self: center; width: 52px; height: 36px; border-radius: 12px; display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 900; color: var(--text-inverse); overflow: hidden; white-space: nowrap; flex: none;
+}
+.g-card.master .g-pill { width: 54px; font-size: 14px; background: var(--master-label); }
+.g-assign { color: var(--text-muted); font-size: 11px; font-weight: 700; text-align: center; margin-top: 8px; min-height: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.g-card.mca .g-assign { margin-top: 0; font-size: 11px; }
+.mute-btn {
+  width: 100%; height: 42px; border-radius: var(--r-md); border: 1px solid var(--mute-off-border); background: var(--mute-off-bg);
+  color: var(--mute-off-text); font-size: 12px; font-weight: 900; letter-spacing: .6px; display: flex; align-items: center; justify-content: center; flex: none;
+}
+.mute-btn.on { background: var(--mute-on-bg); border-color: var(--mute-on-border); color: var(--mute-on-text); }
+.mute-btn:active { opacity: .84; }
+
+/* ---------- Bus mix ---------- */
+.mix-list { flex: 1; min-height: 0; margin: 0 -16px; padding: 16px 16px; display: flex; gap: 1px; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; cursor: grab; }
+.mix-list::-webkit-scrollbar { display: none; }
+.ch-strip {
+  width: 71px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 8px;
+  border: 1.5px solid var(--border-subtle); border-radius: var(--r-md);
+}
+.ch-plate { width: 100%; min-height: 48px; border-radius: var(--r-sm); display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 3px; cursor: pointer; }
+.ch-plate:active { opacity: .85; }
+.ch-plate .n { font-size: 11px; font-weight: 900; min-height: 26px; text-align: center; width: 100%; overflow-wrap: anywhere; line-height: 13px; display: flex; align-items: center; justify-content: center; }
+.ch-plate .lb { background: var(--surface-control); color: #fff; border-radius: var(--r-xs); margin-top: 1px; padding: 2px; font-size: 9px; font-weight: 800; letter-spacing: .3px; line-height: 11px; }
+.ch-body { flex: 1; width: 100%; display: flex; align-items: center; justify-content: center; padding: 8px 0; min-height: 0; }
+.m-fader { position: relative; width: 46px; height: 100%; padding: 8px 0; touch-action: none; cursor: ns-resize; }
+.m-fader .tb { position: relative; width: 100%; height: 100%; }
+.m-fader .trk { position: absolute; left: 50%; top: 0; bottom: 0; width: 8px; margin-left: -4px; background: var(--fader-track); border-radius: 6px; box-shadow: inset 0 0 0 1px rgba(0,0,0,.35); }
+.m-fader .zero { position: absolute; height: 2px; left: 8px; right: 8px; background: var(--fader-zero); z-index: 2; }
+.ch-foot { display: flex; flex-direction: column; align-items: center; gap: 4px; width: 100%; }
+.ch-foot .mute-btn { height: auto; border-radius: var(--r-sm); font-size: 11px; padding: 4px 8px; }
+.ch-foot .db { color: var(--text-muted); font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* ---------- Modais ---------- */
+.overlay { position: absolute; inset: 0; z-index: 100; background: var(--backdrop); display: none; align-items: center; justify-content: center; padding: 20px; }
+.overlay.show { display: flex; animation: fade .18s ease; }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+
+.mca-modal {
+  width: 100%; height: 100%; max-height: 779px; background: var(--surface-modal); border: 1px solid var(--mc, var(--border-active));
+  border-radius: 24px; padding: 20px 20px 16px; display: flex; flex-direction: column; margin-top: 4px;
+}
+.mca-modal header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }
+.mca-modal h3 { font-size: 26px; font-weight: 900; color: var(--mc); line-height: 34px; }
+.x-btn { width: 32px; height: 32px; border-radius: 999px; border: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: center; flex: none; }
+.x-btn svg { width: 16px; height: 16px; stroke: #fff; stroke-width: 2; stroke-linecap: round; fill: none; }
+.x-btn:active { opacity: .72; }
+.mca-modal .sub { display: flex; align-items: center; justify-content: space-between; margin: 10px 0 20px; }
+.mca-modal .sub span { color: var(--text-secondary); font-size: 16px; font-weight: 700; }
+.clear-btn { border: 1px solid #ff4d67; background: rgba(255, 77, 103, .15); color: #ff6b82; border-radius: 12px; padding: 8px 16px; font-size: 14px; font-weight: 800; }
+.clear-btn.off { opacity: .4; }
+.tile-grid { flex: 1; min-height: 0; overflow-y: auto; display: grid; grid-template-columns: repeat(3, 1fr); column-gap: 6px; row-gap: 4px; align-content: start; padding-right: 4px; }
+.tile-grid::-webkit-scrollbar { width: 3px; } .tile-grid::-webkit-scrollbar-thumb { background: #3a4457; border-radius: 3px; }
+.tile { height: 74px; border-radius: 14px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; padding: 0 6px; transition: opacity .12s; }
+.tile .a { font-size: 14px; font-weight: 800; line-height: 17px; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+.tile .b { font-size: 13px; font-weight: 800; line-height: 15px; }
+
+.dialog {
+  width: 100%; max-width: 334px; background: var(--surface-modal); border: 1px solid var(--border-active);
+  border-radius: var(--r-xl); padding: 24px; display: flex; flex-direction: column; gap: 12px;
+}
+.dialog.presets { height: 739px; max-height: 100%; border-radius: 28px; padding: 24px; gap: 8px; }
+.dialog h3 { font-size: 24px; font-weight: 900; line-height: 30px; }
+.dialog .head { display: flex; justify-content: space-between; align-items: flex-start; }
+.dialog .count { font-size: 16px; font-weight: 800; }
+.dialog .helper { color: var(--text-secondary); font-size: 16px; line-height: 21px; margin-bottom: 16px; padding-right: 40px; }
+.dialog .new-btn { height: 48px; width: 100%; border-radius: 12px; border: 1px solid var(--border-primary); background: var(--bg-deep); font-size: 18px; font-weight: 900; margin-bottom: 8px; }
+.dialog .empty { text-align: center; color: var(--text-secondary); font-size: 14.5px; white-space: nowrap; margin-top: 10px; }
+.dialog .input { height: 54px; border: 1px solid var(--border-primary); background: var(--bg-deep); color: #fff; border-radius: 12px; padding: 0 16px; font-size: 18px; margin-top: 8px; outline: none; width: 100%; }
+.dialog .input::placeholder { color: var(--text-secondary); }
+.dialog .btn-row { display: flex; gap: 12px; margin-top: 4px; margin-bottom: 8px; }
+.dialog .btn-row .btn { flex: 1; min-height: 48px; font-size: 16px; white-space: nowrap; font-weight: 800; border-radius: 12px; }
+.dialog .btn.save { background: var(--accent); color: #fff; }
+.dialog .btn.save.disabled { opacity: .55; }
+.dialog .btn.cancel { background: var(--bg-deep); border: 1px solid var(--border-primary); }
+.preset-item { border: 1px solid var(--border-primary); background: var(--bg-deep); border-radius: 12px; padding: 12px 14px; display: flex; align-items: center; gap: 10px; margin-top: 8px; }
+.preset-item .pn { font-size: 16px; font-weight: 800; }
+.preset-item .pd { font-size: 12px; color: var(--text-secondary); margin-top: 2px; }
+.preset-item .grow { flex: 1; }
+.preset-item .mini { border: 1px solid var(--border-active); border-radius: 8px; padding: 6px 10px; font-size: 12px; font-weight: 800; color: #dbe6ff; }
+.preset-item .mini.del { color: #ff8a92; border-color: #6a2530; }
+
+.pan-card { width: 100%; min-width: 300px; background: var(--surface-modal); border: 1px solid var(--border-active); border-radius: var(--r-lg); padding: 20px; display: flex; flex-direction: column; gap: 12px; }
+.pan-card .top { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
+.pan-card .kick { color: var(--text-secondary); font-size: 12px; font-weight: 700; letter-spacing: .8px; text-transform: uppercase; }
+.pan-card h3 { font-size: 24px; font-weight: 900; margin-top: 2px; }
+.pan-val { border: 1px solid var(--border-active); border-radius: var(--r-md); padding: 8px 0; text-align: center; font-size: 20px; font-weight: 900; }
+.pan-axis { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; padding: 0 1px; }
+.pan-axis i { width: 4px; height: 4px; border-radius: 999px; background: var(--pan-axis); display: block; }
+.pan-axis i.c { width: 6px; height: 6px; background: var(--pan-indicator); }
+.pan-touch { min-height: 44px; display: flex; align-items: center; touch-action: none; cursor: pointer; }
+.pan-track { position: relative; width: 100%; height: 4px; border-radius: 999px; background: var(--pan-axis); }
+.pan-fill { position: absolute; top: 0; height: 4px; border-radius: 999px; background: var(--pan-indicator); }
+.pan-center-mark { position: absolute; left: 50%; margin-left: -1px; top: -7px; width: 2px; height: 18px; border-radius: 999px; background: var(--pan-indicator); }
+.pan-thumb { position: absolute; top: 0; width: 28px; height: 28px; margin-left: -14px; margin-top: -12px; border-radius: 50%; background: var(--pan-knob); border: 2px solid var(--border-active); box-shadow: 0 3px 5px rgba(0,0,0,.35); }
+.pan-foot { display: flex; align-items: center; justify-content: space-between; margin-top: 8px; }
+.pan-foot .lbl { color: var(--text-muted); font-size: 12px; font-weight: 700; }
+.pan-foot .ctr { background: var(--surface-control); border: 1px solid var(--border-active); border-radius: 999px; padding: 4px 12px; font-size: 12px; font-weight: 800; }
+
+/* ---------- Toast ---------- */
+.toast-layer { position: absolute; left: 0; right: 0; top: var(--safe-top); z-index: 300; padding: 16px; display: flex; justify-content: flex-end; pointer-events: none; }
+.toast {
+  max-width: 420px; width: 100%; border: 1px solid var(--status-danger); border-radius: var(--r-lg); display: none; overflow: hidden;
+  background: #1a0f19; box-shadow: 0 12px 24px rgba(0, 0, 0, .35);
+}
+.toast.show { display: flex; animation: fade .2s ease; }
+.toast .mk { width: 4px; background: var(--status-danger); }
+.toast .ct { flex: 1; padding: 12px 16px; display: flex; flex-direction: column; gap: 2px; }
+.toast .k { font-size: 11px; font-weight: 800; letter-spacing: .8px; text-transform: uppercase; color: var(--status-danger); }
+.toast .t { font-size: 14px; font-weight: 800; }
+.toast .m { color: var(--text-secondary); font-size: 13px; line-height: 18px; }
+
+/* restore overlay */
+.restore { position: absolute; inset: 0; z-index: 120; background: rgba(4, 11, 26, .82); display: none; flex-direction: column; align-items: center; justify-content: center; gap: 12px; }
+.restore.show { display: flex; }
+.restore .a { font-size: 18px; font-weight: 900; } .restore .b { font-size: 13px; color: var(--text-secondary); }
+
+.g-card.master .g-assign { font-size: 10px; overflow: visible; text-overflow: clip; }
+
+</style>
+</head>
+<body>
+  <aside class="sidebar">
+    <h1>TaciMix · X32 Control</h1>
+    <p class="sub">Protótipo HTML/CSS fiel ao app (React Native). Dados reais da mesa X32-00-4E-D3.</p>
+    <h2>Plataforma</h2>
+    <div class="seg" id="platform">
+      <button data-p="android" class="active">Android</button>
+      <button data-p="ios">iOS</button>
+    </div>
+    <div id="nav"></div>
+    <p class="hint">Tudo é clicável: console → monitor → grupos → Channels → Presets / PAN. Os faders arrastam (só no protótipo, nada é enviado à mesa). Arraste as listas horizontais para rolar.</p>
+  </aside>
+
+  <main class="stage">
+    <div class="scaler" id="scaler">
+      <div class="device" id="device">
+        <div id="screens"></div>
+
+        <div class="overlay" id="ov-mca"></div>
+        <div class="overlay" id="ov-presets"></div>
+        <div class="overlay" id="ov-pan"></div>
+        <div class="restore" id="ov-restore">
+          <div class="spinner big"></div>
+          <div class="a">Restaurando Preset...</div>
+          <div class="b">Aplicando volumes do Bus Mix atual.</div>
+        </div>
+
+        <div class="toast-layer"><div class="toast" id="toast"><div class="mk"></div>
+          <div class="ct"><div class="k">Erro</div><div class="t"></div><div class="m"></div></div></div></div>
+
+        <div id="chrome"></div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+/* ==========================================================================
+   TaciMix / X32 Control — protótipo navegável (HTML/CSS/JS puro)
+   Dados reais lidos da X32 (X32-00-4E-D3, fw 4.02) e das telas do app.
+   Escala dos faders = x32RawToDb / x32DbToRaw de src/shared/utils/faderDb.ts
+   ========================================================================== */
+(() => {
+  'use strict';
+
+  /* ---------------- util: escala de fader X32 ---------------- */
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const rawToDb = (r) => {
+    r = clamp(r, 0, 1);
+    if (r <= 0) return -Infinity;
+    if (r <= 0.25) return -90 + (r / 0.25) * 60;
+    if (r <= 0.5) return -30 + ((r - 0.25) / 0.25) * 20;
+    if (r <= 0.75) return -10 + ((r - 0.5) / 0.25) * 10;
+    return ((r - 0.75) / 0.25) * 10;
+  };
+  const dbToRaw = (db) => {
+    if (!Number.isFinite(db)) return 0;
+    db = clamp(db, -90, 10);
+    if (db <= -30) return ((db + 90) / 60) * 0.25;
+    if (db <= -10) return 0.25 + ((db + 30) / 20) * 0.25;
+    if (db <= 0) return 0.5 + ((db + 10) / 10) * 0.25;
+    return 0.75 + (db / 10) * 0.25;
+  };
+  const MIN_DB = -60, MAX_DB = 10;
+  const RAW_MIN = dbToRaw(MIN_DB), RAW_MAX = dbToRaw(MAX_DB);
+  const SCALE = [10, 0, -10, -20, -30, -40, -50, -60];
+  // posição 0..1 (0 = topo) dentro da trilha -60..+10
+  const rawToTop = (raw) => 1 - clamp((raw - RAW_MIN) / (RAW_MAX - RAW_MIN), 0, 1);
+  const topToRaw = (t) => RAW_MAX - clamp(t, 0, 1) * (RAW_MAX - RAW_MIN);
+  const fmt1 = (db) => {
+    if (!Number.isFinite(db)) return '-∞';
+    const r = Math.round(db * 10) / 10;
+    return r > 0 ? '+' + r : String(r);
+  };
+  const dbPill = (raw) => { const db = rawToDb(raw); return (Number.isFinite(db) ? fmt1(db) : '-∞') + 'dB'; };
+  const dbSpace = (raw) => { const db = rawToDb(raw); return (Number.isFinite(db) ? fmt1(db) : '-∞') + ' dB'; };
+
+  /* ---------------- cores X32 ---------------- */
+  const CTRL = '#3f4856';
+  const BASE = { 1: '#E23B3B', 2: '#38B85E', 3: '#F0D34A', 4: '#397BE8', 5: '#D34FEA', 6: '#44C7D8', 7: '#F4F7FA' };
+  const x32Color = (i) => {
+    const inv = i >= 8;
+    const bg = i === 0 || i === 8 ? CTRL : BASE[i % 8 === 0 ? 0 : i % 8] || CTRL;
+    return { bg, inv, fg: inv ? '#040B1A' : '#FFFFFF' };
+  };
+  const rgba = (hex, a) => {
+    const n = parseInt(hex.slice(1), 16);
+    return `rgba(${n >> 16},${(n >> 8) & 255},${n & 255},${a})`;
+  };
+  const mix = (hex, target, ratio) => {
+    const p = (h) => { const n = parseInt(h.slice(1), 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
+    const a = p(hex), b = p(target);
+    return '#' + a.map((v, i) => Math.round(v + (b[i] - v) * ratio).toString(16).padStart(2, '0')).join('').toUpperCase();
+  };
+  const NEUTRAL = { border: '#CFCFC8', centerLine: '#8A8A84', groove: '#C8C8C2', surface: '#C1BFBF' };
+  const thumbPalette = (surface) => surface
+    ? { surface, border: mix(surface, '#FFFFFF', .36), groove: mix(surface, '#FFFFFF', .18), centerLine: mix(surface, '#000000', .42) }
+    : NEUTRAL;
+  const thumbHTML = (pal, cls = '') =>
+    `<div class="thumb ${cls}" style="--ts:${pal.surface};--tb:${pal.border};--tg:${pal.groove};--tc:${pal.centerLine}">
+       <div class="surf"><i class="ls"></i><i class="rs"></i><i class="tl"></i><i class="bs"></i>
+       <i class="g g1"></i><i class="g g2"></i><i class="cl"></i><i class="g g3"></i><i class="g g4"></i></div></div>`;
+  const scaleHTML = () => `<div class="dbscale">${SCALE.map((db) =>
+    `<span style="top:${rawToTop(dbToRaw(db)) * 100}%">${db > 0 ? '+' + db : db}</span>`).join('')}</div>`;
+
+  /* ---------------- dados reais da mesa ---------------- */
+  const BUSES = [
+    { n: 1,  name: 'BATERA',     color: 1,  st: true,  fader: 0.433 },
+    { n: 3,  name: 'BAIXO',      color: 12, st: true,  fader: 0.6843 },
+    { n: 5,  name: 'GUITARRA',   color: 4,  st: true,  fader: 0.9101 },
+    { n: 7,  name: 'TECLADO',    color: 2,  st: true,  fader: 0.173 },
+    { n: 9,  name: 'VOX 1',      color: 3,  st: true,  fader: 0.7498 },
+    { n: 11, name: 'VOX 2',      color: 3,  st: true,  fader: 0.6373 },
+    { n: 13, name: 'GTR 2',      color: 12, st: true,  fader: 0.6325 },
+    { n: 15, name: 'VOX 3 Mono', color: 11, st: false, fader: 0.7674 },
+    { n: 16, name: 'Rev Voz',    color: 5,  st: false, fader: 0.7546 },
+  ];
+  const pad2 = (n) => String(n).padStart(2, '0');
+  const busLabel = (b) => (b.st ? `Bus ${pad2(b.n)}/${pad2(b.n + 1)}` : `Bus ${pad2(b.n)}`);
+
+  // [nome, cor, nível de envio (raw) para o Bus 03/04]
+  const CHANNELS = [
+    ['KickDrum', 1, .475], ['Snare Top', 1, .475], ['Snare Bottom', 1, .475], ['Talk Bateria', 15, .675],
+    ['MidTom', 1, .475], ['FloorTom', 1, .475], ['Overhd L', 1, .475], ['Overhd R', 1, .475],
+    ['Bass', 4, .7], ['SynthBass', 5, 0], ['VIOLAO', 14, .6438], ['GTR 1 R', 14, .125],
+    ['GTR 2 L', 12, 0], ['GTR 2 R', 12, 0], ['Keys L', 2, .525], ['Keys R', 2, .525],
+    ['Bt Perc L', 9, .3438], ['Bt Perc R', 9, .3438], ['Bt Gtr L', 12, .3313], ['Bt Gtr R', 12, .3313],
+    ['Bt Keys L', 10, .7563], ['Bt Keys R', 10, .7563], ['Ambiencia L', 8, .0125], ['Ambiencia R', 8, .0125],
+    ['Lv1 L', 11, 0], ['Lv1 R', 11, 0], ['Voz 1', 3, .675], ['Voz 2', 3, .6625],
+    ['Voz 3', 3, .425], ['Kadosh 1', 15, .575], ['Kadosh 2', 1, .5938], ['Shure', 2, .4125],
+  ].map(([name, color, level], i) => ({ idx: i + 1, name, color, level, muted: false, pan: 0 }));
+
+  const MCA_COLORS = ['#FF5A6A', '#38D978', '#F0C61C', '#E86AB2', '#A86BFF', '#44C7D8', '#1D63F0', '#FF9F43'];
+  const state = {
+    bus: BUSES[1],
+    platform: 'android',
+    masterRaw: BUSES[1].fader, masterMute: false,
+    mca: MCA_COLORS.map((c, i) => ({
+      n: i + 1, color: c, name: `MCA ${i + 1}`, raw: i === 0 ? dbToRaw(-12) : dbToRaw(0), mute: false,
+      ch: i === 0 ? [1, 2, 3, 5, 6, 7, 8] : [],
+    })),
+    presets: [],
+    panCh: null,
+    mcaOpen: null,
+  };
+
+  /* ---------------- helpers DOM ---------------- */
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+  const device = $('#device');
+  const ICON_BACK = '<svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg>';
+  const ICON_INFO = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9.5"/><path d="M12 11v6"/><circle cx="12" cy="7.6" r=".6" fill="#fff"/></svg>';
+  const ICON_CHEV = '<svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>';
+  const ICON_X = '<svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19"/></svg>';
+
+  /* ---------------- status bar ---------------- */
+  const ANDROID_ICONS = `<svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5a1.5 1.5 0 00-3 0V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5z"/></svg>
+    <svg viewBox="0 0 24 24"><path d="M12 5C7.6 5 3.8 6.8 1 10l2 2c2.2-2.4 5.2-3.8 9-3.8s6.8 1.4 9 3.8l2-2c-2.8-3.2-6.6-5-11-5zm0 6c-2.6 0-4.8 1-6.4 2.7L12 20l6.4-6.3C16.8 12 14.6 11 12 11z"/></svg>
+    <svg viewBox="0 0 28 14" style="height:12px"><rect x="0.5" y="0.5" width="22" height="13" rx="3" fill="none" stroke="#fff" opacity=".6"/><rect x="2" y="2" width="19" height="10" rx="2" fill="#7bd500"/><text x="11.5" y="10.2" font-size="9" font-weight="700" text-anchor="middle" fill="#000">100</text><rect x="24" y="4" width="2.5" height="6" rx="1" fill="#fff" opacity=".7"/></svg>`;
+  const IOS_ICONS = `<svg viewBox="0 0 19 12"><rect x="0" y="8" width="3" height="4" rx="1"/><rect x="5" y="5.5" width="3" height="6.5" rx="1"/><rect x="10" y="3" width="3" height="9" rx="1"/><rect x="15" y="0" width="3" height="12" rx="1"/></svg>
+    <svg viewBox="0 0 17 12"><path d="M8.5 2.3c2.3 0 4.4.9 6 2.4l1.1-1.1C13.7 1.8 11.2.7 8.5.7S3.3 1.8 1.4 3.6l1.1 1.1c1.6-1.5 3.7-2.4 6-2.4zm0 3.3c1.4 0 2.6.5 3.6 1.4l1.1-1.1A7.2 7.2 0 008.5 4c-1.9 0-3.7.7-4.7 1.9l1.1 1.1c1-.9 2.2-1.4 3.6-1.4zM8.5 9a2 2 0 00-1.4.6L8.5 11l1.4-1.4A2 2 0 008.5 9z"/></svg>
+    <svg viewBox="0 0 28 13"><rect x=".5" y=".5" width="24" height="12" rx="3.5" fill="none" stroke="#fff" opacity=".4"/><rect x="2" y="2" width="21" height="9" rx="2.2" fill="#fff"/><rect x="25.5" y="4.3" width="1.8" height="4.4" rx=".8" fill="#fff" opacity=".5"/></svg>`;
+  const buildChrome = () => {
+    const ios = state.platform === 'ios';
+    $('#chrome').innerHTML = `<div class="statusbar"><span class="time">${ios ? '21:39' : '21:41'}</span><span class="icons">${ios ? IOS_ICONS : ANDROID_ICONS}</span></div><div class="island"></div><div class="gesture"></div>`;
+  };
+
+  /* ---------------- navegação ---------------- */
+  const stack = ['discovery'];
+  const screens = {};
+  const show = (id, { animate = true } = {}) => {
+    const cur = screens[stack[stack.length - 1]];
+    const next = screens[id];
+    if (!next) return;
+    $$('.screen').forEach((s) => { if (s !== next) s.classList.remove('active', 'behind'); });
+    if (!animate) next.classList.add('no-anim');
+    if (cur && cur !== next && animate) cur.classList.add('behind');
+    next.classList.add('active');
+    next.classList.remove('behind');
+    if (!animate) requestAnimationFrame(() => next.classList.remove('no-anim'));
+  };
+  const go = (id) => {
+    closeOverlays();
+    const prev = screens[stack[stack.length - 1]];
+    stack.push(id);
+    $$('.screen').forEach((s) => s.classList.remove('behind'));
+    if (prev) prev.classList.add('behind');
+    screens[id].classList.add('active');
+    screens[id].classList.remove('behind');
+    prev && prev !== screens[id] && prev.classList.remove('active');
+    onEnter(id);
+    syncNav();
+  };
+  const back = () => {
+    closeOverlays();
+    if (stack.length < 2) return;
+    const leaving = screens[stack.pop()];
+    const target = screens[stack[stack.length - 1]];
+    leaving.classList.remove('active');
+    target.classList.remove('behind');
+    target.classList.add('active');
+    onEnter(stack[stack.length - 1]);
+    syncNav();
+  };
+  const jump = (id, after) => {
+    closeOverlays();
+    hideToast();
+    stack.length = 0;
+    const flow = { splash: ['splash'], discovery: ['discovery'], selection: ['discovery', 'selection'], groups: ['discovery', 'selection', 'groups'],
+      mix: ['discovery', 'selection', 'groups', 'mix'], about: ['discovery', 'selection', 'about'] }[id];
+    stack.push(...flow);
+    $$('.screen').forEach((s) => s.classList.remove('active', 'behind'));
+    const t = screens[id];
+    t.classList.add('no-anim', 'active');
+    requestAnimationFrame(() => t.classList.remove('no-anim'));
+    onEnter(id);
+    after && setTimeout(after, 30);
+    syncNav();
+  };
+  const onEnter = (id) => { if (id === 'groups') renderGroups(); if (id === 'mix') renderMix(); };
+
+  /* ---------------- overlays ---------------- */
+  const ov = {
+    mca: $('#ov-mca'), presets: $('#ov-presets'), pan: $('#ov-pan'), restore: $('#ov-restore'),
+  };
+  const closeOverlays = () => Object.values(ov).forEach((o) => o.classList.remove('show'));
+  Object.values(ov).forEach((o) => o.addEventListener('pointerdown', (e) => { if (e.target === o && o !== ov.restore) o.classList.remove('show'); }));
+  const toast = $('#toast');
+  let toastTimer;
+  const showToast = (title, msg) => {
+    $('.t', toast).textContent = title; $('.m', toast).textContent = msg;
+    toast.classList.add('show'); clearTimeout(toastTimer); toastTimer = setTimeout(hideToast, 6000);
+  };
+  const hideToast = () => toast.classList.remove('show');
+
+  /* ---------------- telas estáticas ---------------- */
+  const header = ({ title, sub, left = 'back', right = '' }) => `
+    <div class="app-header">
+      ${left === 'back' ? `<button class="icon-btn pressable" data-act="back" aria-label="Voltar">${ICON_BACK}</button>` : ''}
+      <div class="title-wrap">${title ? `<div class="t">${title}</div>` : ''}${sub ? `<div class="s">${sub}</div>` : ''}</div>
+      ${right || (left === 'back' ? '<span class="icon-btn ghost-space"></span>' : '')}
+    </div>`;
+
+  const build = () => {
+    const root = $('#screens');
+    const mk = (id, html, cls = '') => { const s = document.createElement('section'); s.className = 'screen ' + cls; s.id = id; s.innerHTML = html; root.appendChild(s); screens[id] = s; return s; };
+
+    mk('splash', `<h1>TaciMix</h1><div class="bars"><i></i><i></i><i></i><i></i><i></i><i></i></div>`);
+
+    mk('discovery', `
+      <div class="hero-card">
+        <div class="hero-badge">Descoberta de console</div>
+        <div class="hero"><h2>Controle BUS/AUX</h2>
+          <p>Conecte o celular na mesma rede Ethernet ou Wi-Fi da X32/M32 para localizar a mesa e entrar no monitor correto.</p></div>
+        <button class="btn primary pressable" id="scan-btn">Buscar mesas na rede</button>
+      </div>
+      <div id="searching"></div>
+      <div class="console-list" id="consoles">
+        <button class="console-card pressable" data-act="open-console">
+          <div class="top"><div><div class="eyebrow">Console disponível</div><div class="name">osc-server</div><div class="meta">X32</div></div>
+            <div class="status-pill"><i></i>Connected</div></div>
+          <div class="ip">192.168.1.250:10023</div>
+        </button>
+        <button class="console-card demo pressable" data-act="open-console">
+          <div class="top"><div><div class="eyebrow">DEMO</div><div class="name">Demo - X32 Control</div><div class="meta">Console de Demonstração</div></div>
+            <div class="status-pill"><i></i>Demo</div></div>
+        </button>
+      </div>`, 'scroll');
+
+    mk('selection', `
+      ${header({ title: 'Selecione seu Monitor', sub: 'osc-server', right: `<button class="icon-btn pressable" data-act="about" aria-label="About">${ICON_INFO}</button>` })}
+      <div class="scroll-area" style="flex:1;overflow-y:auto;margin:0 -16px;padding:0 16px;scrollbar-width:none">
+        <div class="bus-list" id="bus-list"></div></div>`);
+
+    mk('about', `
+      ${header({ title: '' })}
+      <div class="about-content"><h2>ABOUT</h2>
+        <div class="about-card"><div class="l">Versão do app</div><div class="v">4.4.0</div></div>
+        <div class="about-card"><div class="l">Desenvolvido por</div><div class="v">Ikaro Montanari</div></div>
+        <div class="about-card"><div class="l">Apoio de</div><div class="v">Renan Bohn</div></div>
+        <div class="about-year">2026</div></div>`);
+
+    mk('groups', '');
+    mk('mix', '');
+
+    // lista de buses
+    $('#bus-list').innerHTML = BUSES.map((b, i) => {
+      const c = BASE[x32Color(b.color).bg === CTRL ? 0 : 0] && x32Color(b.color);
+      const has = b.color !== 0 && b.color !== 8;
+      const col = x32Color(b.color);
+      const bg = has ? rgba(col.bg, col.inv ? 0.15 : 0.2) : 'var(--surface-elevated)';
+      const tc = has ? col.bg : '#fff';
+      return `<button class="bus-card pressable ${b.st ? '' : 'mono'}" data-bus="${i}" style="background:${bg}">
+        <div class="row"><div class="nm" style="color:${tc}">${b.name}</div>
+        <div class="meta">${b.st ? '<span class="st">ST</span>' : ''}<span class="id">${busLabel(b)}</span></div></div>
+        <div class="ch">Canais: CH 01-32</div></button>`;
+    }).join('');
+  };
+
+  /* ---------------- Bus Groups ---------------- */
+  const groupStrip = ({ master, label, name, nameColor, raw, borderColor, mute, assign, dim, thumbSurface, id }) => `
+    <div class="g-wrapper ${master ? 'master' : 'mca'}" data-id="${id}">
+      <div class="g-card ${master ? 'master' : 'mca'}" ${master ? '' : `data-act="mca" data-mca="${id}" style="border-color:${borderColor}"`}>
+        <div class="g-head"><div class="kicker">${label}</div><div class="g-name" style="color:${nameColor}">${name}</div></div>
+        <div class="fader-slot">
+          <div class="g-fader" data-fader="${id}" data-master="${master ? 1 : 0}">
+            <div class="inner">
+              <div class="trk">${master ? '<div class="meter" id="master-meter" style="height:12%"></div>' : ''}</div>
+              ${scaleHTML()}
+              <div class="thumb-pos" style="position:absolute;left:0;right:0;top:${rawToTop(raw) * 100}%">${thumbHTML(thumbPalette(thumbSurface), dim ? 'dim' : '')}</div>
+            </div>
+          </div>
+        </div>
+        <div class="g-pill" style="background:${master ? '' : borderColor}">${dbPill(raw)}</div>
+        <div class="g-assign">${assign}</div>
+      </div>
+      <button class="mute-btn ${mute ? 'on' : ''}" data-mute="${id}">MUTE</button>
+    </div>`;
+
+  const renderGroups = () => {
+    const b = state.bus;
+    const el = screens.groups;
+    el.innerHTML = `
+      ${header({ title: 'Personal Mix Grupos', right: `<button class="action-btn channels pressable" data-act="mix" aria-label="Abrir Bus Mix">Channels ${ICON_CHEV}</button>` })}
+      <div class="groups-content"><div class="strips-scroll"><div class="strips">
+        ${groupStrip({ master: true, id: 'master', label: `BUS ${pad2(b.n)}`, name: b.name, nameColor: '#fff', raw: state.masterRaw, mute: state.masterMute, assign: 'Bus master', thumbSurface: '#C1BFBF' })}
+        ${state.mca.map((m) => groupStrip({
+          id: 'mca' + m.n, label: 'MCA', name: m.name, nameColor: m.color, raw: m.raw, borderColor: m.color, mute: m.mute,
+          assign: `${m.ch.length} ${m.ch.length === 1 ? 'canal' : 'canais'}`, dim: m.ch.length === 0, thumbSurface: m.color,
+        })).join('')}
+      </div></div></div>`;
+    // o master usa thumb neutro cinza-claro
+    $('[data-id="master"] .thumb', el).style.cssText += ';--ts:#D8DDE5;--tb:#E9ECF1;--tg:#C5CBD4;--tc:#7C8594';
+  };
+
+  /* ---------------- Bus Mix ---------------- */
+  const renderMix = () => {
+    const b = state.bus;
+    const sub = `BUS ${pad2(b.n)}${b.st ? '/' + pad2(b.n + 1) : ''} · ${b.name}`;
+    screens.mix.innerHTML = `
+      ${header({ title: 'Personal Mix Channel', sub, right: `<button class="action-btn success pressable" data-act="presets">Presets</button>` })}
+      <div class="mix-list" id="mix-list">${CHANNELS.map(chStrip).join('')}</div>`;
+  };
+  const chStrip = (c) => {
+    const col = x32Color(c.color);
+    const label = `CH ${pad2(c.idx)}`;
+    return `<div class="ch-strip" data-ch="${c.idx}" style="background:${rgba(col.bg, .2)}">
+      <div class="ch-plate" data-act="pan" data-ch="${c.idx}" style="background:${col.bg};color:${col.fg}" aria-label="Editar PAN ${label}">
+        <div class="n">${c.name}</div><div class="lb">${label}</div></div>
+      <div class="ch-body"><div class="m-fader" data-mfader="${c.idx}"><div class="tb">
+        <div class="trk"></div>
+        <div class="zero" style="top:${rawToTop(dbToRaw(0)) * 100}%"></div>
+        ${scaleHTML()}
+        <div class="thumb-pos" style="position:absolute;left:0;right:0;top:${rawToTop(c.level) * 100}%">${thumbHTML(NEUTRAL)}</div>
+      </div></div></div>
+      <div class="ch-foot"><button class="mute-btn ${c.muted ? 'on' : ''}" data-cmute="${c.idx}">MUTE</button><span class="db">${dbSpace(c.level)}</span></div>
+    </div>`;
+  };
+
+  /* ---------------- Modais ---------------- */
+  const openMca = (n) => {
+    const m = state.mca[n - 1];
+    state.mcaOpen = n;
+    const o = ov.mca;
+    const draw = () => {
+      o.innerHTML = `<div class="mca-modal" style="--mc:${m.color}">
+        <header><h3>${m.name}</h3><button class="x-btn" data-close aria-label="Fechar modal de MCA">${ICON_X}</button></header>
+        <div class="sub"><span>${m.ch.length === 1 ? 'canal vinculado' : 'canais vinculados'}</span><button class="clear-btn ${m.ch.length ? '' : 'off'}" data-clear>Limpar</button></div>
+        <div class="tile-grid">${CHANNELS.map((c) => {
+          const col = x32Color(c.color); const sel = m.ch.includes(c.idx);
+          return `<button class="tile" data-tile="${c.idx}" style="background:${col.bg};color:${col.fg};opacity:${sel ? 1 : .3}">
+            <span class="a">${c.name}</span><span class="b">CH ${c.idx}</span></button>`;
+        }).join('')}</div></div>`;
+      $('[data-close]', o).onclick = () => { o.classList.remove('show'); renderGroups(); };
+      $('[data-clear]', o).onclick = () => { m.ch = []; draw(); };
+      $$('[data-tile]', o).forEach((t) => t.onclick = () => {
+        const i = +t.dataset.tile; const k = m.ch.indexOf(i);
+        k >= 0 ? m.ch.splice(k, 1) : m.ch.push(i);
+        t.style.opacity = m.ch.includes(i) ? 1 : .3;
+        $('.sub span', o).textContent = m.ch.length === 1 ? 'canal vinculado' : 'canais vinculados';
+        $('[data-clear]', o).classList.toggle('off', !m.ch.length);
+      });
+    };
+    draw(); o.classList.add('show');
+  };
+
+  const openPresets = (mode = 'empty') => {
+    const o = ov.presets;
+    let creating = mode === 'new';
+    const fmtDate = () => new Date().toLocaleString('pt-BR');
+    if (mode === 'items' && !state.presets.length) {
+      state.presets = [{ name: 'Ensaio sábado', at: '14/10/2026 19:42' }, { name: 'Culto domingo', at: '12/10/2026 08:15' }];
+    }
+    const draw = () => {
+      o.innerHTML = `<div class="dialog presets">
+        <div class="head"><h3>Presets do Bus Mix</h3><button class="x-btn" data-close aria-label="Fechar modal de Presets">${ICON_X}</button></div>
+        <div><div class="count">Presets salvos: ${state.presets.length}/10</div></div>
+        <div class="helper">Os Presets ficam salvos apenas neste dispositivo e separados por console e bus.</div>
+        <button class="new-btn pressable" data-new>Novo Preset</button>
+        ${creating ? `<input class="input" placeholder="Digite o nome do Preset" maxlength="30" />
+          <div class="btn-row"><button class="btn save disabled" data-save>Salvar Preset</button><button class="btn cancel" data-cancel>Cancelar</button></div>` : ''}
+        ${state.presets.length ? state.presets.map((p, i) => `<div class="preset-item"><div class="grow"><div class="pn">${p.name}</div><div class="pd">Atualizado em ${p.at}</div></div>
+            <button class="mini" data-restore="${i}">Restaurar</button><button class="mini del" data-del="${i}">Remover</button></div>`).join('')
+          : '<div class="empty">Nenhum Preset salvo para este Bus Mix.</div>'}
+      </div>`;
+      $('[data-close]', o).onclick = () => o.classList.remove('show');
+      $('[data-new]', o).onclick = () => { creating = true; draw(); const i = $('.input', o); i && i.focus(); };
+      const inp = $('.input', o);
+      if (inp) {
+        const save = $('[data-save]', o);
+        inp.oninput = () => save.classList.toggle('disabled', !inp.value.trim());
+        save.onclick = () => { if (!inp.value.trim()) return; state.presets.unshift({ name: inp.value.trim(), at: fmtDate() }); creating = false; draw(); };
+        $('[data-cancel]', o).onclick = () => { creating = false; draw(); };
+      }
+      $$('[data-del]', o).forEach((b) => b.onclick = () => { state.presets.splice(+b.dataset.del, 1); draw(); });
+      $$('[data-restore]', o).forEach((b) => b.onclick = () => { o.classList.remove('show'); showRestore(); });
+    };
+    draw(); o.classList.add('show');
+  };
+  const showRestore = () => { ov.restore.classList.add('show'); setTimeout(() => ov.restore.classList.remove('show'), 1800); };
+
+  const openPan = (idx) => {
+    const c = CHANNELS[idx - 1]; const o = ov.pan;
+    const draw = () => {
+      const v = c.pan; const r = (v + 100) / 200;
+      o.innerHTML = `<div class="pan-card">
+        <div class="top"><div><div class="kick">CH ${pad2(c.idx)}</div><h3>${c.name}</h3></div><button class="x-btn" data-close aria-label="Fechar modal do Personal Mix">${ICON_X}</button></div>
+        <div class="pan-val">${v > 0 ? '+' + v : v}</div>
+        <div class="pan-axis"><i></i><i class="c"></i><i></i></div>
+        <div class="pan-touch" id="pan-touch"><div class="pan-track">
+          <div class="pan-fill" style="left:${Math.min(50, r * 100)}%;width:${Math.abs(r - .5) * 100}%"></div>
+          <div class="pan-center-mark"></div><div class="pan-thumb" style="left:${r * 100}%"></div></div></div>
+        <div class="pan-foot"><span class="lbl">L</span><button class="ctr" data-center>Center</button><span class="lbl">R</span></div></div>`;
+      $('[data-close]', o).onclick = () => o.classList.remove('show');
+      $('[data-center]', o).onclick = () => { c.pan = 0; draw(); };
+      const t = $('#pan-touch', o);
+      const setFrom = (e) => { const rc = $('.pan-track', o).getBoundingClientRect(); const s = rc.width / rc.width; c.pan = Math.round(clamp((e.clientX - rc.left) / (rc.width * scaleFactor()), 0, 1) * 200 - 100); };
+      let drag = false;
+      t.onpointerdown = (e) => { drag = true; t.setPointerCapture(e.pointerId); setFrom(e); live(); };
+      t.onpointermove = (e) => { if (drag) { setFrom(e); live(); } };
+      t.onpointerup = () => { drag = false; };
+      const live = () => {
+        const r2 = (c.pan + 100) / 200;
+        $('.pan-val', o).textContent = c.pan > 0 ? '+' + c.pan : c.pan;
+        $('.pan-thumb', o).style.left = r2 * 100 + '%';
+        const f = $('.pan-fill', o); f.style.left = Math.min(50, r2 * 100) + '%'; f.style.width = Math.abs(r2 - .5) * 100 + '%';
+      };
+    };
+    draw(); o.classList.add('show');
+  };
+
+  /* ---------------- escala do device na tela ---------------- */
+  let curScale = 1;
+  const scaleFactor = () => curScale;
+  const fit = () => {
+    const sc = $('#scaler'); const stage = $('.stage');
+    const dw = device.offsetWidth + 40, dh = device.offsetHeight + 40;
+    curScale = Math.min(1, stage.clientWidth / dw, stage.clientHeight / dh);
+    sc.style.transform = `scale(${curScale})`;
+  };
+
+  /* ---------------- interações (delegação) ---------------- */
+  document.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-act],[data-bus],[data-mute],[data-cmute]');
+    if (!t) return;
+    if (t.dataset.act === 'back') back();
+    else if (t.dataset.act === 'open-console') go('selection');
+    else if (t.dataset.act === 'about') go('about');
+    else if (t.dataset.act === 'mix') go('mix');
+    else if (t.dataset.act === 'presets') openPresets();
+    else if (t.dataset.act === 'pan') openPan(+t.dataset.ch);
+    else if (t.dataset.act === 'mca' && !e.target.closest('.g-fader')) openMca(+t.dataset.mca.replace('mca', ''));
+    else if (t.dataset.bus != null) { state.bus = BUSES[+t.dataset.bus]; state.masterRaw = state.bus.fader; go('groups'); }
+    else if (t.dataset.mute) {
+      const id = t.dataset.mute; t.classList.toggle('on');
+      if (id === 'master') state.masterMute = t.classList.contains('on'); else state.mca[+id.replace('mca', '') - 1].mute = t.classList.contains('on');
+    } else if (t.dataset.cmute) {
+      const c = CHANNELS[+t.dataset.cmute - 1]; c.muted = !c.muted; t.classList.toggle('on', c.muted);
+    }
+  });
+
+  // scan
+  document.addEventListener('click', (e) => {
+    if (e.target.id !== 'scan-btn') return;
+    startSearch(false);
+  });
+  const startSearch = (fail) => {
+    const btn = $('#scan-btn'); btn.classList.add('disabled'); btn.innerHTML = '<div class="spinner"></div>';
+    $('#searching').innerHTML = '<div class="loading-state"><div class="spinner big"></div><div>Procurando consoles via /info...</div></div>';
+    setTimeout(() => {
+      btn.classList.remove('disabled'); btn.textContent = 'Buscar mesas na rede'; $('#searching').innerHTML = '';
+      if (fail) showToast('Falha na descoberta', 'Não foi possível encontrar a mesa X32/M32 na rede local. Verifique se o celular está no mesmo Wi-Fi da mesa e tente novamente.');
+    }, 2200);
+  };
+
+  // arrastar faders + scroll por arrasto
+  document.addEventListener('pointerdown', (e) => {
+    const gf = e.target.closest('.g-fader'); const mf = e.target.closest('.m-fader');
+    if (gf || mf) {
+      const el = gf || mf; const inner = gf ? $('.inner', gf) : $('.tb', mf);
+      const apply = (ev) => {
+        const rc = inner.getBoundingClientRect();
+        const raw = topToRaw((ev.clientY - rc.top) / rc.height);
+        el.querySelector('.thumb-pos').style.top = rawToTop(raw) * 100 + '%';
+        if (gf) {
+          const id = gf.dataset.fader; const wrap = gf.closest('.g-wrapper');
+          $('.g-pill', wrap).textContent = dbPill(raw);
+          if (id === 'master') state.masterRaw = raw; else state.mca[+id.replace('mca', '') - 1].raw = raw;
+        } else {
+          const c = CHANNELS[+mf.dataset.mfader - 1]; c.level = raw;
+          $('.db', mf.closest('.ch-strip')).textContent = dbSpace(raw);
+        }
+      };
+      el.setPointerCapture(e.pointerId); apply(e);
+      const mv = (ev) => apply(ev); const up = () => { el.removeEventListener('pointermove', mv); el.removeEventListener('pointerup', up); };
+      el.addEventListener('pointermove', mv); el.addEventListener('pointerup', up);
+      e.stopPropagation(); return;
+    }
+    const sc = e.target.closest('.strips-scroll, .mix-list');
+    if (sc && e.pointerType === 'mouse' && !e.target.closest('button')) {
+      let x = e.clientX, l = sc.scrollLeft;
+      const mv = (ev) => { sc.scrollLeft = l - (ev.clientX - x) / curScale; };
+      const up = () => { window.removeEventListener('pointermove', mv); window.removeEventListener('pointerup', up); };
+      window.addEventListener('pointermove', mv); window.addEventListener('pointerup', up);
+    }
+  }, true);
+
+  // medidor vivo do master (simulado)
+  let lvl = 0.2;
+  setInterval(() => {
+    const m = $('#master-meter'); if (!m) return;
+    lvl = clamp(lvl + (Math.random() - .5) * .18, .04, .42);
+    m.style.height = lvl * 100 + '%';
+    m.className = 'meter' + (lvl > .8 ? ' r' : lvl > .6 ? ' y' : '');
+  }, 120);
+
+  /* ---------------- sidebar ---------------- */
+  const NAV = [
+    ['Fluxo', null],
+    ['Splash', () => jump('splash')],
+    ['Descoberta de console', () => jump('discovery')],
+    ['Descoberta · buscando', () => { jump('discovery'); setTimeout(() => startSearch(false), 60); }],
+    ['Descoberta · erro (toast)', () => { jump('discovery'); setTimeout(() => startSearch(true), 60); }],
+    ['Selecione seu Monitor', () => jump('selection')],
+    ['About', () => jump('about')],
+    ['Personal Mix Grupos', () => jump('groups')],
+    ['Modal MCA 1 (com canais)', () => { jump('groups'); setTimeout(() => openMca(1), 120); }],
+    ['Modal MCA 6 (vazio)', () => { jump('groups'); setTimeout(() => openMca(6), 120); }],
+    ['Personal Mix Channel', () => jump('mix')],
+    ['Modal PAN', () => { jump('mix'); setTimeout(() => { CHANNELS[0].pan = 4; openPan(1); }, 120); }],
+    ['Presets · vazio', () => { state.presets = []; jump('mix'); setTimeout(() => openPresets(), 120); }],
+    ['Presets · novo', () => { state.presets = []; jump('mix'); setTimeout(() => openPresets('new'), 120); }],
+    ['Presets · com itens', () => { jump('mix'); setTimeout(() => openPresets('items'), 120); }],
+    ['Presets · restaurando', () => { jump('mix'); setTimeout(showRestore, 120); }],
+  ];
+  const nav = $('#nav');
+  NAV.forEach(([label, fn]) => {
+    if (!fn) { const h = document.createElement('h2'); h.textContent = label; nav.appendChild(h); return; }
+    const b = document.createElement('button'); b.className = 'nav-btn'; b.textContent = label;
+    b.onclick = () => { fn(); $$('.nav-btn', nav).forEach((x) => x.classList.toggle('active', x === b)); };
+    nav.appendChild(b);
+  });
+  const syncNav = () => {};
+
+  $$('#platform button').forEach((b) => b.onclick = () => {
+    state.platform = b.dataset.p;
+    $$('#platform button').forEach((x) => x.classList.toggle('active', x === b));
+    device.classList.toggle('ios', state.platform === 'ios');
+    buildChrome(); setTimeout(fit, 0);
+  });
+  window.addEventListener('resize', fit);
+
+  /* ---------------- init ---------------- */
+  build(); buildChrome();
+  screens.discovery.classList.add('active');
+  fit();
+  // deep-link: index.html#groups | #mca1 | #mix | #pan | #presets | #selection | #about | #splash | #ios
+  const hash = location.hash.replace('#', '').split(',');
+  if (hash.includes('ios')) document.querySelector('#platform [data-p="ios"]').click();
+  const h0 = hash.find((x) => x !== 'ios');
+  const routes = { splash: 'Splash', discovery: 'Descoberta de console', selection: 'Selecione seu Monitor', about: 'About', groups: 'Personal Mix Grupos',
+    mca1: 'Modal MCA 1 (com canais)', mca6: 'Modal MCA 6 (vazio)', mix: 'Personal Mix Channel', pan: 'Modal PAN', presets: 'Presets · vazio',
+    presetsnew: 'Presets · novo', presetsitems: 'Presets · com itens' };
+  if (h0 && routes[h0]) $$('.nav-btn').find((b) => b.textContent === routes[h0]).click();
+  window.__proto = { go, back, jump, state };
+})();
+
+</script>
+</body>
+</html>
